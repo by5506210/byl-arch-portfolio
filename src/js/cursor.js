@@ -1,5 +1,5 @@
 // ============================================
-// CUSTOM CURSOR + MAGNETIC NAV
+// CUSTOM CURSOR — iPad-style with magnetic nav
 // ============================================
 
 (function () {
@@ -9,20 +9,23 @@
 
   var mouseX = -100, mouseY = -100;
   var cursorX = -100, cursorY = -100;
+  var snapping = false;
 
   document.addEventListener('mousemove', function (e) {
     mouseX = e.clientX;
     mouseY = e.clientY;
   });
 
-  // Smooth follow
+  // Smooth follow with slight lag
   function updateCursor() {
-    var dx = mouseX - cursorX;
-    var dy = mouseY - cursorY;
-    cursorX += dx * 0.15;
-    cursorY += dy * 0.15;
-    cursor.style.left = cursorX + 'px';
-    cursor.style.top = cursorY + 'px';
+    if (!snapping) {
+      var dx = mouseX - cursorX;
+      var dy = mouseY - cursorY;
+      cursorX += dx * 0.2;
+      cursorY += dy * 0.2;
+      cursor.style.left = cursorX + 'px';
+      cursor.style.top = cursorY + 'px';
+    }
     requestAnimationFrame(updateCursor);
   }
   requestAnimationFrame(updateCursor);
@@ -31,20 +34,36 @@
   document.addEventListener('mouseover', function (e) {
     var target = e.target;
 
-    // Clickable slide images
-    if (target.closest('.slideshow__slide:not(.slideshow__slide--coming-soon)')) {
-      cursor.className = 'cursor cursor--hover-image';
+    // Snap to links/buttons (iPad style — cursor morphs to hug the element)
+    var link = target.closest('a, button, .project-back');
+    if (link && !target.closest('.slideshow__slide')) {
+      var rect = link.getBoundingClientRect();
+      snapping = true;
+      cursor.className = 'cursor cursor--snap';
+      cursor.style.left = (rect.left + rect.width / 2) + 'px';
+      cursor.style.top = (rect.top + rect.height / 2) + 'px';
+      cursor.style.width = (rect.width + 16) + 'px';
+      cursor.style.height = (rect.height + 10) + 'px';
+      cursor.style.borderRadius = '8px';
       return;
     }
 
-    // Links
-    if (target.closest('a') || target.closest('button') || target.closest('.project-back')) {
-      cursor.className = 'cursor cursor--hover-link';
+    // Hovering clickable slide
+    if (target.closest('.slideshow__slide:not(.slideshow__slide--coming-soon)')) {
+      snapping = false;
+      cursor.className = 'cursor cursor--hover-image';
+      cursor.style.width = '';
+      cursor.style.height = '';
+      cursor.style.borderRadius = '';
       return;
     }
 
     // Default
+    snapping = false;
     cursor.className = 'cursor';
+    cursor.style.width = '';
+    cursor.style.height = '';
+    cursor.style.borderRadius = '';
   });
 
   // Magnetic nav links
@@ -54,7 +73,7 @@
       var rect = link.getBoundingClientRect();
       var x = e.clientX - rect.left - rect.width / 2;
       var y = e.clientY - rect.top - rect.height / 2;
-      link.style.transform = 'translate(' + x * 0.3 + 'px, ' + y * 0.3 + 'px)';
+      link.style.transform = 'translate(' + x * 0.2 + 'px, ' + y * 0.2 + 'px)';
     });
 
     link.addEventListener('mouseleave', function () {

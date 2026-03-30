@@ -118,59 +118,39 @@ img {
 }
 
 /* ============================================
-   CUSTOM CURSOR
+   CUSTOM CURSOR — iPad-style
    ============================================ */
 .cursor {
   position: fixed;
   top: 0;
   left: 0;
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 1.5px solid var(--text-primary);
+  background: rgba(26, 26, 26, 0.4);
+  backdrop-filter: blur(1px);
   pointer-events: none;
   z-index: 950;
   transform: translate(-50%, -50%);
-  transition: width 0.3s cubic-bezier(0.23, 1, 0.32, 1),
-              height 0.3s cubic-bezier(0.23, 1, 0.32, 1),
-              background 0.3s ease,
-              border-color 0.3s ease,
-              opacity 0.3s ease;
-  mix-blend-mode: difference;
+  transition: width 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+              height 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+              left 0.15s cubic-bezier(0.23, 1, 0.32, 1),
+              top 0.15s cubic-bezier(0.23, 1, 0.32, 1),
+              background 0.25s ease,
+              border-radius 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+              opacity 0.2s ease;
+}
+
+.cursor--snap {
+  background: rgba(26, 26, 26, 0.06);
+  backdrop-filter: blur(2px);
+  border-radius: 8px;
 }
 
 .cursor--hover-image {
-  width: 80px;
-  height: 80px;
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--white);
-}
-
-.cursor--hover-image::after {
-  content: 'View';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-family: var(--font-mono);
-  font-size: 0.55rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--white);
-  opacity: 1;
-}
-
-.cursor--hover-link {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.cursor--hover-text {
-  width: 4px;
-  height: 4px;
-  background: var(--text-primary);
-  border-color: var(--text-primary);
+  width: 20px;
+  height: 20px;
+  background: rgba(26, 26, 26, 0.25);
 }
 
 .cursor--hidden {
