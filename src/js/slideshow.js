@@ -14,29 +14,33 @@ function initSlideshow() {
   let isAnimating = false;
   let hasScrolled = false;
 
-  // Initialize Lenis for smooth scroll feel (but we intercept wheel events)
-  const lenis = new Lenis({
-    prevent: () => true, // We handle scrolling manually
-  });
-
+  // Initialize Lenis
+  const lenis = new Lenis({ prevent: () => true });
   function raf(time) {
     lenis.raf(time);
     requestAnimationFrame(raf);
   }
   requestAnimationFrame(raf);
 
-  // Position all slides: first visible, rest below viewport
+  // Position slides: first visible, rest hidden below
+  // ALL slides start with z-index 0 except the first
   slides.forEach((slide, i) => {
+    slide.style.position = 'absolute';
+    slide.style.top = '0';
+    slide.style.left = '0';
+    slide.style.width = '100%';
+    slide.style.height = '100vh';
+
     if (i === 0) {
-      gsap.set(slide, { y: 0, zIndex: totalSlides - i });
+      gsap.set(slide, { y: '0%', zIndex: 1, visibility: 'visible' });
     } else {
-      gsap.set(slide, { y: '100%', zIndex: totalSlides - i });
+      gsap.set(slide, { y: '100%', zIndex: i + 1, visibility: 'visible' });
     }
   });
 
-  // Wheel event handler
-  let wheelTimeout;
+  // Wheel handler
   let accumulatedDelta = 0;
+  let wheelTimeout;
   const SCROLL_THRESHOLD = 50;
 
   container.addEventListener('wheel', (e) => {
@@ -44,79 +48,63 @@ function initSlideshow() {
     if (isAnimating) return;
 
     accumulatedDelta += e.deltaY;
-
     clearTimeout(wheelTimeout);
-    wheelTimeout = setTimeout(() => {
-      accumulatedDelta = 0;
-    }, 150);
+    wheelTimeout = setTimeout(() => { accumulatedDelta = 0; }, 150);
 
     if (Math.abs(accumulatedDelta) >= SCROLL_THRESHOLD) {
       if (accumulatedDelta > 0 && currentSlide < totalSlides - 1) {
-        navigateToSlide(currentSlide + 1);
+        goToSlide(currentSlide + 1);
       } else if (accumulatedDelta < 0 && currentSlide > 0) {
-        navigateToSlide(currentSlide - 1);
+        goToSlide(currentSlide - 1);
       }
       accumulatedDelta = 0;
     }
   }, { passive: false });
 
-  // Touch support for mobile
+  // Touch support
   let touchStartY = 0;
-  let touchEndY = 0;
-
   container.addEventListener('touchstart', (e) => {
     touchStartY = e.touches[0].clientY;
   }, { passive: true });
-
   container.addEventListener('touchend', (e) => {
-    touchEndY = e.changedTouches[0].clientY;
-    const diff = touchStartY - touchEndY;
-
+    const diff = touchStartY - e.changedTouches[0].clientY;
     if (isAnimating) return;
-
-    if (diff > 50 && currentSlide < totalSlides - 1) {
-      navigateToSlide(currentSlide + 1);
-    } else if (diff < -50 && currentSlide > 0) {
-      navigateToSlide(currentSlide - 1);
-    }
+    if (diff > 50 && currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
+    else if (diff < -50 && currentSlide > 0) goToSlide(currentSlide - 1);
   }, { passive: true });
 
-  // Keyboard navigation
+  // Keyboard
   document.addEventListener('keydown', (e) => {
     if (isAnimating) return;
     if (document.getElementById('landing').style.display !== 'none') return;
-
     if ((e.key === 'ArrowDown' || e.key === ' ') && currentSlide < totalSlides - 1) {
       e.preventDefault();
-      navigateToSlide(currentSlide + 1);
+      goToSlide(currentSlide + 1);
     } else if (e.key === 'ArrowUp' && currentSlide > 0) {
       e.preventDefault();
-      navigateToSlide(currentSlide - 1);
+      goToSlide(currentSlide - 1);
     }
   });
 
-  function navigateToSlide(targetIndex) {
+  function goToSlide(targetIndex) {
     if (targetIndex === currentSlide || isAnimating) return;
     isAnimating = true;
 
-    // Hide scroll hint on first scroll
     if (!hasScrolled) {
       hasScrolled = true;
       scrollHint.classList.add('slideshow__scroll-hint--hidden');
     }
 
-    const direction = targetIndex > currentSlide ? 1 : -1;
-
-    if (direction === 1) {
-      // Scrolling down: next slide comes up from below
-      // It covers ~80% of current slide (stops at 20% from top)
+    if (targetIndex > currentSlide) {
+      // Scrolling DOWN: next slide rises up ON TOP of current
       const nextSlide = slides[targetIndex];
-      const peekAmount = targetIndex * 20; // Each stacked slide offset
+      // Ensure it's above everything
+      gsap.set(nextSlide, { zIndex: 100 + targetIndex });
 
       gsap.fromTo(nextSlide,
         { y: '100%' },
         {
-          y: 0,
+          y: '0%',
           duration: 0.8,
           ease: 'power2.inOut',
           onComplete: () => {
@@ -126,7 +114,7 @@ function initSlideshow() {
         }
       );
     } else {
-      // Scrolling up: current slide goes back down
+      // Scrolling UP: current slide drops back down, revealing previous
       const currentSlideEl = slides[currentSlide];
 
       gsap.to(currentSlideEl, {
@@ -143,7 +131,7 @@ function initSlideshow() {
 
   // Click handler for project navigation
   slides.forEach((slide) => {
-    slide.addEventListener('click', (e) => {
+    slide.addEventListener('click', () => {
       if (slide.classList.contains('slideshow__slide--coming-soon')) return;
 
       const href = slide.dataset.href;
@@ -152,10 +140,7 @@ function initSlideshow() {
       const img = slide.querySelector('img');
       if (!img) return;
 
-      // Zoom-in transition
       const rect = img.getBoundingClientRect();
-
-      // Create a clone for the zoom animation
       const clone = img.cloneNode(true);
       clone.style.position = 'fixed';
       clone.style.top = rect.top + 'px';
