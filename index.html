@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bryan Youn — Portfolio</title>
+  <meta name="description" content="Portfolio of Bryan Youn — Architecture, Interior Design, and Graphic Design.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <!-- GSAP + ScrollTrigger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <!-- Lenis Smooth Scroll -->
+  <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+
+  <link rel="stylesheet" href="src/css/style.css">
+</head>
+<body>
+
+  <!-- ============================================ -->
+  <!-- LANDING PAGE -->
+  <!-- ============================================ -->
+  <div id="landing" class="landing">
+    <div class="landing__lines" id="landing-lines"></div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- MAIN SITE (hidden until landing transition) -->
+  <!-- ============================================ -->
+  <div id="site" class="site" style="display: none;">
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+      <a href="pages/projects.html" class="nav__link">Projects</a>
+      <a href="pages/about.html" class="nav__link">About Me</a>
+      <a href="pages/contact.html" class="nav__link">Contact Me</a>
+    </nav>
+
+    <!-- Stacking Slideshow -->
+    <div class="slideshow" id="slideshow">
+      <div class="slideshow__scroll-hint" id="scroll-hint">
+        <span>Scroll to explore</span>
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none">
+          <path d="M8 4L8 20M8 20L2 14M8 20L14 14" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </div>
+
+      <div class="slideshow__container" id="slideshow-container">
+
+        <div class="slideshow__slide" data-project="the-triad" data-href="pages/the-triad.html">
+          <img src="assets/images/the-triad/hero.jpg" alt="The Triad">
+          <div class="slideshow__title">The Triad</div>
+        </div>
+
+        <div class="slideshow__slide slideshow__slide--coming-soon" data-project="osterio-novo">
+          <div class="slideshow__coming-soon-card">
+            <span class="slideshow__coming-soon-label">Coming Soon</span>
+            <span class="slideshow__coming-soon-title">Osterio Novo</span>
+          </div>
+        </div>
+
+        <div class="slideshow__slide slideshow__slide--coming-soon" data-project="eden-museum">
+          <img src="assets/images/eden-museum/hero.jpg" alt="Eden Museum of Modern Art">
+          <div class="slideshow__title">Eden Museum of Modern Art</div>
+          <div class="slideshow__badge">Coming Soon</div>
+        </div>
+
+        <div class="slideshow__slide" data-project="tolman" data-href="pages/tolman.html">
+          <img src="assets/images/tolman/hero.png" alt="Tolman Apartment Living Space">
+          <div class="slideshow__title">Tolman Apartment Living Space</div>
+        </div>
+
+        <div class="slideshow__slide" data-project="maple-xi" data-href="pages/maple-xi.html">
+          <img src="assets/images/maple-xi/hero.png" alt="Maple Xi Apartment Interior">
+          <div class="slideshow__title">Maple Xi Apartment Interior</div>
+        </div>
+
+        <div class="slideshow__slide" data-project="aphelion" data-href="pages/aphelion.html">
+          <img src="assets/images/aphelion/hero.jpg" alt="Aphelion Lamp">
+          <div class="slideshow__title">Aphelion Lamp</div>
+        </div>
+
+        <div class="slideshow__slide slideshow__slide--coming-soon" data-project="morphic-vector">
+          <div class="slideshow__coming-soon-card">
+            <span class="slideshow__coming-soon-label">Coming Soon</span>
+            <span class="slideshow__coming-soon-title">Morphic Vector System</span>
+          </div>
+        </div>
+
+        <div class="slideshow__slide" data-project="modulor" data-href="pages/modulor.html">
+          <img src="assets/images/modulor/hero.png" alt="Modulor Book Cover">
+          <div class="slideshow__title">Modulor Book Cover</div>
+        </div>
+
+        <div class="slideshow__slide" data-project="act-before-it-burns" data-href="pages/act-before-it-burns.html">
+          <img src="assets/images/act-before-it-burns/hero.png" alt="ACT BEFORE IT BURNS Poster">
+          <div class="slideshow__title">ACT BEFORE IT BURNS</div>
+        </div>
+
+        <div class="slideshow__slide" data-project="marty-supreme" data-href="pages/marty-supreme.html">
+          <img src="assets/images/marty-supreme/hero.jpg" alt="MARTY SUPREME Poster">
+          <div class="slideshow__title">MARTY SUPREME</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="src/js/landing.js"></script>
+  <script src="src/js/slideshow.js"></script>
+</body>
+</html>
