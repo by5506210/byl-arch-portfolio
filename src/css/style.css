@@ -130,7 +130,7 @@ img {
   background: rgba(232, 228, 223, 0.5);
   backdrop-filter: blur(1px);
   pointer-events: none;
-  z-index: 950;
+  z-index: 10000;
   transform: translate(-50%, -50%);
   transition: width 0.25s cubic-bezier(0.23, 1, 0.32, 1),
               height 0.25s cubic-bezier(0.23, 1, 0.32, 1),
