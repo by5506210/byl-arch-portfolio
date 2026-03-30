@@ -3,78 +3,70 @@
 // ============================================
 
 function initSlideshow() {
-  const container = document.getElementById('slideshow-container');
-  const slides = document.querySelectorAll('.slideshow__slide');
-  const scrollHint = document.getElementById('scroll-hint');
-  const totalSlides = slides.length;
+  var container = document.getElementById('slideshow-container');
+  var slides = Array.from(document.querySelectorAll('.slideshow__slide'));
+  var scrollHint = document.getElementById('scroll-hint');
+  var totalSlides = slides.length;
 
   if (totalSlides === 0) return;
 
-  let currentSlide = 0;
-  let isAnimating = false;
-  let hasScrolled = false;
+  var currentSlide = 0;
+  var isAnimating = false;
+  var hasScrolled = false;
 
-  // Initialize Lenis
-  const lenis = new Lenis({ prevent: () => true });
-  function raf(time) {
-    lenis.raf(time);
-    requestAnimationFrame(raf);
-  }
-  requestAnimationFrame(raf);
-
-  // Position slides: first visible, rest hidden below
-  // ALL slides start with z-index 0 except the first
-  slides.forEach((slide, i) => {
+  // Setup: first slide visible on top, rest hidden below
+  // CRITICAL: each slide gets incrementing z-index so later slides are ON TOP
+  slides.forEach(function (slide, i) {
     slide.style.position = 'absolute';
     slide.style.top = '0';
     slide.style.left = '0';
     slide.style.width = '100%';
     slide.style.height = '100vh';
+    slide.style.background = '#e8e4df';
+    slide.style.zIndex = String(i + 1);
 
     if (i === 0) {
-      gsap.set(slide, { y: '0%', zIndex: 1, visibility: 'visible' });
+      slide.style.transform = 'translateY(0%)';
     } else {
-      gsap.set(slide, { y: '100%', zIndex: i + 1, visibility: 'visible' });
+      slide.style.transform = 'translateY(100%)';
     }
   });
 
   // Wheel handler
-  let accumulatedDelta = 0;
-  let wheelTimeout;
-  const SCROLL_THRESHOLD = 50;
+  var accumulatedDelta = 0;
+  var wheelTimeout;
 
-  container.addEventListener('wheel', (e) => {
+  container.addEventListener('wheel', function (e) {
     e.preventDefault();
     if (isAnimating) return;
 
     accumulatedDelta += e.deltaY;
     clearTimeout(wheelTimeout);
-    wheelTimeout = setTimeout(() => { accumulatedDelta = 0; }, 150);
+    wheelTimeout = setTimeout(function () { accumulatedDelta = 0; }, 150);
 
-    if (Math.abs(accumulatedDelta) >= SCROLL_THRESHOLD) {
-      if (accumulatedDelta > 0 && currentSlide < totalSlides - 1) {
-        goToSlide(currentSlide + 1);
-      } else if (accumulatedDelta < 0 && currentSlide > 0) {
-        goToSlide(currentSlide - 1);
-      }
+    if (accumulatedDelta > 50 && currentSlide < totalSlides - 1) {
+      goToSlide(currentSlide + 1);
+      accumulatedDelta = 0;
+    } else if (accumulatedDelta < -50 && currentSlide > 0) {
+      goToSlide(currentSlide - 1);
       accumulatedDelta = 0;
     }
   }, { passive: false });
 
   // Touch support
-  let touchStartY = 0;
-  container.addEventListener('touchstart', (e) => {
+  var touchStartY = 0;
+  container.addEventListener('touchstart', function (e) {
     touchStartY = e.touches[0].clientY;
   }, { passive: true });
-  container.addEventListener('touchend', (e) => {
-    const diff = touchStartY - e.changedTouches[0].clientY;
+  container.addEventListener('touchend', function (e) {
+    var diff = touchStartY - e.changedTouches[0].clientY;
     if (isAnimating) return;
     if (diff > 50 && currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
     else if (diff < -50 && currentSlide > 0) goToSlide(currentSlide - 1);
   }, { passive: true });
 
   // Keyboard
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', function (e) {
     if (isAnimating) return;
     if (document.getElementById('landing').style.display !== 'none') return;
     if ((e.key === 'ArrowDown' || e.key === ' ') && currentSlide < totalSlides - 1) {
@@ -95,53 +87,58 @@ function initSlideshow() {
       scrollHint.classList.add('slideshow__scroll-hint--hidden');
     }
 
+    var slide;
+
     if (targetIndex > currentSlide) {
-      // Scrolling DOWN: next slide rises up ON TOP of current
-      const nextSlide = slides[targetIndex];
-      // Ensure it's above everything
-      gsap.set(nextSlide, { zIndex: 100 + targetIndex });
+      // Scrolling DOWN: next slide rises up ON TOP
+      slide = slides[targetIndex];
+      slide.style.transition = 'none';
+      slide.style.transform = 'translateY(100%)';
 
-      gsap.fromTo(nextSlide,
-        { y: '100%' },
-        {
-          y: '0%',
-          duration: 0.8,
-          ease: 'power2.inOut',
-          onComplete: () => {
-            currentSlide = targetIndex;
-            isAnimating = false;
-          },
-        }
-      );
+      // Force reflow so transition works
+      slide.offsetHeight;
+
+      slide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+      slide.style.transform = 'translateY(0%)';
+
+      slide.addEventListener('transitionend', function handler() {
+        slide.removeEventListener('transitionend', handler);
+        currentSlide = targetIndex;
+        isAnimating = false;
+      });
     } else {
-      // Scrolling UP: current slide drops back down, revealing previous
-      const currentSlideEl = slides[currentSlide];
+      // Scrolling UP: current slide drops back down
+      slide = slides[currentSlide];
+      slide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+      slide.style.transform = 'translateY(100%)';
 
-      gsap.to(currentSlideEl, {
-        y: '100%',
-        duration: 0.8,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          currentSlide = targetIndex;
-          isAnimating = false;
-        },
+      slide.addEventListener('transitionend', function handler() {
+        slide.removeEventListener('transitionend', handler);
+        currentSlide = targetIndex;
+        isAnimating = false;
       });
     }
+
+    // Fallback in case transitionend doesn't fire
+    setTimeout(function () {
+      isAnimating = false;
+      currentSlide = targetIndex;
+    }, 900);
   }
 
   // Click handler for project navigation
-  slides.forEach((slide) => {
-    slide.addEventListener('click', () => {
+  slides.forEach(function (slide) {
+    slide.addEventListener('click', function () {
       if (slide.classList.contains('slideshow__slide--coming-soon')) return;
 
-      const href = slide.dataset.href;
+      var href = slide.dataset.href;
       if (!href) return;
 
-      const img = slide.querySelector('img');
+      var img = slide.querySelector('img');
       if (!img) return;
 
-      const rect = img.getBoundingClientRect();
-      const clone = img.cloneNode(true);
+      var rect = img.getBoundingClientRect();
+      var clone = img.cloneNode(true);
       clone.style.position = 'fixed';
       clone.style.top = rect.top + 'px';
       clone.style.left = rect.left + 'px';
@@ -149,20 +146,20 @@ function initSlideshow() {
       clone.style.height = rect.height + 'px';
       clone.style.zIndex = '200';
       clone.style.objectFit = 'cover';
-      clone.style.transition = 'none';
+      clone.style.transition = 'all 0.6s cubic-bezier(0.76, 0, 0.24, 1)';
       document.body.appendChild(clone);
 
-      gsap.to(clone, {
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        duration: 0.6,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          window.location.href = href;
-        },
-      });
+      // Force reflow
+      clone.offsetHeight;
+
+      clone.style.top = '0';
+      clone.style.left = '0';
+      clone.style.width = '100vw';
+      clone.style.height = '100vh';
+
+      setTimeout(function () {
+        window.location.href = href;
+      }, 600);
     });
   });
 }

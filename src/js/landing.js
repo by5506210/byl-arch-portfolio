@@ -1,5 +1,5 @@
 // ============================================
-// LANDING PAGE — Typed Animation (~1.5s total)
+// LANDING PAGE — Typed Animation (~1.5s)
 // ============================================
 
 (function () {
@@ -12,57 +12,83 @@
   if (window.location.hash === '#portfolio') {
     landing.style.display = 'none';
     document.body.style.background = '#e8e4df';
-    document.getElementById('site').style.display = 'block';
+    var site = document.getElementById('site');
+    site.style.display = 'block';
     document.querySelector('#nav').style.opacity = '1';
     document.querySelector('#scroll-hint').style.opacity = '1';
-    setTimeout(() => { if (typeof initSlideshow === 'function') initSlideshow(); }, 0);
+    setTimeout(function () { if (typeof initSlideshow === 'function') initSlideshow(); }, 50);
     return;
   }
 
   document.body.style.overflow = 'hidden';
 
-  const lines = [];
-  for (let i = 0; i < totalLines; i++) {
-    const line = document.createElement('div');
+  // Create line elements
+  var lines = [];
+  for (var i = 0; i < totalLines; i++) {
+    var line = document.createElement('div');
     line.classList.add('landing__line');
     linesContainer.appendChild(line);
     lines.push(line);
   }
 
-  const tl = gsap.timeline({ delay: 0.2 });
+  // Character-by-character typing with acceleration
+  var lineIndex = 0;
+  var charIndex = 0;
+  var currentText = baseText;
+  var baseDelay = 25; // ms per character for first line
+  var lineGap = 60; // ms pause between lines
 
-  // All gray lines appear in rapid succession (~0.8s total)
-  lines.forEach((line, i) => {
-    const isBold = i === totalLines - 1;
+  function typeNext() {
+    if (lineIndex >= totalLines) return;
 
-    if (!isBold) {
-      tl.call(() => {
-        line.style.opacity = 1;
-        line.textContent = baseText;
-        line.classList.add('landing__line--typed');
-      }, null, 0.2 + i * 0.08); // Stagger every 80ms
-    }
-  });
+    var isBold = lineIndex === totalLines - 1;
+    currentText = isBold ? 'click here.' : baseText;
+    var line = lines[lineIndex];
 
-  // Brief pause, then bold line appears (~0.4s after gray lines finish)
-  const boldLine = lines[totalLines - 1];
-  const boldStart = 0.2 + (totalLines - 1) * 0.08 + 0.25;
-
-  tl.call(() => {
-    boldLine.style.opacity = 1;
-    boldLine.classList.add('landing__line--bold');
-    boldLine.innerHTML = 'click here.<span class="landing__cursor"></span>';
-
-    // Dim previous lines
-    lines.forEach((l, li) => {
-      if (li < totalLines - 1) {
-        gsap.to(l, { color: '#1a1a1a', duration: 0.3 });
+    if (charIndex === 0) {
+      line.style.opacity = '1';
+      if (isBold) {
+        line.classList.add('landing__line--bold');
       }
-    });
-  }, null, boldStart);
+    }
+
+    charIndex++;
+    line.textContent = currentText.substring(0, charIndex);
+
+    if (charIndex >= currentText.length) {
+      // Line complete
+      if (isBold) {
+        line.innerHTML = currentText + '<span class="landing__cursor"></span>';
+        // Dim previous lines
+        for (var j = 0; j < totalLines - 1; j++) {
+          lines[j].style.color = '#1a1a1a';
+          lines[j].style.transition = 'color 0.3s';
+        }
+      } else {
+        line.classList.add('landing__line--typed');
+      }
+      lineIndex++;
+      charIndex = 0;
+
+      if (lineIndex < totalLines) {
+        // Accelerate: later lines type faster
+        var speedFactor = Math.max(0.3, 1 - lineIndex * 0.08);
+        setTimeout(typeNext, lineGap * speedFactor);
+      }
+    } else {
+      // Next character — accelerate per line
+      var speedFactor = Math.max(0.3, 1 - lineIndex * 0.08);
+      setTimeout(typeNext, baseDelay * speedFactor);
+    }
+  }
+
+  // Start after brief delay
+  setTimeout(typeNext, 200);
 
   // Click handler
-  linesContainer.addEventListener('click', (e) => {
+  linesContainer.addEventListener('click', function (e) {
+    var boldLine = lines[totalLines - 1];
+    if (!boldLine.classList.contains('landing__line--bold')) return;
     if (boldLine.contains(e.target) || e.target === boldLine) {
       triggerTransition();
     }
@@ -70,24 +96,31 @@
 
   function triggerTransition() {
     landing.classList.add('landing--transitioning');
-    document.getElementById('site').style.display = 'block';
+    var site = document.getElementById('site');
+    site.style.display = 'block';
 
-    gsap.to(landing, {
-      yPercent: -100,
-      duration: 1,
-      ease: 'power3.inOut',
-      onComplete: () => {
-        landing.style.display = 'none';
-        document.body.style.overflow = '';
-        document.body.style.background = '#e8e4df';
+    // Smooth slide up
+    landing.style.transition = 'transform 1s cubic-bezier(0.76, 0, 0.24, 1)';
+    landing.style.transform = 'translateY(-100%)';
 
-        gsap.to('#nav', { opacity: 1, duration: 0.6, ease: 'power2.out' });
-        gsap.to('#scroll-hint', { opacity: 1, duration: 0.6, delay: 0.3, ease: 'power2.out' });
+    setTimeout(function () {
+      landing.style.display = 'none';
+      document.body.style.overflow = '';
+      document.body.style.background = '#e8e4df';
 
-        if (typeof initSlideshow === 'function') {
-          initSlideshow();
-        }
-      },
-    });
+      var nav = document.getElementById('nav');
+      nav.style.transition = 'opacity 0.6s';
+      nav.style.opacity = '1';
+
+      var hint = document.getElementById('scroll-hint');
+      setTimeout(function () {
+        hint.style.transition = 'opacity 0.6s';
+        hint.style.opacity = '1';
+      }, 300);
+
+      if (typeof initSlideshow === 'function') {
+        initSlideshow();
+      }
+    }, 1000);
   }
 })();
