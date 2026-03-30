@@ -11,9 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
-  <!-- GSAP + ScrollTrigger -->
+  <!-- GSAP (used only for zoom transition) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
   <!-- Lenis Smooth Scroll -->
   <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
@@ -21,6 +20,14 @@
   <link rel="stylesheet" href="src/css/style.css">
 </head>
 <body>
+
+  <!-- Grain texture overlay -->
+  <div class="grain"></div>
+
+  <!-- Loading screen -->
+  <div id="loader" class="loader">
+    <div class="loader__monogram">BYL</div>
+  </div>
 
   <!-- ============================================ -->
   <!-- LANDING PAGE -->
@@ -53,8 +60,12 @@
       <div class="slideshow__container" id="slideshow-container">
 
         <div class="slideshow__slide" data-project="the-triad" data-href="pages/the-triad.html">
-          <img src="assets/images/the-triad/hero.jpg" alt="The Triad">
-          <div class="slideshow__title">The Triad</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/the-triad/hero.jpg" alt="The Triad">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">The Triad</div>
+          </div>
         </div>
 
         <div class="slideshow__slide slideshow__slide--coming-soon" data-project="osterio-novo">
@@ -65,23 +76,39 @@
         </div>
 
         <div class="slideshow__slide" data-project="eden-museum" data-href="pages/eden-museum.html">
-          <img src="assets/images/eden-museum/hero.jpg" alt="Eden Museum of Modern Art">
-          <div class="slideshow__title">Eden Museum of Modern Art</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/eden-museum/hero.jpg" alt="Eden Museum of Modern Art">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">Eden Museum of Modern Art</div>
+          </div>
         </div>
 
         <div class="slideshow__slide" data-project="tolman" data-href="pages/tolman.html">
-          <img src="assets/images/tolman/hero.png" alt="Tolman Apartment Living Space">
-          <div class="slideshow__title">Tolman Apartment Living Space</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/tolman/hero.png" alt="Tolman Apartment Living Space">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">Tolman Apartment Living Space</div>
+          </div>
         </div>
 
         <div class="slideshow__slide" data-project="maple-xi" data-href="pages/maple-xi.html">
-          <img src="assets/images/maple-xi/hero.png" alt="Maple Xi Apartment Interior">
-          <div class="slideshow__title">Maple Xi Apartment Interior</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/maple-xi/hero.png" alt="Maple Xi Apartment Interior">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">Maple Xi Apartment Interior</div>
+          </div>
         </div>
 
         <div class="slideshow__slide" data-project="aphelion" data-href="pages/aphelion.html">
-          <img src="assets/images/aphelion/hero.jpg" alt="Aphelion Lamp">
-          <div class="slideshow__title">Aphelion Lamp</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/aphelion/hero.jpg" alt="Aphelion Lamp">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">Aphelion Lamp</div>
+          </div>
         </div>
 
         <div class="slideshow__slide slideshow__slide--coming-soon" data-project="morphic-vector">
@@ -92,18 +119,30 @@
         </div>
 
         <div class="slideshow__slide" data-project="modulor" data-href="pages/modulor.html">
-          <img src="assets/images/modulor/hero.png" alt="Modulor Book Cover">
-          <div class="slideshow__title">Modulor Book Cover</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/modulor/hero.png" alt="Modulor Book Cover">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">Modulor Book Cover</div>
+          </div>
         </div>
 
         <div class="slideshow__slide" data-project="act-before-it-burns" data-href="pages/act-before-it-burns.html">
-          <img src="assets/images/act-before-it-burns/hero.png" alt="ACT BEFORE IT BURNS Poster">
-          <div class="slideshow__title">ACT BEFORE IT BURNS</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/act-before-it-burns/hero.png" alt="ACT BEFORE IT BURNS Poster">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">ACT BEFORE IT BURNS</div>
+          </div>
         </div>
 
         <div class="slideshow__slide" data-project="marty-supreme" data-href="pages/marty-supreme.html">
-          <img src="assets/images/marty-supreme/hero.jpg" alt="MARTY SUPREME Poster">
-          <div class="slideshow__title">MARTY SUPREME</div>
+          <div class="slideshow__slide-img-wrapper">
+            <img src="assets/images/marty-supreme/hero.jpg" alt="MARTY SUPREME Poster">
+          </div>
+          <div class="slideshow__title-wrapper">
+            <div class="slideshow__title">MARTY SUPREME</div>
+          </div>
         </div>
 
       </div>
@@ -111,6 +150,21 @@
 
   </div>
 
+  <!-- Loader fade -->
+  <script>
+    window.addEventListener('load', function () {
+      var loader = document.getElementById('loader');
+      if (window.location.hash === '#portfolio') {
+        loader.style.display = 'none';
+        return;
+      }
+      setTimeout(function () {
+        loader.classList.add('loader--fade-out');
+      }, 800);
+    });
+  </script>
+
+  <script src="src/js/cursor.js"></script>
   <script src="src/js/landing.js"></script>
   <script src="src/js/slideshow.js"></script>
 </body>

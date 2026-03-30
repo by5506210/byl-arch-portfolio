@@ -1,24 +1,26 @@
 // ============================================
-// PROJECT PAGE — Scroll-triggered image reveals
+// PROJECT PAGE — Clip-reveal image animations
 // ============================================
 
 (function () {
-  gsap.registerPlugin(ScrollTrigger);
+  // Reveal gallery images with clip-path wipe on scroll
+  var images = document.querySelectorAll('.project-gallery__image');
 
-  // Animate gallery images on scroll
-  const galleryImages = document.querySelectorAll('.project-gallery__image');
+  if (images.length === 0) return;
 
-  galleryImages.forEach((img) => {
-    gsap.to(img, {
-      opacity: 1,
-      y: 0,
-      duration: 0.8,
-      ease: 'power2.out',
-      scrollTrigger: {
-        trigger: img,
-        start: 'top 85%',
-        once: true,
-      },
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-revealed');
+        observer.unobserve(entry.target);
+      }
     });
+  }, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -10% 0px'
+  });
+
+  images.forEach(function (img) {
+    observer.observe(img);
   });
 })();

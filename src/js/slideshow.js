@@ -14,8 +14,20 @@ function initSlideshow() {
   var isAnimating = false;
   var hasScrolled = false;
 
-  // Setup: first slide visible on top, rest hidden below
-  // CRITICAL: each slide gets incrementing z-index so later slides are ON TOP
+  // Create progress dots
+  var progressContainer = document.createElement('div');
+  progressContainer.classList.add('slideshow__progress');
+  slides.forEach(function (_, i) {
+    var dot = document.createElement('div');
+    dot.classList.add('slideshow__dot');
+    if (i === 0) dot.classList.add('is-active');
+    progressContainer.appendChild(dot);
+  });
+  document.body.appendChild(progressContainer);
+
+  var dots = Array.from(progressContainer.querySelectorAll('.slideshow__dot'));
+
+  // Setup slides
   slides.forEach(function (slide, i) {
     slide.style.position = 'absolute';
     slide.style.top = '0';
@@ -27,10 +39,21 @@ function initSlideshow() {
 
     if (i === 0) {
       slide.style.transform = 'translateY(0%)';
+      slide.classList.add('is-active');
     } else {
       slide.style.transform = 'translateY(100%)';
     }
   });
+
+  function updateDots(index) {
+    dots.forEach(function (dot, i) {
+      if (i === index) {
+        dot.classList.add('is-active');
+      } else {
+        dot.classList.remove('is-active');
+      }
+    });
+  }
 
   // Wheel handler
   var accumulatedDelta = 0;
@@ -87,39 +110,53 @@ function initSlideshow() {
       scrollHint.classList.add('slideshow__scroll-hint--hidden');
     }
 
-    var slide;
+    updateDots(targetIndex);
 
     if (targetIndex > currentSlide) {
       // Scrolling DOWN: next slide rises up ON TOP
-      slide = slides[targetIndex];
-      slide.style.transition = 'none';
-      slide.style.transform = 'translateY(100%)';
+      var nextSlide = slides[targetIndex];
 
-      // Force reflow so transition works
-      slide.offsetHeight;
+      // Remove active from current
+      slides[currentSlide].classList.remove('is-active');
 
-      slide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-      slide.style.transform = 'translateY(0%)';
+      nextSlide.style.transition = 'none';
+      nextSlide.style.transform = 'translateY(100%)';
+      nextSlide.offsetHeight; // Force reflow
 
-      slide.addEventListener('transitionend', function handler() {
-        slide.removeEventListener('transitionend', handler);
+      nextSlide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+      nextSlide.style.transform = 'translateY(0%)';
+
+      // Activate after slight delay for title animation
+      setTimeout(function () {
+        nextSlide.classList.add('is-active');
+      }, 200);
+
+      nextSlide.addEventListener('transitionend', function handler() {
+        nextSlide.removeEventListener('transitionend', handler);
         currentSlide = targetIndex;
         isAnimating = false;
       });
     } else {
       // Scrolling UP: current slide drops back down
-      slide = slides[currentSlide];
-      slide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-      slide.style.transform = 'translateY(100%)';
+      var currSlide = slides[currentSlide];
+      currSlide.classList.remove('is-active');
 
-      slide.addEventListener('transitionend', function handler() {
-        slide.removeEventListener('transitionend', handler);
+      currSlide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
+      currSlide.style.transform = 'translateY(100%)';
+
+      // Activate previous slide
+      setTimeout(function () {
+        slides[targetIndex].classList.add('is-active');
+      }, 200);
+
+      currSlide.addEventListener('transitionend', function handler() {
+        currSlide.removeEventListener('transitionend', handler);
         currentSlide = targetIndex;
         isAnimating = false;
       });
     }
 
-    // Fallback in case transitionend doesn't fire
+    // Fallback
     setTimeout(function () {
       isAnimating = false;
       currentSlide = targetIndex;
@@ -149,8 +186,10 @@ function initSlideshow() {
       clone.style.transition = 'all 0.6s cubic-bezier(0.76, 0, 0.24, 1)';
       document.body.appendChild(clone);
 
-      // Force reflow
-      clone.offsetHeight;
+      // Hide dots during transition
+      progressContainer.style.opacity = '0';
+
+      clone.offsetHeight; // Force reflow
 
       clone.style.top = '0';
       clone.style.left = '0';

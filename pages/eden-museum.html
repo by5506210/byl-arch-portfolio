@@ -7,55 +7,35 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <link rel="stylesheet" href="../src/css/style.css">
 </head>
 <body>
+  <div class="grain"></div>
   <div class="project-page">
-    <a href="../index.html#portfolio" class="project-back">← Back</a>
-
+    <a href="../index.html#portfolio" class="project-back">&larr; Back</a>
     <nav class="nav" style="opacity: 1;">
       <a href="projects.html" class="nav__link">Projects</a>
       <a href="about.html" class="nav__link">About Me</a>
       <a href="contact.html" class="nav__link">Contact Me</a>
     </nav>
-
     <div class="project-hero">
       <img src="../assets/images/eden-museum/hero.jpg" alt="Eden Museum of Modern Art">
       <div class="project-hero__overlay">
-        <div class="project-hero__category">Architecture</div>
-        <h1 class="project-hero__title">Eden Museum of Modern Art</h1>
+        <div class="project-hero__category"><span>Architecture</span></div>
+        <h1 class="project-hero__title"><span>Eden Museum of Modern Art</span></h1>
       </div>
     </div>
-
     <div class="project-gallery">
-      <div class="project-gallery__image">
-        <img src="../assets/images/eden-museum/waterfall-2.jpg" alt="Eden Museum — Waterfall View 2">
-      </div>
-      <div class="project-gallery__image">
-        <img src="../assets/images/eden-museum/interior-reception.jpg" alt="Eden Museum — Interior Reception">
-      </div>
-      <div class="project-gallery__image">
-        <img src="../assets/images/eden-museum/interior-reception-alt.png" alt="Eden Museum — Reception Detail">
-      </div>
-      <div class="project-gallery__image">
-        <img src="../assets/images/eden-museum/section-cut.png" alt="Eden Museum — Section Cut">
-      </div>
-      <div class="project-gallery__image">
-        <img src="../assets/images/eden-museum/aerial-plan.png" alt="Eden Museum — Aerial Plan">
-      </div>
-      <div class="project-gallery__image">
-        <img src="../assets/images/eden-museum/perspective.jpg" alt="Eden Museum — Perspective">
-      </div>
-      <div class="project-gallery__video">
-        <video controls playsinline>
-          <source src="../assets/images/eden-museum/walkthrough.mp4" type="video/mp4">
-        </video>
-      </div>
+      <div class="project-gallery__image"><img src="../assets/images/eden-museum/waterfall-2.jpg" alt="Waterfall View 2"></div>
+      <div class="project-gallery__image"><img src="../assets/images/eden-museum/interior-reception.jpg" alt="Interior Reception"></div>
+      <div class="project-gallery__image"><img src="../assets/images/eden-museum/interior-reception-alt.png" alt="Reception Detail"></div>
+      <div class="project-gallery__image"><img src="../assets/images/eden-museum/section-cut.png" alt="Section Cut"></div>
+      <div class="project-gallery__image"><img src="../assets/images/eden-museum/aerial-plan.png" alt="Aerial Plan"></div>
+      <div class="project-gallery__image"><img src="../assets/images/eden-museum/perspective.jpg" alt="Perspective"></div>
+      <div class="project-gallery__video"><video controls playsinline><source src="../assets/images/eden-museum/walkthrough.mp4" type="video/mp4"></video></div>
     </div>
   </div>
-
+  <script src="../src/js/cursor.js"></script>
   <script src="../src/js/project-page.js"></script>
 </body>
 </html>

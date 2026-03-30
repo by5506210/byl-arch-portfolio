@@ -3,10 +3,10 @@
 // ============================================
 
 (function () {
-  const landing = document.getElementById('landing');
-  const linesContainer = document.getElementById('landing-lines');
-  const totalLines = 10;
-  const baseText = 'click here';
+  var landing = document.getElementById('landing');
+  var linesContainer = document.getElementById('landing-lines');
+  var totalLines = 10;
+  var baseText = 'click here';
 
   // Skip landing if returning from a project page
   if (window.location.hash === '#portfolio') {
@@ -16,6 +16,9 @@
     site.style.display = 'block';
     document.querySelector('#nav').style.opacity = '1';
     document.querySelector('#scroll-hint').style.opacity = '1';
+    // Remove loader
+    var loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'none';
     setTimeout(function () { if (typeof initSlideshow === 'function') initSlideshow(); }, 50);
     return;
   }
@@ -31,64 +34,67 @@
     lines.push(line);
   }
 
-  // Character-by-character typing with acceleration
-  var lineIndex = 0;
-  var charIndex = 0;
-  var currentText = baseText;
-  var baseDelay = 25; // ms per character for first line
-  var lineGap = 60; // ms pause between lines
+  // Create horizontal line element
+  var hLine = document.createElement('div');
+  hLine.classList.add('landing__line-reveal');
+  landing.appendChild(hLine);
 
-  function typeNext() {
-    if (lineIndex >= totalLines) return;
+  // Wait for loader to finish, then start typing
+  setTimeout(startTyping, 1200);
 
-    var isBold = lineIndex === totalLines - 1;
-    currentText = isBold ? 'click here.' : baseText;
-    var line = lines[lineIndex];
+  function startTyping() {
+    var lineIndex = 0;
+    var charIndex = 0;
+    var baseDelay = 25;
+    var lineGap = 60;
 
-    if (charIndex === 0) {
-      line.style.opacity = '1';
-      if (isBold) {
-        line.classList.add('landing__line--bold');
+    function typeNext() {
+      if (lineIndex >= totalLines) return;
+
+      var isBold = lineIndex === totalLines - 1;
+      var text = isBold ? 'click here.' : baseText;
+      var currentLine = lines[lineIndex];
+
+      if (charIndex === 0) {
+        currentLine.style.opacity = '1';
+        if (isBold) {
+          currentLine.classList.add('landing__line--bold');
+        }
       }
-    }
 
-    charIndex++;
-    line.textContent = currentText.substring(0, charIndex);
+      charIndex++;
+      currentLine.textContent = text.substring(0, charIndex);
 
-    if (charIndex >= currentText.length) {
-      // Line complete
-      if (isBold) {
-        line.innerHTML = currentText + '<span class="landing__cursor"></span>';
-        // Dim previous lines
-        for (var j = 0; j < totalLines - 1; j++) {
-          lines[j].style.color = '#1a1a1a';
-          lines[j].style.transition = 'color 0.3s';
+      if (charIndex >= text.length) {
+        if (isBold) {
+          currentLine.innerHTML = text + '<span class="landing__cursor"></span>';
+          for (var j = 0; j < totalLines - 1; j++) {
+            lines[j].style.color = '#1a1a1a';
+            lines[j].style.transition = 'color 0.3s';
+          }
+        } else {
+          currentLine.classList.add('landing__line--typed');
+        }
+        lineIndex++;
+        charIndex = 0;
+
+        if (lineIndex < totalLines) {
+          var speedFactor = Math.max(0.3, 1 - lineIndex * 0.08);
+          setTimeout(typeNext, lineGap * speedFactor);
         }
       } else {
-        line.classList.add('landing__line--typed');
-      }
-      lineIndex++;
-      charIndex = 0;
-
-      if (lineIndex < totalLines) {
-        // Accelerate: later lines type faster
         var speedFactor = Math.max(0.3, 1 - lineIndex * 0.08);
-        setTimeout(typeNext, lineGap * speedFactor);
+        setTimeout(typeNext, baseDelay * speedFactor);
       }
-    } else {
-      // Next character — accelerate per line
-      var speedFactor = Math.max(0.3, 1 - lineIndex * 0.08);
-      setTimeout(typeNext, baseDelay * speedFactor);
     }
-  }
 
-  // Start after brief delay
-  setTimeout(typeNext, 200);
+    typeNext();
+  }
 
   // Click handler
   linesContainer.addEventListener('click', function (e) {
     var boldLine = lines[totalLines - 1];
-    if (!boldLine.classList.contains('landing__line--bold')) return;
+    if (!boldLine || !boldLine.classList.contains('landing__line--bold')) return;
     if (boldLine.contains(e.target) || e.target === boldLine) {
       triggerTransition();
     }
@@ -96,31 +102,38 @@
 
   function triggerTransition() {
     landing.classList.add('landing--transitioning');
-    var site = document.getElementById('site');
-    site.style.display = 'block';
 
-    // Smooth slide up
-    landing.style.transition = 'transform 1s cubic-bezier(0.76, 0, 0.24, 1)';
-    landing.style.transform = 'translateY(-100%)';
+    // Draw horizontal line across screen
+    hLine.style.transition = 'width 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
+    hLine.style.width = '100vw';
 
     setTimeout(function () {
-      landing.style.display = 'none';
-      document.body.style.overflow = '';
-      document.body.style.background = '#e8e4df';
+      var site = document.getElementById('site');
+      site.style.display = 'block';
 
-      var nav = document.getElementById('nav');
-      nav.style.transition = 'opacity 0.6s';
-      nav.style.opacity = '1';
+      // Slide landing up
+      landing.style.transition = 'transform 1s cubic-bezier(0.76, 0, 0.24, 1)';
+      landing.style.transform = 'translateY(-100%)';
 
-      var hint = document.getElementById('scroll-hint');
       setTimeout(function () {
-        hint.style.transition = 'opacity 0.6s';
-        hint.style.opacity = '1';
-      }, 300);
+        landing.style.display = 'none';
+        document.body.style.overflow = '';
+        document.body.style.background = '#e8e4df';
 
-      if (typeof initSlideshow === 'function') {
-        initSlideshow();
-      }
-    }, 1000);
+        var nav = document.getElementById('nav');
+        nav.style.transition = 'opacity 0.6s';
+        nav.style.opacity = '1';
+
+        setTimeout(function () {
+          var hint = document.getElementById('scroll-hint');
+          hint.style.transition = 'opacity 0.6s';
+          hint.style.opacity = '1';
+        }, 300);
+
+        if (typeof initSlideshow === 'function') {
+          initSlideshow();
+        }
+      }, 1000);
+    }, 400);
   }
 })();
