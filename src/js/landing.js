@@ -120,6 +120,10 @@
         document.body.style.overflow = '';
         document.body.style.background = '#e8e4df';
 
+        // Switch cursor to dark for light background
+        var cursorEl = document.querySelector('.cursor');
+        if (cursorEl) cursorEl.classList.add('cursor--dark');
+
         var nav = document.getElementById('nav');
         nav.style.transition = 'opacity 0.6s';
         nav.style.opacity = '1';

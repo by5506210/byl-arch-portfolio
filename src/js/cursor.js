@@ -5,6 +5,11 @@
 (function () {
   var cursor = document.createElement('div');
   cursor.classList.add('cursor');
+  // Dark cursor on light background pages (not landing)
+  var isLanding = document.getElementById('landing');
+  if (!isLanding || isLanding.style.display === 'none' || window.location.hash === '#portfolio') {
+    cursor.classList.add('cursor--dark');
+  }
   document.body.appendChild(cursor);
 
   var mouseX = -100, mouseY = -100;
