@@ -156,20 +156,23 @@ function initVectorField() {
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
-      // === VIGOROUS OCEAN WAVES ===
-      var wavePhase = p.x * 0.008 + time * 2.5;
+      // === GENTLE WAVES WITH RANDOMNESS ===
+      var wavePhase = p.x * 0.006 + time * 1.4;
 
-      var swell = Math.sin(wavePhase) * 1.2
-                + Math.sin(p.x * 0.005 + p.y * 0.01 + time * 1.8) * 0.8;
+      var swell = Math.sin(wavePhase) * 0.7
+                + Math.sin(p.x * 0.004 + p.y * 0.008 + time * 1.0) * 0.5;
 
-      var cross = Math.cos(p.y * 0.012 + time * 1.4) * 0.5
-                + Math.sin(p.x * 0.015 - time * 2.0) * 0.4;
+      var cross = Math.cos(p.y * 0.01 + time * 0.8) * 0.35
+                + Math.sin(p.x * 0.012 - time * 1.1) * 0.25;
 
-      var deep = Math.sin((p.x + p.y) * 0.003 + time * 0.6) * 0.6;
+      var deep = Math.sin((p.x + p.y) * 0.003 + time * 0.4) * 0.4;
 
-      var breath = p.drift * Math.sin(time * 0.5 + p.seed1) * 0.2;
+      // Per-particle randomness — each drifts independently
+      var random = p.drift * Math.sin(time * 0.7 + p.seed1) * 0.3
+                 + Math.sin(time * 1.3 + p.seed2 * 5) * 0.2
+                 + Math.cos(time * 0.9 + p.seed3 * 3) * 0.15;
 
-      var baseAngle = swell + cross + deep + breath;
+      var baseAngle = swell + cross + deep + random;
 
       var dxBH = centerX - p.x;
       var dyBH = centerY - p.y;
