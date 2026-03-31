@@ -6,6 +6,9 @@
   <title>About — Bryan Youn</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../src/css/style.css">
 </head>
 <body>
@@ -23,21 +26,55 @@
       <img src="../assets/images/profile/bryan.jpg" alt="Bryan Youn">
     </div>
     <div class="about__content">
+      <h1 class="about__name">Bryan Youn</h1>
+      <p class="about__tagline">Architecture &middot; Interior Design &middot; Graphic Design</p>
+
       <p class="about__bio">
-        Bryan, a sophomore studying Design Innovation and Society, Biochemistry, and Architecture.
-        I love exploring spatial designs that convey narrative and experiences.
+        I am a sophomore at the University of Wisconsin&ndash;Madison studying Design Innovation and Society, Biochemistry, and Architecture. My work sits at the intersection of science and spatial design &mdash; I draw from molecular structures, material behavior, and natural systems to inform architectural decisions that are both conceptually rigorous and experientially rich.
       </p>
-      <h3 class="about__section-title">Education</h3>
-      <p class="about__detail">
-        University of Wisconsin – Madison<br>
-        Design Innovation and Society, Biochemistry, and Architecture
+      <p class="about__bio">
+        I believe architecture should do more than shelter. It should narrate, provoke, and orient. Whether designing a family residence inspired by organic chemistry or a garden shed guided by seasonal light, I approach each project as an opportunity to embed meaning into space.
       </p>
-      <h3 class="about__section-title">Resume</h3>
-      <p class="about__detail">
-        TAAL Architects: Intern (2024/07–2024/08, 2025/01)<br>
-        Interdisciplinary Researcher: UW-Madison Department of Landscape Architecture, Department of Chemistry, Sasaki (2025/08–)<br>
-        BYL Architecture — Content Creation (2024/06–)
-      </p>
+
+      <div class="about__sections">
+        <div class="about__section">
+          <h3 class="about__section-title">Education</h3>
+          <p class="about__detail">
+            University of Wisconsin &ndash; Madison<br>
+            B.S. Design Innovation and Society<br>
+            B.S. Biochemistry<br>
+            Certificate in Architecture
+          </p>
+        </div>
+
+        <div class="about__section">
+          <h3 class="about__section-title">Experience</h3>
+          <div class="about__experience">
+            <div class="about__exp-item">
+              <span class="about__exp-role">Interdisciplinary Researcher</span>
+              <span class="about__exp-org">UW-Madison Dept. of Landscape Architecture, Dept. of Chemistry, Sasaki</span>
+              <span class="about__exp-date">2025 &ndash; Present</span>
+            </div>
+            <div class="about__exp-item">
+              <span class="about__exp-role">Architecture Intern</span>
+              <span class="about__exp-org">TAAL Architects</span>
+              <span class="about__exp-date">Summer 2024, January 2025</span>
+            </div>
+            <div class="about__exp-item">
+              <span class="about__exp-role">Founder &amp; Content Creator</span>
+              <span class="about__exp-org">BYL Architecture</span>
+              <span class="about__exp-date">2024 &ndash; Present</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="about__section">
+          <h3 class="about__section-title">Contact</h3>
+          <p class="about__detail">
+            <a href="mailto:blyoun@wisc.edu" class="about__email-link">blyoun@wisc.edu</a>
+          </p>
+        </div>
+      </div>
     </div>
   </div>
   <footer class="site-footer">
@@ -50,6 +87,7 @@
   </main>
   </div>
   <script src="../src/js/cursor.js"></script>
+  <script src="../src/js/project-page.js"></script>
   <script src="../src/js/transitions.js"></script>
 </body>
 </html>

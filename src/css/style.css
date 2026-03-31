@@ -14,7 +14,7 @@
   --text-primary: #1a1a1a;
   --white: #ffffff;
 
-  --font-primary: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+  --font-primary: 'Inter', 'Helvetica Neue', 'Arial', sans-serif;
 }
 
 html {
@@ -27,6 +27,7 @@ body {
   background: var(--black);
   color: var(--text-primary);
   font-family: var(--font-primary);
+  font-weight: 300;
   overflow-x: hidden;
   cursor: none;
 }
@@ -562,11 +563,14 @@ img {
 
 .project-gallery__video {
   width: 85%;
+  max-height: 80vh;
   margin: 0 auto 4rem;
 }
 
 .project-gallery__video video {
   width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
 }
 
 /* Design project (single image, centered) */
@@ -733,31 +737,100 @@ img {
 
 .about__bio {
   font-family: var(--font-primary);
-  font-size: clamp(1.1rem, 1.5vw, 1.3rem);
-  line-height: 1.7;
+  font-size: clamp(0.95rem, 1.3vw, 1.1rem);
+  line-height: 1.8;
   color: var(--text-primary);
-  margin-bottom: 3rem;
+  font-weight: 300;
+  margin-bottom: 1.5rem;
+}
+
+.about__name {
+  font-family: var(--font-primary);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 200;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.about__tagline {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--dark-gray);
+  margin-bottom: 2.5rem;
+}
+
+.about__sections {
+  margin-top: 2.5rem;
+}
+
+.about__section {
+  margin-bottom: 2rem;
 }
 
 .about__section-title {
   font-family: var(--font-primary);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--dark-gray);
-  margin-bottom: 1rem;
-  margin-top: 2.5rem;
-}
-
-.about__section-title:first-of-type {
-  margin-top: 0;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .about__detail {
   font-family: var(--font-primary);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   line-height: 1.8;
   color: var(--text-primary);
+  font-weight: 300;
+}
+
+.about__experience {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.about__exp-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.about__exp-role {
+  font-family: var(--font-primary);
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.about__exp-org {
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.about__exp-date {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  font-weight: 300;
+  color: var(--dark-gray);
+}
+
+.about__email-link {
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+.about__email-link:hover {
+  color: var(--dark-gray);
 }
 
 /* ============================================
