@@ -8,6 +8,9 @@ function initSlideshow() {
   if (oldTitle) oldTitle.remove();
   var oldProgress = document.querySelector('.slideshow__progress');
   if (oldProgress) oldProgress.remove();
+  // Remove any leftover zoom clones from back navigation
+  var oldClones = document.querySelectorAll('.slideshow__zoom-clone');
+  oldClones.forEach(function (c) { c.remove(); });
 
   var container = document.getElementById('slideshow-container');
   var slides = Array.from(document.querySelectorAll('.slideshow__slide'));
@@ -235,6 +238,7 @@ function initSlideshow() {
 
       var rect = img.getBoundingClientRect();
       var clone = img.cloneNode(true);
+      clone.classList.add('slideshow__zoom-clone');
       clone.style.position = 'fixed';
       clone.style.top = rect.top + 'px';
       clone.style.left = rect.left + 'px';
@@ -258,5 +262,14 @@ function initSlideshow() {
         window.location.href = href;
       }, 600);
     });
+  });
+
+  // Clean up zoom clones when user navigates back
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) {
+      var clones = document.querySelectorAll('.slideshow__zoom-clone');
+      clones.forEach(function (c) { c.remove(); });
+      if (progressContainer) progressContainer.style.opacity = '1';
+    }
   });
 }
