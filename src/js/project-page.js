@@ -67,11 +67,19 @@ function initNavBar() {
   var bar = document.createElement('div');
   bar.classList.add('project-nav-bar');
 
-  // Left: back arrow
+  // Left: back arrow — goes to previous page
   var backEl = document.createElement('a');
-  backEl.href = '../index.html#portfolio';
+  backEl.href = '#';
   backEl.classList.add('project-nav-bar__back');
   backEl.innerHTML = '&larr;';
+  backEl.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '../index.html#portfolio';
+    }
+  });
   bar.appendChild(backEl);
 
   // Center: BYL logo (always present, links to homepage)

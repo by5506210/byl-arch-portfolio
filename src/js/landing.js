@@ -6,6 +6,15 @@
   var landing = document.getElementById('landing');
   if (!landing) return;
 
+  // Always attach "The Aphelion" back button (even if landing is skipped)
+  var backBtn = document.getElementById('back-to-landing');
+  if (backBtn) {
+    backBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      window.location.href = window.location.pathname;
+    });
+  }
+
   // Skip landing if returning from a project page
   if (window.location.hash === '#portfolio') {
     landing.style.display = 'none';
@@ -33,13 +42,11 @@
   function triggerTransition() {
     landing.classList.add('landing--transitioning');
 
-    // Phase 1: Portal expands into a circle that swallows the screen
     if (portal) {
       portal.style.transition = 'none';
       portal.style.opacity = '1';
     }
 
-    // Create expanding ring overlay
     var ring = document.createElement('div');
     ring.style.cssText = 'position:fixed;top:50%;left:50%;width:0;height:0;' +
       'border-radius:50%;background:#e8e4df;' +
@@ -47,19 +54,15 @@
       'transition:width 1s cubic-bezier(0.76,0,0.24,1),height 1s cubic-bezier(0.76,0,0.24,1);';
     document.body.appendChild(ring);
 
-    // Set body background immediately so no black shows through
     document.body.style.background = '#e8e4df';
 
-    // Calculate size needed to cover entire screen from center
     var diag = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight) * 2;
 
-    // Trigger expansion
     requestAnimationFrame(function () {
       ring.style.width = diag + 'px';
       ring.style.height = diag + 'px';
     });
 
-    // After the ring covers the screen, show the portfolio
     setTimeout(function () {
       var site = document.getElementById('site');
       site.style.display = 'block';
@@ -76,7 +79,6 @@
         nav.style.opacity = '1';
       }
 
-      // Fade out the ring overlay
       ring.style.transition = 'opacity 0.5s ease';
       ring.style.opacity = '0';
 
@@ -94,15 +96,5 @@
         }
       }, 500);
     }, 900);
-  }
-
-  // Back to landing button
-  var backBtn = document.getElementById('back-to-landing');
-  if (backBtn) {
-    backBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      // Remove hash and reload to show landing
-      window.location.href = window.location.pathname;
-    });
   }
 })();
