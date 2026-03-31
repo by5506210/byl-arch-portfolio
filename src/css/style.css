@@ -143,6 +143,7 @@ img {
   width: 100%;
   height: 100%;
   z-index: 0;
+  pointer-events: none;
 }
 
 /* Portal button — centered, hidden until cursor approaches */
@@ -153,9 +154,9 @@ img {
   transform: translate(-50%, -50%);
   width: 60px;
   height: 60px;
-  z-index: 2;
-  cursor: none;
-  opacity: 0;
+  z-index: 5;
+  cursor: pointer;
+  opacity: 0.15;
   transition: opacity 0.6s ease, transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 

@@ -1,5 +1,5 @@
 // ============================================
-// VECTOR FIELD — Magnetic field with black hole center
+// VECTOR FIELD — Ocean waves with black hole center
 // ============================================
 
 (function () {
@@ -14,15 +14,13 @@
   var ctx = canvas.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
 
-  var spacing = 28;
-  var lineLen = 12;
-  var mouseInfluence = 180;
-  var returnSpeed = 0.05;
-  var followSpeed = 0.15;
+  var spacing = 26;
+  var lineLen = 14;
+  var mouseInfluence = 200;
+  var returnSpeed = 0.07;
+  var followSpeed = 0.2;
 
-  // Black hole at center of screen
-  var blackHoleRadius = 220;
-  var blackHoleStrength = 0.9;
+  var blackHoleRadius = 250;
 
   var mouseX = -1000;
   var mouseY = -1000;
@@ -34,7 +32,10 @@
 
   var portal = document.getElementById('landing-portal');
   var portalVisible = false;
-  var portalRevealDist = 200;
+  var portalRevealDist = 220;
+
+  // Make canvas transparent to pointer events so portal is clickable
+  canvas.style.pointerEvents = 'none';
 
   function resize() {
     canvas.width = window.innerWidth * dpr;
@@ -61,12 +62,20 @@
           col: col,
           row: row,
           currentAngle: Math.random() * Math.PI * 2,
-          baseOpacity: 0.06 + Math.random() * 0.04
+          baseOpacity: 0.14 + Math.random() * 0.08
         });
       }
     }
   }
 
+  // Track mouse on the landing div itself (not just document)
+  var landing = document.getElementById('landing');
+  if (landing) {
+    landing.addEventListener('mousemove', function (e) {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+  }
   document.addEventListener('mousemove', function (e) {
     mouseX = e.clientX;
     mouseY = e.clientY;
@@ -77,6 +86,20 @@
     mouseY = -1000;
   });
 
+  // Also support touch for portal reveal on mobile
+  if (landing) {
+    landing.addEventListener('touchstart', function (e) {
+      var t = e.touches[0];
+      mouseX = t.clientX;
+      mouseY = t.clientY;
+    }, { passive: true });
+    landing.addEventListener('touchmove', function (e) {
+      var t = e.touches[0];
+      mouseX = t.clientX;
+      mouseY = t.clientY;
+    }, { passive: true });
+  }
+
   function angleDiff(from, to) {
     var d = to - from;
     while (d > Math.PI) d -= Math.PI * 2;
@@ -86,14 +109,14 @@
 
   function animate() {
     if (!running) return;
-    time += 0.006;
+    time += 0.012; // Faster for vigorous motion
 
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-    // Check cursor distance to center for portal reveal
-    var dxPortal = mouseX - centerX;
-    var dyPortal = mouseY - centerY;
-    var distToCenter = Math.sqrt(dxPortal * dxPortal + dyPortal * dyPortal);
+    // Portal reveal check
+    var dxP = mouseX - centerX;
+    var dyP = mouseY - centerY;
+    var distToCenter = Math.sqrt(dxP * dxP + dyP * dyP);
 
     if (portal) {
       if (distToCenter < portalRevealDist && mouseX > 0) {
@@ -112,18 +135,38 @@
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
-      // Ambient flow — organic drifting waves
-      var baseAngle = Math.sin(p.col * 0.2 + time * 1.0) * 0.7
-                    + Math.cos(p.row * 0.25 + time * 0.6) * 0.5
-                    + Math.sin((p.col + p.row) * 0.12 + time * 0.4) * 0.4
-                    + Math.cos(p.col * 0.08 - time * 0.3) * 0.3;
+      // Ocean wave flow — dominant horizontal direction with rolling swells
+      // Main current: flows right with undulation
+      var waveY = p.y / window.innerHeight; // 0-1 vertical position
+      var wavePhase = p.x * 0.008 + time * 2.5; // fast horizontal sweep
+
+      // Primary ocean swell — large rolling waves
+      var swell = Math.sin(wavePhase) * 1.2
+                + Math.sin(p.x * 0.005 + p.y * 0.01 + time * 1.8) * 0.8;
+
+      // Cross-current — perpendicular ripples
+      var cross = Math.cos(p.y * 0.012 + time * 1.4) * 0.5
+                + Math.sin(p.x * 0.015 - time * 2.0) * 0.4;
+
+      // Deep undercurrent — slow, wide
+      var deep = Math.sin((p.x + p.y) * 0.003 + time * 0.6) * 0.6;
+
+      // Turbulence near edges — chaotic foam
+      var edgeDist = Math.min(p.x, p.y, window.innerWidth - p.x, window.innerHeight - p.y) / 100;
+      var turbulence = edgeDist < 1 ? (1 - edgeDist) * Math.sin(time * 5 + i) * 0.8 : 0;
+
+      var baseAngle = swell + cross + deep + turbulence;
 
       var targetAngle = baseAngle;
       var drawOpacity = p.baseOpacity;
       var drawLen = lineLen;
       var speed = returnSpeed;
 
-      // Black hole influence — always active at center
+      // Wave brightness variation — brighter at wave crests
+      var waveCrest = (Math.sin(wavePhase) + 1) * 0.5; // 0-1
+      drawOpacity += waveCrest * 0.08;
+
+      // Black hole vortex at center
       var dxBH = centerX - p.x;
       var dyBH = centerY - p.y;
       var distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
@@ -131,25 +174,25 @@
       if (distBH < blackHoleRadius) {
         var angleToBH = Math.atan2(dyBH, dxBH);
         var bhStrength = (1 - distBH / blackHoleRadius);
-        bhStrength = bhStrength * bhStrength * bhStrength; // Cubic
+        bhStrength = bhStrength * bhStrength * bhStrength;
 
-        // Spiral effect — rotate slightly for vortex look
-        var spiralOffset = bhStrength * 0.8;
+        // Strong spiral — more rotation for vigorous swirl
+        var spiralOffset = bhStrength * 1.5 + Math.sin(time * 3) * bhStrength * 0.3;
         targetAngle = angleToBH + spiralOffset;
 
-        drawOpacity = p.baseOpacity + bhStrength * 0.3;
-        drawLen = lineLen + bhStrength * 6;
-        speed = returnSpeed + bhStrength * 0.15;
+        drawOpacity = p.baseOpacity + bhStrength * 0.4;
+        drawLen = lineLen + bhStrength * 8;
+        speed = returnSpeed + bhStrength * 0.2;
 
-        // Very close to center — lines get dimmer (event horizon)
-        if (distBH < 40) {
-          var fade = distBH / 40;
+        // Event horizon fade
+        if (distBH < 35) {
+          var fade = distBH / 35;
           drawOpacity *= fade;
           drawLen *= fade;
         }
       }
 
-      // Mouse cursor influence — layered on top
+      // Mouse cursor influence
       var dxM = mouseX - p.x;
       var dyM = mouseY - p.y;
       var distM = Math.sqrt(dxM * dxM + dyM * dyM);
@@ -159,32 +202,29 @@
         var mStrength = (1 - distM / mouseInfluence);
         mStrength = mStrength * mStrength;
 
-        // Blend mouse influence with current target
         var mouseDiff = angleDiff(targetAngle, angleToMouse);
-        targetAngle += mouseDiff * mStrength * 0.8;
+        targetAngle += mouseDiff * mStrength * 0.85;
 
-        drawOpacity = Math.max(drawOpacity, p.baseOpacity + mStrength * 0.4);
-        drawLen = Math.max(drawLen, lineLen + mStrength * 8);
-        speed = Math.max(speed, followSpeed + mStrength * 0.3);
+        drawOpacity = Math.max(drawOpacity, p.baseOpacity + mStrength * 0.35);
+        drawLen = Math.max(drawLen, lineLen + mStrength * 10);
+        speed = Math.max(speed, followSpeed + mStrength * 0.35);
       }
 
-      // Shortest-path angle interpolation
       var diff = angleDiff(p.currentAngle, targetAngle);
       p.currentAngle += diff * speed;
 
-      // Normalize
       while (p.currentAngle > Math.PI) p.currentAngle -= Math.PI * 2;
       while (p.currentAngle < -Math.PI) p.currentAngle += Math.PI * 2;
 
       drawLine(p.x, p.y, p.currentAngle, drawLen, drawOpacity);
     }
 
-    // Draw subtle radial glow at center
-    var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 60);
-    glowGrad.addColorStop(0, 'rgba(232, 228, 223, 0.04)');
+    // Glow at center
+    var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 80);
+    glowGrad.addColorStop(0, 'rgba(232, 228, 223, 0.06)');
     glowGrad.addColorStop(1, 'rgba(232, 228, 223, 0)');
     ctx.fillStyle = glowGrad;
-    ctx.fillRect(centerX - 60, centerY - 60, 120, 120);
+    ctx.fillRect(centerX - 80, centerY - 80, 160, 160);
 
     requestAnimationFrame(animate);
   }
@@ -200,7 +240,7 @@
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.strokeStyle = 'rgba(232, 228, 223, ' + opacity + ')';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.2;
     ctx.lineCap = 'round';
     ctx.stroke();
   }
@@ -210,7 +250,6 @@
   animate();
 
   // Stop when landing hides
-  var landing = document.getElementById('landing');
   if (landing) {
     var observer = new MutationObserver(function (mutations) {
       mutations.forEach(function (m) {
