@@ -62,8 +62,6 @@ function initNavBar() {
   if (document.querySelector('.slideshow-nav-bar')) return;
 
   var hero = document.querySelector('.project-hero');
-  var backLink = document.querySelector('.project-back');
-  var nav = document.querySelector('.nav');
 
   // Build the unified bar
   var bar = document.createElement('div');
@@ -71,7 +69,7 @@ function initNavBar() {
 
   // Left: back arrow
   var backEl = document.createElement('a');
-  backEl.href = backLink ? backLink.href : '../index.html#portfolio';
+  backEl.href = '../index.html#portfolio';
   backEl.classList.add('project-nav-bar__back');
   backEl.innerHTML = '&larr;';
   bar.appendChild(backEl);
@@ -87,18 +85,14 @@ function initNavBar() {
   var links = document.createElement('div');
   links.classList.add('project-nav-bar__links');
   links.innerHTML =
-    '<a href="' + (nav ? nav.querySelector('[href*="projects"]').href : 'projects.html') + '" class="project-nav-bar__link">Projects</a>' +
-    '<a href="' + (nav ? nav.querySelector('[href*="about"]').href : 'about.html') + '" class="project-nav-bar__link">About</a>' +
-    '<a href="' + (nav ? nav.querySelector('[href*="contact"]').href : 'contact.html') + '" class="project-nav-bar__link">Contact</a>';
+    '<a href="projects.html" class="project-nav-bar__link">Projects</a>' +
+    '<a href="about.html" class="project-nav-bar__link">About</a>' +
+    '<a href="contact.html" class="project-nav-bar__link">Contact</a>';
   bar.appendChild(links);
 
   document.body.appendChild(bar);
 
-  // Hide old nav and back button
-  if (backLink) backLink.style.display = 'none';
-  if (nav) nav.style.display = 'none';
-
-  // If hero exists, show/hide the center text on scroll
+  // If hero exists, show/hide bar style on scroll
   if (hero) {
     // Bar starts transparent over the hero, becomes solid when scrolled past
     bar.classList.add('project-nav-bar--over-hero');
