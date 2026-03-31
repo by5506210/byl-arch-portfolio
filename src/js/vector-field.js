@@ -6,13 +6,19 @@
   var canvas = document.getElementById('vector-field');
   if (!canvas) return;
 
-  if (window.location.hash === '#portfolio') {
+  // On the landing page, skip if returning from portfolio
+  var isLandingPage = !!document.getElementById('landing');
+  if (isLandingPage && window.location.hash === '#portfolio') {
     canvas.style.display = 'none';
     return;
   }
 
   var ctx = canvas.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
+
+  // Color mode: light lines on dark bg (default) or dark lines on light bg
+  var isDarkLines = canvas.getAttribute('data-color') === 'dark';
+  var lineColor = isDarkLines ? '26, 26, 26' : '232, 228, 223';
 
   var spacing = 24;
   var lineLen = 15;
@@ -30,7 +36,7 @@
   var running = true;
   var time = 0;
 
-  var portal = document.getElementById('landing-portal');
+  var portal = isLandingPage ? document.getElementById('landing-portal') : null;
   var portalVisible = false;
   var portalRevealDist = 160;
 
@@ -167,14 +173,15 @@
       var distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
 
       // How much the black hole resists disturbance (stronger near center)
-      var bhResistance = 0; // 0 = no resistance, 1 = full lock to black hole
+      var bhResistance = 0;
 
       var targetAngle = baseAngle;
       var drawOpacity = p.baseOpacity;
       var drawLen = lineLen;
       var speed = returnSpeed;
 
-      if (distBH < blackHoleRadius) {
+      // Black hole vortex — only on landing page
+      if (isLandingPage && distBH < blackHoleRadius) {
         var angleToBH = Math.atan2(dyBH, dxBH);
         var bhStrength = (1 - distBH / blackHoleRadius);
         bhStrength = bhStrength * bhStrength * bhStrength;
@@ -243,12 +250,14 @@
       drawLine(p.x, p.y, p.currentAngle, drawLen, drawOpacity);
     }
 
-    // Glow at center
-    var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 90);
-    glowGrad.addColorStop(0, 'rgba(232, 228, 223, 0.05)');
-    glowGrad.addColorStop(1, 'rgba(232, 228, 223, 0)');
-    ctx.fillStyle = glowGrad;
-    ctx.fillRect(centerX - 90, centerY - 90, 180, 180);
+    // Glow at center (only on landing page)
+    if (isLandingPage) {
+      var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 90);
+      glowGrad.addColorStop(0, 'rgba(' + lineColor + ', 0.05)');
+      glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(centerX - 90, centerY - 90, 180, 180);
+    }
 
     requestAnimationFrame(animate);
   }
@@ -263,7 +272,7 @@
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
-    ctx.strokeStyle = 'rgba(232, 228, 223, ' + opacity + ')';
+    ctx.strokeStyle = 'rgba(' + lineColor + ', ' + opacity + ')';
     ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     ctx.stroke();

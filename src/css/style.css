@@ -146,6 +146,17 @@ img {
   pointer-events: none;
 }
 
+/* Reusable vector field background for any page */
+.vector-field-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* Portal button — centered, hidden until cursor approaches */
 .landing__portal {
   position: absolute;
@@ -727,6 +738,8 @@ img {
   background: var(--concrete);
   min-height: 100vh;
   padding: 6rem 8vw 4rem;
+  position: relative;
+  z-index: 1;
 }
 
 .projects-index__category {
@@ -946,10 +959,13 @@ img {
   background: var(--black);
   min-height: 100vh;
   color: var(--concrete);
+  position: relative;
 }
 
 .contact-page__hero {
   padding: 20vh 8% 8vh;
+  position: relative;
+  z-index: 1;
 }
 
 .contact-page__heading {
@@ -966,6 +982,8 @@ img {
   display: flex;
   flex-direction: column;
   border-top: 1px solid rgba(232, 228, 223, 0.1);
+  position: relative;
+  z-index: 1;
 }
 
 .contact-page__card {
@@ -1016,6 +1034,8 @@ img {
   padding: 4rem 8%;
   display: flex;
   gap: 6rem;
+  position: relative;
+  z-index: 1;
 }
 
 .contact-page__info-block {
