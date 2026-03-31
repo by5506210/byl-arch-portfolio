@@ -1,12 +1,12 @@
 // ============================================
-// LANDING PAGE — Typed Animation (~1.5s)
+// LANDING PAGE — Typed Flood Animation
 // ============================================
 
 (function () {
   var landing = document.getElementById('landing');
   var linesContainer = document.getElementById('landing-lines');
-  var totalLines = 10;
   var baseText = 'click here';
+  var boldText = 'click here.';
 
   // Skip landing if returning from a project page
   if (window.location.hash === '#portfolio') {
@@ -16,74 +16,79 @@
     site.style.display = 'block';
     document.querySelector('#nav').style.opacity = '1';
     document.querySelector('#scroll-hint').style.opacity = '1';
-    // Remove loader
-    var loader = document.getElementById('loader');
-    if (loader) loader.style.display = 'none';
     setTimeout(function () { if (typeof initSlideshow === 'function') initSlideshow(); }, 50);
     return;
   }
 
   document.body.style.overflow = 'hidden';
 
-  // Create line elements
-  var lines = [];
-  for (var i = 0; i < totalLines; i++) {
-    var line = document.createElement('div');
-    line.classList.add('landing__line');
-    linesContainer.appendChild(line);
-    lines.push(line);
-  }
+  // Calculate how many lines can fill the viewport
+  var lineHeight = parseFloat(getComputedStyle(document.documentElement).fontSize) * 1.7; // ~line-height
+  var viewportHeight = window.innerHeight;
+  var totalLines = Math.ceil(viewportHeight / lineHeight) + 5; // overshoot slightly
+  var boldLineIndex = Math.floor(totalLines / 2); // clickable line in the middle
+
+  // Phase 1: slow-typed initial lines (first 8)
+  var phase1Count = 8;
+  var allLines = [];
 
   // Create horizontal line element
   var hLine = document.createElement('div');
   hLine.classList.add('landing__line-reveal');
   landing.appendChild(hLine);
 
-  // Wait for loader to finish, then start typing
-  setTimeout(startTyping, 1200);
+  // Start immediately (no loader delay)
+  setTimeout(startTyping, 200);
+
+  function createLine(isBold) {
+    var line = document.createElement('div');
+    line.classList.add('landing__line');
+    if (isBold) line.classList.add('landing__line--bold');
+    linesContainer.appendChild(line);
+    allLines.push(line);
+    return line;
+  }
 
   function startTyping() {
     var lineIndex = 0;
     var charIndex = 0;
-    var baseDelay = 25;
-    var lineGap = 60;
+    var baseDelay = 22;
+    var lineGap = 50;
+
+    // Create phase 1 lines
+    for (var i = 0; i < phase1Count; i++) {
+      createLine(false);
+    }
 
     function typeNext() {
-      if (lineIndex >= totalLines) return;
+      if (lineIndex >= phase1Count) {
+        // Phase 1 done — start flood
+        startFlood();
+        return;
+      }
 
-      var isBold = lineIndex === totalLines - 1;
-      var text = isBold ? 'click here.' : baseText;
-      var currentLine = lines[lineIndex];
+      var currentLine = allLines[lineIndex];
 
       if (charIndex === 0) {
         currentLine.style.opacity = '1';
-        if (isBold) {
-          currentLine.classList.add('landing__line--bold');
-        }
       }
 
       charIndex++;
-      currentLine.textContent = text.substring(0, charIndex);
+      currentLine.textContent = baseText.substring(0, charIndex);
 
-      if (charIndex >= text.length) {
-        if (isBold) {
-          currentLine.innerHTML = text + '<span class="landing__cursor"></span>';
-          for (var j = 0; j < totalLines - 1; j++) {
-            lines[j].style.color = '#1a1a1a';
-            lines[j].style.transition = 'color 0.3s';
-          }
-        } else {
-          currentLine.classList.add('landing__line--typed');
-        }
+      if (charIndex >= baseText.length) {
+        currentLine.classList.add('landing__line--typed');
         lineIndex++;
         charIndex = 0;
 
-        if (lineIndex < totalLines) {
-          var speedFactor = Math.max(0.3, 1 - lineIndex * 0.08);
+        if (lineIndex < phase1Count) {
+          var speedFactor = Math.max(0.3, 1 - lineIndex * 0.1);
           setTimeout(typeNext, lineGap * speedFactor);
+        } else {
+          typeNext();
         }
       } else {
-        var speedFactor = Math.max(0.3, 1 - lineIndex * 0.08);
+        var speedFactor = Math.max(0.3, 1 - lineIndex * 0.1);
         setTimeout(typeNext, baseDelay * speedFactor);
       }
     }
@@ -91,10 +96,47 @@
     typeNext();
   }
 
-  // Click handler
+  function startFlood() {
+    // Create remaining lines to fill the screen
+    var remainingCount = totalLines - phase1Count;
+    var floodLines = [];
+
+    for (var i = 0; i < remainingCount; i++) {
+      var globalIndex = phase1Count + i;
+      var isBold = globalIndex === boldLineIndex;
+      var line = createLine(isBold);
+      floodLines.push({ el: line, isBold: isBold });
+    }
+
+    // Rapidly reveal flood lines with staggered timing
+    var floodDelay = 30; // fast stagger
+    floodLines.forEach(function (item, i) {
+      setTimeout(function () {
+        item.el.style.opacity = '1';
+        if (item.isBold) {
+          item.el.innerHTML = boldText + '<span class="landing__cursor"></span>';
+        } else {
+          item.el.textContent = baseText;
+          item.el.classList.add('landing__line--typed');
+        }
+      }, i * floodDelay);
+    });
+
+    // After flood finishes, dim non-bold lines
+    setTimeout(function () {
+      allLines.forEach(function (line) {
+        if (!line.classList.contains('landing__line--bold')) {
+          line.style.color = '#1a1a1a';
+          line.style.transition = 'color 0.4s';
+        }
+      });
+    }, remainingCount * floodDelay + 100);
+  }
+
+  // Click handler — click the bold line
   linesContainer.addEventListener('click', function (e) {
-    var boldLine = lines[totalLines - 1];
-    if (!boldLine || !boldLine.classList.contains('landing__line--bold')) return;
+    var boldLine = linesContainer.querySelector('.landing__line--bold');
+    if (!boldLine) return;
     if (boldLine.contains(e.target) || e.target === boldLine) {
       triggerTransition();
     }

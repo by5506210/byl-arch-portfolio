@@ -1,5 +1,5 @@
 // ============================================
-// STACKING IMAGE SLIDESHOW
+// STACKING IMAGE SLIDESHOW — Gradual Scroll
 // ============================================
 
 function initSlideshow() {
@@ -10,8 +10,9 @@ function initSlideshow() {
 
   if (totalSlides === 0) return;
 
-  var currentSlide = 0;
-  var isAnimating = false;
+  // Scroll progress: 0 = first slide, 1 = between first and second, etc.
+  var scrollProgress = 0;
+  var targetProgress = 0;
   var hasScrolled = false;
 
   // Create progress dots
@@ -27,7 +28,7 @@ function initSlideshow() {
 
   var dots = Array.from(progressContainer.querySelectorAll('.slideshow__dot'));
 
-  // Setup slides
+  // Setup slides — all stacked, positioned offscreen below except first
   slides.forEach(function (slide, i) {
     slide.style.position = 'absolute';
     slide.style.top = '0';
@@ -36,6 +37,7 @@ function initSlideshow() {
     slide.style.height = '100vh';
     slide.style.background = '#e8e4df';
     slide.style.zIndex = String(i + 1);
+    slide.style.willChange = 'transform';
 
     if (i === 0) {
       slide.style.transform = 'translateY(0%)';
@@ -55,113 +57,106 @@ function initSlideshow() {
     });
   }
 
-  // Wheel handler
-  var accumulatedDelta = 0;
-  var wheelTimeout;
+  // Apply scroll position to slides
+  function applyScroll(progress) {
+    var currentIndex = Math.floor(progress);
+    var fraction = progress - currentIndex;
+
+    slides.forEach(function (slide, i) {
+      if (i < currentIndex) {
+        // Already scrolled past — visible underneath
+        slide.style.transform = 'translateY(0%)';
+      } else if (i === currentIndex) {
+        // Current slide — stays put
+        slide.style.transform = 'translateY(0%)';
+      } else if (i === currentIndex + 1) {
+        // Next slide — partially rising based on scroll fraction
+        var offset = (1 - fraction) * 100;
+        slide.style.transform = 'translateY(' + offset + '%)';
+      } else {
+        // Future slides — offscreen
+        slide.style.transform = 'translateY(100%)';
+      }
+    });
+
+    // Update active class for title animation
+    var activeIndex = Math.round(progress);
+    activeIndex = Math.max(0, Math.min(activeIndex, totalSlides - 1));
+    slides.forEach(function (slide, i) {
+      if (i === activeIndex) {
+        slide.classList.add('is-active');
+      } else {
+        slide.classList.remove('is-active');
+      }
+    });
+
+    updateDots(activeIndex);
+  }
+
+  // Wheel handler — accumulate delta for gradual movement
+  var scrollSensitivity = 0.0015; // how much each pixel of wheel delta moves progress
 
   container.addEventListener('wheel', function (e) {
     e.preventDefault();
-    if (isAnimating) return;
-
-    accumulatedDelta += e.deltaY;
-    clearTimeout(wheelTimeout);
-    wheelTimeout = setTimeout(function () { accumulatedDelta = 0; }, 150);
-
-    if (accumulatedDelta > 50 && currentSlide < totalSlides - 1) {
-      goToSlide(currentSlide + 1);
-      accumulatedDelta = 0;
-    } else if (accumulatedDelta < -50 && currentSlide > 0) {
-      goToSlide(currentSlide - 1);
-      accumulatedDelta = 0;
-    }
-  }, { passive: false });
-
-  // Touch support
-  var touchStartY = 0;
-  container.addEventListener('touchstart', function (e) {
-    touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-  container.addEventListener('touchend', function (e) {
-    var diff = touchStartY - e.changedTouches[0].clientY;
-    if (isAnimating) return;
-    if (diff > 50 && currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
-    else if (diff < -50 && currentSlide > 0) goToSlide(currentSlide - 1);
-  }, { passive: true });
-
-  // Keyboard
-  document.addEventListener('keydown', function (e) {
-    if (isAnimating) return;
-    if (document.getElementById('landing').style.display !== 'none') return;
-    if ((e.key === 'ArrowDown' || e.key === ' ') && currentSlide < totalSlides - 1) {
-      e.preventDefault();
-      goToSlide(currentSlide + 1);
-    } else if (e.key === 'ArrowUp' && currentSlide > 0) {
-      e.preventDefault();
-      goToSlide(currentSlide - 1);
-    }
-  });
-
-  function goToSlide(targetIndex) {
-    if (targetIndex === currentSlide || isAnimating) return;
-    isAnimating = true;
 
     if (!hasScrolled) {
       hasScrolled = true;
       scrollHint.classList.add('slideshow__scroll-hint--hidden');
     }
 
-    updateDots(targetIndex);
+    targetProgress += e.deltaY * scrollSensitivity;
+    targetProgress = Math.max(0, Math.min(targetProgress, totalSlides - 1));
+  }, { passive: false });
 
-    if (targetIndex > currentSlide) {
-      // Scrolling DOWN: next slide rises up ON TOP
-      var nextSlide = slides[targetIndex];
+  // Smooth interpolation loop
+  function animate() {
+    var diff = targetProgress - scrollProgress;
+    // Lerp with easing
+    scrollProgress += diff * 0.12;
 
-      // Remove active from current
-      slides[currentSlide].classList.remove('is-active');
-
-      nextSlide.style.transition = 'none';
-      nextSlide.style.transform = 'translateY(100%)';
-      nextSlide.offsetHeight; // Force reflow
-
-      nextSlide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-      nextSlide.style.transform = 'translateY(0%)';
-
-      // Activate after slight delay for title animation
-      setTimeout(function () {
-        nextSlide.classList.add('is-active');
-      }, 200);
-
-      nextSlide.addEventListener('transitionend', function handler() {
-        nextSlide.removeEventListener('transitionend', handler);
-        currentSlide = targetIndex;
-        isAnimating = false;
-      });
-    } else {
-      // Scrolling UP: current slide drops back down
-      var currSlide = slides[currentSlide];
-      currSlide.classList.remove('is-active');
-
-      currSlide.style.transition = 'transform 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-      currSlide.style.transform = 'translateY(100%)';
-
-      // Activate previous slide
-      setTimeout(function () {
-        slides[targetIndex].classList.add('is-active');
-      }, 200);
-
-      currSlide.addEventListener('transitionend', function handler() {
-        currSlide.removeEventListener('transitionend', handler);
-        currentSlide = targetIndex;
-        isAnimating = false;
-      });
+    // Snap when very close to a full slide
+    if (Math.abs(diff) < 0.001) {
+      scrollProgress = targetProgress;
     }
 
-    // Fallback
-    setTimeout(function () {
-      isAnimating = false;
-      currentSlide = targetIndex;
-    }, 900);
+    applyScroll(scrollProgress);
+    requestAnimationFrame(animate);
   }
+  requestAnimationFrame(animate);
+
+  // Touch support
+  var touchStartY = 0;
+  var touchLastY = 0;
+  container.addEventListener('touchstart', function (e) {
+    touchStartY = e.touches[0].clientY;
+    touchLastY = touchStartY;
+  }, { passive: true });
+
+  container.addEventListener('touchmove', function (e) {
+    var touchY = e.touches[0].clientY;
+    var delta = touchLastY - touchY;
+    touchLastY = touchY;
+
+    if (!hasScrolled) {
+      hasScrolled = true;
+      scrollHint.classList.add('slideshow__scroll-hint--hidden');
+    }
+
+    targetProgress += delta * 0.003;
+    targetProgress = Math.max(0, Math.min(targetProgress, totalSlides - 1));
+  }, { passive: true });
+
+  // Keyboard
+  document.addEventListener('keydown', function (e) {
+    if (document.getElementById('landing').style.display !== 'none') return;
+    if (e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault();
+      targetProgress = Math.min(Math.floor(targetProgress) + 1, totalSlides - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      targetProgress = Math.max(Math.ceil(targetProgress) - 1, 0);
+    }
+  });
 
   // Click handler for project navigation
   slides.forEach(function (slide) {

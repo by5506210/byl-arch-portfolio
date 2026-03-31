@@ -21,11 +21,6 @@
   <!-- Grain texture overlay -->
   <div class="grain"></div>
 
-  <!-- Loading screen -->
-  <div id="loader" class="loader">
-    <div class="loader__monogram">BYL</div>
-  </div>
-
   <!-- ============================================ -->
   <!-- LANDING PAGE -->
   <!-- ============================================ -->
@@ -156,19 +151,6 @@
 
   </div>
 
-  <!-- Loader fade -->
-  <script>
-    window.addEventListener('load', function () {
-      var loader = document.getElementById('loader');
-      if (window.location.hash === '#portfolio') {
-        loader.style.display = 'none';
-        return;
-      }
-      setTimeout(function () {
-        loader.classList.add('loader--fade-out');
-      }, 800);
-    });
-  </script>
 
   <script src="src/js/cursor.js"></script>
   <script src="src/js/landing.js"></script>
