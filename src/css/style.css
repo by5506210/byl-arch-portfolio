@@ -445,6 +445,7 @@ img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  will-change: transform;
 }
 
 .project-hero__overlay {
@@ -525,14 +526,37 @@ img {
   overflow: hidden;
 }
 
-.project-gallery__image img {
+/* Full-bleed modifier — edge-to-edge images */
+.project-gallery__image--full-bleed {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  margin-bottom: 4rem;
+}
+
+/* Staggered reveal: odd from left, even from right */
+.project-gallery__image:nth-child(odd) img {
   width: 100%;
-  clip-path: inset(100% 0 0 0);
-  transition: clip-path 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+  clip-path: inset(0 100% 0 0);
+  filter: saturate(0.7);
+  transition: clip-path 0.8s cubic-bezier(0.23, 1, 0.32, 1),
+              filter 0.4s ease;
+}
+
+.project-gallery__image:nth-child(even) img {
+  width: 100%;
+  clip-path: inset(0 0 0 100%);
+  filter: saturate(0.7);
+  transition: clip-path 0.8s cubic-bezier(0.23, 1, 0.32, 1),
+              filter 0.4s ease;
 }
 
 .project-gallery__image.is-revealed img {
   clip-path: inset(0 0 0 0);
+}
+
+.project-gallery__image img:hover {
+  filter: saturate(1);
 }
 
 .project-gallery__video {
@@ -992,6 +1016,152 @@ img {
 }
 
 /* ============================================
+   STICKY PROJECT TITLE BAR
+   ============================================ */
+.project-title-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: rgba(232, 228, 223, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  padding: 0 8%;
+  gap: 1rem;
+  z-index: 45;
+  transform: translateY(-100%);
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.project-title-bar.is-visible {
+  transform: translateY(0);
+}
+
+.project-title-bar__name {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.project-title-bar__type {
+  font-family: var(--font-primary);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dark-gray);
+}
+
+/* ============================================
+   FILMSTRIP — Horizontal Drag Scroll
+   ============================================ */
+.project-filmstrip {
+  padding: 0 8%;
+  margin-bottom: 4rem;
+  overflow: hidden;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.project-filmstrip:active {
+  cursor: grabbing;
+}
+
+.project-filmstrip__track {
+  display: flex;
+  gap: 2rem;
+  will-change: transform;
+}
+
+.project-filmstrip__frame {
+  flex-shrink: 0;
+  width: 55vw;
+}
+
+.project-filmstrip__number {
+  font-family: var(--font-primary);
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.05);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.project-filmstrip__image {
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.project-filmstrip__image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+.project-filmstrip__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.project-filmstrip__caption-title {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+}
+
+.project-filmstrip__caption-desc {
+  font-family: var(--font-primary);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--dark-gray);
+  font-weight: 300;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.site-footer {
+  padding: 3rem 8%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-primary);
+  font-size: 0.65rem;
+  color: var(--dark-gray);
+  letter-spacing: 0.05em;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-top: 4rem;
+}
+
+.site-footer__links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.site-footer__links a {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: color 0.2s ease;
+}
+
+.site-footer__links a:hover {
+  color: var(--text-primary);
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
@@ -1064,6 +1234,26 @@ img {
 
   .project-seasonal {
     padding: 0 6% 3rem;
+  }
+
+  .project-filmstrip__frame {
+    width: 80vw;
+  }
+
+  .project-title-bar {
+    padding: 0 6%;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    padding: 2rem 6%;
+  }
+
+  .project-gallery__image--full-bleed {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
   }
 
   .landing {

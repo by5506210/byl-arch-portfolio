@@ -4,10 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Morphic Vector System — Bryan Youn</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
   <link rel="stylesheet" href="../src/css/style.css">
 </head>
 <body>
   <div class="grain"></div>
+  <div data-barba="wrapper">
+  <main data-barba="container" data-barba-namespace="morphic-vector">
   <div class="coming-soon-page">
     <a href="../index.html#portfolio" class="project-back">&larr; Back</a>
     <nav class="nav" style="opacity: 1;">
@@ -18,6 +22,16 @@
     <h1 class="coming-soon-page__title">Morphic Vector System</h1>
     <span class="coming-soon-page__label">Coming Soon</span>
   </div>
+  <footer class="site-footer">
+    <span class="site-footer__copy">Bryan Youn &mdash; 2025</span>
+    <div class="site-footer__links">
+      <a href="https://www.instagram.com/byl_architecture" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://www.linkedin.com/in/bryan-youn-7048152b5/" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </footer>
+  </main>
+  </div>
   <script src="../src/js/cursor.js"></script>
+  <script src="../src/js/transitions.js"></script>
 </body>
 </html>

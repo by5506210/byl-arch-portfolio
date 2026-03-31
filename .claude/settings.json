@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(curl -sL https://drive.google.com/drive/folders/1-XpgsAFTGJhgCSY__0fCWXDmzdSVZ4xi)"
+    ]
+  }
+}

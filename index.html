@@ -14,12 +14,18 @@
   <!-- Lenis Smooth Scroll -->
   <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
 
+  <!-- Barba.js Page Transitions -->
+  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
+
   <link rel="stylesheet" href="src/css/style.css">
 </head>
 <body>
 
   <!-- Grain texture overlay -->
   <div class="grain"></div>
+
+  <div data-barba="wrapper">
+    <main data-barba="container" data-barba-namespace="home">
 
   <!-- ============================================ -->
   <!-- LANDING PAGE -->
@@ -151,9 +157,13 @@
 
   </div>
 
+    </main>
+  </div>
+
 
   <script src="src/js/cursor.js"></script>
   <script src="src/js/landing.js"></script>
   <script src="src/js/slideshow.js"></script>
+  <script src="src/js/transitions.js"></script>
 </body>
 </html>
