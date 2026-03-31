@@ -342,8 +342,8 @@ img {
 }
 
 .slideshow__slide-img-wrapper {
-  width: 85%;
-  max-height: 80vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   position: relative;
 }
@@ -401,6 +401,36 @@ img {
   background: rgba(10, 10, 10, 0.6);
   padding: 0.4em 1em;
   pointer-events: none;
+}
+
+/* Category Divider Slides */
+.slideshow__slide--divider {
+  background: var(--black);
+  cursor: default;
+}
+
+.slideshow__divider-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.slideshow__divider-label {
+  font-family: var(--font-primary);
+  font-size: 0.65rem;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: rgba(232, 228, 223, 0.3);
+}
+
+.slideshow__divider-title {
+  font-family: var(--font-primary);
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 200;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--concrete);
 }
 
 /* Coming Soon Card */
@@ -898,34 +928,115 @@ img {
 /* ============================================
    CONTACT PAGE
    ============================================ */
-.contact {
-  background: var(--concrete);
+.contact-page {
+  background: var(--black);
   min-height: 100vh;
+  color: var(--concrete);
+}
+
+.contact-page__hero {
+  padding: 20vh 8% 8vh;
+}
+
+.contact-page__heading {
+  font-family: var(--font-primary);
+  font-size: clamp(3.5rem, 10vw, 8rem);
+  font-weight: 200;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--concrete);
+}
+
+.contact-page__grid {
+  padding: 0 8%;
   display: flex;
   flex-direction: column;
+  border-top: 1px solid rgba(232, 228, 223, 0.1);
+}
+
+.contact-page__card {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  padding: 1.8rem 0;
+  border-bottom: 1px solid rgba(232, 228, 223, 0.1);
+  text-decoration: none;
+  color: var(--concrete);
+  transition: padding-left 0.3s ease;
 }
 
-.contact__label {
+.contact-page__card:hover {
+  padding-left: 1rem;
+}
+
+.contact-page__card-label {
   font-family: var(--font-primary);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--dark-gray);
+  letter-spacing: 0.15em;
+  color: rgba(232, 228, 223, 0.4);
+  width: 120px;
+  flex-shrink: 0;
 }
 
-.contact__email {
+.contact-page__card-value {
   font-family: var(--font-primary);
-  font-size: clamp(1.5rem, 3vw, 2.5rem);
-  font-weight: 500;
-  color: var(--text-primary);
-  transition: color 0.2s ease;
+  font-size: 1.1rem;
+  font-weight: 300;
+  flex: 1;
 }
 
-.contact__email:hover {
-  color: var(--dark-gray);
+.contact-page__card-arrow {
+  font-size: 1.2rem;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.contact-page__card:hover .contact-page__card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.contact-page__info {
+  padding: 4rem 8%;
+  display: flex;
+  gap: 6rem;
+}
+
+.contact-page__info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.contact-page__info-label {
+  font-family: var(--font-primary);
+  font-size: 0.65rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(232, 228, 223, 0.35);
+}
+
+.contact-page__info-value {
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: var(--concrete);
+}
+
+.contact-page .site-footer {
+  border-top-color: rgba(232, 228, 223, 0.08);
+  color: rgba(232, 228, 223, 0.3);
+}
+
+.contact-page .site-footer__links a {
+  color: rgba(232, 228, 223, 0.3);
+}
+
+.contact-page .site-footer__links a:hover {
+  color: var(--concrete);
 }
 
 /* ============================================
@@ -1431,11 +1542,11 @@ img {
   }
 
   .slideshow__slide-img-wrapper {
-    width: 95%;
+    width: 100%;
   }
 
   .slideshow__title-wrapper {
-    bottom: 25%;
+    bottom: 20%;
     left: 6%;
   }
 
@@ -1524,6 +1635,20 @@ img {
   .projects-index__grid {
     grid-template-columns: 1fr 1fr;
     gap: 1.2rem;
+  }
+
+  .contact-page__info {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .contact-page__card-label {
+    width: 80px;
+    font-size: 0.6rem;
+  }
+
+  .contact-page__card-value {
+    font-size: 0.9rem;
   }
 
   .site-footer {

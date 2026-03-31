@@ -62,7 +62,12 @@
           col: col,
           row: row,
           currentAngle: Math.random() * Math.PI * 2,
-          baseOpacity: 0.14 + Math.random() * 0.08
+          baseOpacity: 0.14 + Math.random() * 0.08,
+          // Per-particle random seeds for chaotic motion
+          seed1: Math.random() * 100,
+          seed2: Math.random() * 100,
+          seed3: Math.random() * 100,
+          drift: (Math.random() - 0.5) * 2 // random drift direction
         });
       }
     }
@@ -135,36 +140,36 @@
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
-      // Ocean wave flow — dominant horizontal direction with rolling swells
-      // Main current: flows right with undulation
-      var waveY = p.y / window.innerHeight; // 0-1 vertical position
-      var wavePhase = p.x * 0.008 + time * 2.5; // fast horizontal sweep
+      // Chaotic flow — multiple overlapping frequencies with per-particle randomness
+      // Each particle has unique seeds creating localized turbulence
+      var t1 = time * 1.5 + p.seed1;
+      var t2 = time * 0.9 + p.seed2;
+      var t3 = time * 2.2 + p.seed3;
 
-      // Primary ocean swell — large rolling waves
-      var swell = Math.sin(wavePhase) * 1.2
-                + Math.sin(p.x * 0.005 + p.y * 0.01 + time * 1.8) * 0.8;
+      // Large-scale flow field (slow, sweeping)
+      var flow = Math.sin(p.x * 0.004 + t2 * 0.4) * 1.0
+               + Math.cos(p.y * 0.005 + t2 * 0.3) * 0.8;
 
-      // Cross-current — perpendicular ripples
-      var cross = Math.cos(p.y * 0.012 + time * 1.4) * 0.5
-                + Math.sin(p.x * 0.015 - time * 2.0) * 0.4;
+      // Medium turbulence (regional chaos)
+      var turb = Math.sin(p.x * 0.015 + p.y * 0.008 + t1) * 0.9
+               + Math.cos(p.x * 0.01 - p.y * 0.012 + t3) * 0.7;
 
-      // Deep undercurrent — slow, wide
-      var deep = Math.sin((p.x + p.y) * 0.003 + time * 0.6) * 0.6;
+      // High-frequency jitter (per-particle noise)
+      var jitter = Math.sin(t1 * 3.0 + p.seed1 * 10) * 0.4
+                 + Math.cos(t3 * 2.5 + p.seed2 * 8) * 0.3;
 
-      // Turbulence near edges — chaotic foam
-      var edgeDist = Math.min(p.x, p.y, window.innerWidth - p.x, window.innerHeight - p.y) / 100;
-      var turbulence = edgeDist < 1 ? (1 - edgeDist) * Math.sin(time * 5 + i) * 0.8 : 0;
+      // Directional gusts — sweeping patterns
+      var gust = Math.sin(p.x * 0.002 + time * 1.8) * Math.cos(p.y * 0.003 + time * 0.7) * 1.2;
 
-      var baseAngle = swell + cross + deep + turbulence;
+      // Per-particle drift adds uniqueness
+      var particleDrift = p.drift * Math.sin(time * 0.8 + p.seed3) * 0.5;
+
+      var baseAngle = flow + turb + jitter + gust + particleDrift;
 
       var targetAngle = baseAngle;
       var drawOpacity = p.baseOpacity;
       var drawLen = lineLen;
       var speed = returnSpeed;
-
-      // Wave brightness variation — brighter at wave crests
-      var waveCrest = (Math.sin(wavePhase) + 1) * 0.5; // 0-1
-      drawOpacity += waveCrest * 0.08;
 
       // Black hole vortex at center
       var dxBH = centerX - p.x;
