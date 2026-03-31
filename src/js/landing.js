@@ -151,6 +151,29 @@
     }
   });
 
+  // Magnetic pull on the bold clickable line
+  document.addEventListener('mousemove', function (e) {
+    var boldLine = linesContainer.querySelector('.landing__line--bold');
+    if (!boldLine) return;
+
+    var rect = boldLine.getBoundingClientRect();
+    var centerX = rect.left + rect.width / 2;
+    var centerY = rect.top + rect.height / 2;
+    var distX = e.clientX - centerX;
+    var distY = e.clientY - centerY;
+    var dist = Math.sqrt(distX * distX + distY * distY);
+    var pullRadius = 120;
+
+    if (dist < pullRadius) {
+      var strength = (1 - dist / pullRadius) * 0.35;
+      boldLine.style.transform = 'translate(' + (distX * strength) + 'px, ' + (distY * strength) + 'px)';
+      boldLine.style.transition = 'transform 0.15s ease-out';
+    } else {
+      boldLine.style.transform = 'translate(0, 0)';
+      boldLine.style.transition = 'transform 0.4s ease-out';
+    }
+  });
+
   function triggerTransition() {
     landing.classList.add('landing--transitioning');
 
