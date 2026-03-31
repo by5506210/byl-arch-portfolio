@@ -26,6 +26,14 @@
 
       enter: function (data) {
         window.scrollTo(0, 0);
+
+        // Set body background to match incoming page BEFORE fade-in
+        if (data.next.namespace === 'contact') {
+          document.body.style.background = '#0a0a0a';
+        } else {
+          document.body.style.background = '#e8e4df';
+        }
+
         return gsap.from(data.next.container, {
           opacity: 0,
           duration: 0.35,
