@@ -137,32 +137,29 @@
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
-      // === CHAOTIC AMBIENT MOTION ===
-      var t1 = time * 2.0 + p.seed1;
-      var t2 = time * 1.2 + p.seed2;
-      var t3 = time * 2.8 + p.seed3;
-      var t4 = time * 0.7 + p.seed4;
+      // === WIND FLOW — directional with organic variation ===
+      var t1 = time * 1.4 + p.seed1;
+      var t2 = time * 0.8 + p.seed2;
 
-      // Large sweeping flow
-      var flow = Math.sin(p.x * 0.003 + t2 * 0.5) * 1.2
-               + Math.cos(p.y * 0.004 + t4 * 0.4) * 1.0;
+      // Primary wind direction — sweeps diagonally across screen
+      // Shifts slowly over time so the wind "changes direction"
+      var windAngle = Math.sin(time * 0.15) * 0.8 + 0.3; // base wind direction
+      var wind = windAngle
+               + Math.sin(p.x * 0.006 + t2 * 0.5) * 0.6  // large-scale bend
+               + Math.cos(p.y * 0.005 + t2 * 0.35) * 0.4; // lateral sway
 
-      // Regional turbulence — fast, chaotic
-      var turb = Math.sin(p.x * 0.018 + p.y * 0.009 + t1) * 1.1
-               + Math.cos(p.x * 0.012 - p.y * 0.015 + t3) * 0.9;
+      // Gusts — regional surges that sweep through
+      var gust = Math.sin(p.x * 0.003 + p.y * 0.002 + time * 2.0) * 0.7
+               * (0.5 + 0.5 * Math.sin(time * 0.4 + p.seed1 * 0.5)); // gust intensity pulses
 
-      // Per-particle jitter — high frequency, unique to each
-      var jitter = Math.sin(t1 * 4.0 + p.seed1 * 12) * 0.6
-                 + Math.cos(t3 * 3.5 + p.seed2 * 9) * 0.5
-                 + Math.sin(t4 * 5.0 + p.seed3 * 7) * 0.3;
+      // Turbulence — smaller eddies within the wind
+      var eddy = Math.sin(p.x * 0.02 + p.y * 0.01 + t1 * 1.2) * 0.3
+               + Math.cos(p.x * 0.015 - p.y * 0.018 + t1 * 0.9) * 0.25;
 
-      // Gusts — large sweeping directional changes
-      var gust = Math.sin(p.x * 0.002 + time * 2.2) * Math.cos(p.y * 0.003 + time * 0.9) * 1.5;
+      // Per-particle breath — subtle individual variation
+      var breath = p.drift * Math.sin(time * 0.6 + p.seed3) * 0.15;
 
-      // Random drift per particle
-      var particleDrift = p.drift * Math.sin(time * 1.2 + p.seed3) * 0.7;
-
-      var baseAngle = flow + turb + jitter + gust + particleDrift;
+      var baseAngle = wind + gust + eddy + breath;
 
       // === BLACK HOLE — Spring-back behavior ===
       var dxBH = centerX - p.x;

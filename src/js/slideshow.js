@@ -34,7 +34,10 @@ function initSlideshow() {
     slide.style.left = '0';
     slide.style.width = '100%';
     slide.style.height = '100vh';
-    slide.style.background = '#e8e4df';
+    // Don't override background on divider slides (they use CSS black)
+    if (!slide.classList.contains('slideshow__slide--divider')) {
+      slide.style.background = '#e8e4df';
+    }
     slide.style.zIndex = String(i + 1);
     slide.style.willChange = 'transform';
 

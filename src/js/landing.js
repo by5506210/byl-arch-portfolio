@@ -42,10 +42,13 @@
     // Create expanding ring overlay
     var ring = document.createElement('div');
     ring.style.cssText = 'position:fixed;top:50%;left:50%;width:0;height:0;' +
-      'border-radius:50%;background:var(--concrete,#e8e4df);' +
+      'border-radius:50%;background:#e8e4df;' +
       'transform:translate(-50%,-50%);z-index:101;' +
       'transition:width 1s cubic-bezier(0.76,0,0.24,1),height 1s cubic-bezier(0.76,0,0.24,1);';
     document.body.appendChild(ring);
+
+    // Set body background immediately so no black shows through
+    document.body.style.background = '#e8e4df';
 
     // Calculate size needed to cover entire screen from center
     var diag = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight) * 2;
