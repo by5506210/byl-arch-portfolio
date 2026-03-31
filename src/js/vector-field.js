@@ -52,7 +52,7 @@ function initVectorField() {
   // Easter egg: second black hole position (bottom-right area)
   var easterEggX = 0;
   var easterEggY = 0;
-  var easterEggRadius = 140;
+  var easterEggRadius = 200;
   var easterEgg = isLandingPage ? document.getElementById('easter-egg-portal') : null;
   var easterEggVisible = false;
 
@@ -226,16 +226,16 @@ function initVectorField() {
           var eeStrength = (1 - distEE / easterEggRadius);
           eeStrength = eeStrength * eeStrength;
           var angleToEE = Math.atan2(dyEE, dxEE);
-          var eeSpiralOffset = eeStrength * 1.2 + Math.sin(time * 2.0 + p.seed2) * eeStrength * 0.4;
+          var eeSpiralOffset = eeStrength * 1.8 + Math.sin(time * 2.5 + p.seed2) * eeStrength * 0.5;
           var eeAngle = angleToEE + eeSpiralOffset;
 
-          // Blend easter egg influence
+          // Stronger blend
           var eeDiff = angleDiff(targetAngle, eeAngle);
-          targetAngle += eeDiff * eeStrength * 0.6;
+          targetAngle += eeDiff * eeStrength * 0.8;
 
-          // Darken lines near easter egg (negative glow — lines fade out)
-          drawOpacity *= (1 - eeStrength * 0.7);
-          speed = Math.max(speed, returnSpeed + eeStrength * 0.15);
+          // Darken lines near easter egg
+          drawOpacity *= (1 - eeStrength * 0.8);
+          speed = Math.max(speed, returnSpeed + eeStrength * 0.2);
         }
       }
 
@@ -284,12 +284,13 @@ function initVectorField() {
       ctx.fillStyle = glowGrad;
       ctx.fillRect(centerX - 120, centerY - 120, 240, 240);
 
-      // Easter egg: dark spot (negative glow) — subtle visual cue
-      var darkGrad = ctx.createRadialGradient(easterEggX, easterEggY, 0, easterEggX, easterEggY, 60);
-      darkGrad.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+      // Easter egg: dark spot — more noticeable
+      var darkGrad = ctx.createRadialGradient(easterEggX, easterEggY, 0, easterEggX, easterEggY, 90);
+      darkGrad.addColorStop(0, 'rgba(0, 0, 0, 0.25)');
+      darkGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.08)');
       darkGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = darkGrad;
-      ctx.fillRect(easterEggX - 60, easterEggY - 60, 120, 120);
+      ctx.fillRect(easterEggX - 90, easterEggY - 90, 180, 180);
 
       // Easter egg portal reveal
       var dxEEm = mouseX - easterEggX;
