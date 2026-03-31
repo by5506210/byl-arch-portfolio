@@ -256,14 +256,13 @@ function initVectorField() {
         mStrength = mStrength * mStrength;
         var mouseEffect = mStrength * (1 - bhResistance * 0.85);
 
-        // Near easter egg: cursor dims particles instead of brightening
-        if (eeSuppression > 0.01 && particleNearEE > 0) {
-          // Actively dim — stronger when both cursor and particle are near EE
-          var dimFactor = eeSuppression * particleNearEE * mouseEffect;
+        if (particleNearEE > 0) {
+          // Particles near easter egg: cursor ALWAYS dims, never brightens
+          var dimFactor = particleNearEE * mouseEffect;
           drawOpacity *= Math.max(0.02, 1 - dimFactor * 3);
         } else {
-          // Normal brightening
-          var brightenAmount = mouseEffect * 0.3 * opacityScale * (1 - eeSuppression);
+          // Normal brightening for all other particles
+          var brightenAmount = mouseEffect * 0.3 * opacityScale;
           drawOpacity = Math.max(drawOpacity, p.baseOpacity + brightenAmount);
         }
 
