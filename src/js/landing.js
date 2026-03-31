@@ -30,15 +30,19 @@
   testLine.classList.add('landing__line');
   testLine.style.opacity = '1';
   linesContainer.appendChild(testLine);
-  var singleLineHeight = testLine.offsetHeight;
-  var gap = parseFloat(getComputedStyle(linesContainer).gap) || 2;
+  var singleLineHeight = testLine.offsetHeight || 20;
+  var gapStr = getComputedStyle(linesContainer).gap;
+  var gap = parseFloat(gapStr);
+  if (isNaN(gap)) gap = 3; // Fallback for browsers returning "normal"
   var effectiveLineHeight = singleLineHeight + gap;
+  if (effectiveLineHeight < 10) effectiveLineHeight = 22; // Safety floor
   linesContainer.removeChild(testLine);
 
-  var padding = window.innerHeight * 0.08; // 4vh top + 4vh bottom roughly
+  var padding = window.innerHeight * 0.08;
   var availableHeight = window.innerHeight - padding;
   var totalLines = Math.floor(availableHeight / effectiveLineHeight);
-  totalLines = Math.max(totalLines, 15); // minimum
+  if (totalLines < 10) totalLines = 10; // Minimum
+  if (totalLines > 80) totalLines = 80; // Maximum to prevent performance issues
 
   // Bold clickable line sits in the middle
   var boldLineIndex = Math.floor(totalLines / 2);
