@@ -290,7 +290,6 @@ img {
   color: var(--text-primary);
   text-decoration: none;
   transition: opacity 0.3s ease;
-  flex-shrink: 0;
 }
 
 .slideshow-nav-bar__back:hover {
@@ -300,16 +299,14 @@ img {
 .slideshow-nav-bar__logo {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-family: var(--font-primary);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.25em;
   color: var(--text-primary);
-}
-
-.slideshow-nav-bar__spacer {
-  flex: 1;
+  pointer-events: none;
 }
 
 .slideshow-nav-bar__links {

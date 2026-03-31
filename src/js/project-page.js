@@ -58,6 +58,9 @@ function initParallaxHero() {
 
 // Integrated nav bar — contains back, project name, and nav links
 function initNavBar() {
+  // Skip on slideshow page — it has its own nav bar
+  if (document.querySelector('.slideshow-nav-bar')) return;
+
   var hero = document.querySelector('.project-hero');
   var backLink = document.querySelector('.project-back');
   var nav = document.querySelector('.nav');
