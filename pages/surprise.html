@@ -11,10 +11,9 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: #fff5ee;
+      background: #0a0a0a;
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       font-family: 'Inter', sans-serif;
@@ -24,50 +23,20 @@
 
     .surprise {
       text-align: center;
-      padding: 2rem;
-      max-width: 500px;
-    }
-
-    .surprise__emoji {
-      font-size: 4rem;
-      margin-bottom: 1.5rem;
-      animation: wiggle 1s ease-in-out infinite;
-    }
-
-    @keyframes wiggle {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-5deg); }
-      75% { transform: rotate(5deg); }
-    }
-
-    .surprise__title {
-      font-size: 2.5rem;
-      font-weight: 200;
-      color: #4a3728;
-      margin-bottom: 0.5rem;
-      letter-spacing: -0.02em;
-    }
-
-    .surprise__sub {
-      font-size: 0.85rem;
-      font-weight: 300;
-      color: #8b7355;
-      margin-bottom: 2.5rem;
     }
 
     .surprise__img {
-      width: 280px;
-      height: 280px;
+      width: 320px;
+      height: 320px;
       border-radius: 50%;
       overflow: hidden;
-      margin: 0 auto 2rem;
-      border: 4px solid rgba(74, 55, 40, 0.1);
-      animation: float 3s ease-in-out infinite;
+      margin: 0 auto 2.5rem;
+      animation: float 4s ease-in-out infinite;
     }
 
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
+      50% { transform: translateY(-12px); }
     }
 
     .surprise__img img {
@@ -76,71 +45,35 @@
       object-fit: cover;
     }
 
-    .surprise__caption {
-      font-size: 0.75rem;
-      font-weight: 400;
-      color: #8b7355;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 3rem;
-    }
-
     .surprise__back {
-      font-size: 0.8rem;
-      font-weight: 400;
-      color: #4a3728;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 300;
+      color: rgba(232, 228, 223, 0.3);
       text-decoration: none;
-      border: 1px solid rgba(74, 55, 40, 0.2);
-      padding: 0.6em 1.5em;
-      border-radius: 100px;
-      transition: all 0.3s ease;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: color 0.3s ease;
     }
 
     .surprise__back:hover {
-      background: #4a3728;
-      color: #fff5ee;
+      color: rgba(232, 228, 223, 0.7);
     }
 
-    /* Floating paw prints */
-    .paw {
-      position: fixed;
-      font-size: 1.2rem;
-      opacity: 0.08;
-      animation: drift 15s linear infinite;
-    }
-
-    @keyframes drift {
-      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-      10% { opacity: 0.08; }
-      90% { opacity: 0.08; }
-      100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+    @media (max-width: 768px) {
+      .surprise__img {
+        width: 240px;
+        height: 240px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Floating paw prints background -->
-  <script>
-    for (var i = 0; i < 12; i++) {
-      var paw = document.createElement('div');
-      paw.classList.add('paw');
-      paw.textContent = '\uD83D\uDC3E';
-      paw.style.left = (Math.random() * 100) + '%';
-      paw.style.animationDelay = (Math.random() * 15) + 's';
-      paw.style.animationDuration = (12 + Math.random() * 8) + 's';
-      document.body.appendChild(paw);
-    }
-  </script>
-
   <div class="surprise">
-    <div class="surprise__emoji">&#x1F43E;</div>
-    <h1 class="surprise__title">You found me!</h1>
-    <p class="surprise__sub">Every architect needs a studio companion.</p>
     <div class="surprise__img">
-      <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop&crop=face" alt="Good boy">
+      <img src="https://images.unsplash.com/photo-1612195583950-b8fd34c87093?w=500&h=500&fit=crop&crop=face" alt="Dachshund">
     </div>
-    <p class="surprise__caption">Chief Morale Officer</p>
-    <a href="../index.html" class="surprise__back">Back to the void</a>
+    <a href="../index.html" class="surprise__back">&larr;</a>
   </div>
 </body>
 </html>
