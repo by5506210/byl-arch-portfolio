@@ -1,5 +1,5 @@
 // ============================================
-// VECTOR FIELD — Ocean waves with black hole center
+// VECTOR FIELD — Chaotic field with spring-back black hole
 // ============================================
 
 (function () {
@@ -14,13 +14,13 @@
   var ctx = canvas.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
 
-  var spacing = 26;
-  var lineLen = 14;
-  var mouseInfluence = 200;
-  var returnSpeed = 0.07;
-  var followSpeed = 0.2;
+  var spacing = 24;
+  var lineLen = 15;
+  var mouseInfluence = 220;
+  var returnSpeed = 0.08;
+  var followSpeed = 0.25;
 
-  var blackHoleRadius = 250;
+  var blackHoleRadius = 280;
 
   var mouseX = -1000;
   var mouseY = -1000;
@@ -32,9 +32,8 @@
 
   var portal = document.getElementById('landing-portal');
   var portalVisible = false;
-  var portalRevealDist = 220;
+  var portalRevealDist = 160;
 
-  // Make canvas transparent to pointer events so portal is clickable
   canvas.style.pointerEvents = 'none';
 
   function resize() {
@@ -62,18 +61,19 @@
           col: col,
           row: row,
           currentAngle: Math.random() * Math.PI * 2,
-          baseOpacity: 0.14 + Math.random() * 0.08,
-          // Per-particle random seeds for chaotic motion
+          baseOpacity: 0.18 + Math.random() * 0.1,
           seed1: Math.random() * 100,
           seed2: Math.random() * 100,
           seed3: Math.random() * 100,
-          drift: (Math.random() - 0.5) * 2 // random drift direction
+          seed4: Math.random() * 100,
+          drift: (Math.random() - 0.5) * 3,
+          // Per-particle irregular mouse influence radius
+          mouseRadiusOffset: (Math.random() - 0.5) * 80
         });
       }
     }
   }
 
-  // Track mouse on the landing div itself (not just document)
   var landing = document.getElementById('landing');
   if (landing) {
     landing.addEventListener('mousemove', function (e) {
@@ -91,17 +91,14 @@
     mouseY = -1000;
   });
 
-  // Also support touch for portal reveal on mobile
   if (landing) {
     landing.addEventListener('touchstart', function (e) {
-      var t = e.touches[0];
-      mouseX = t.clientX;
-      mouseY = t.clientY;
+      mouseX = e.touches[0].clientX;
+      mouseY = e.touches[0].clientY;
     }, { passive: true });
     landing.addEventListener('touchmove', function (e) {
-      var t = e.touches[0];
-      mouseX = t.clientX;
-      mouseY = t.clientY;
+      mouseX = e.touches[0].clientX;
+      mouseY = e.touches[0].clientY;
     }, { passive: true });
   }
 
@@ -114,11 +111,11 @@
 
   function animate() {
     if (!running) return;
-    time += 0.012; // Faster for vigorous motion
+    time += 0.016;
 
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-    // Portal reveal check
+    // Portal reveal
     var dxP = mouseX - centerX;
     var dyP = mouseY - centerY;
     var distToCenter = Math.sqrt(dxP * dxP + dyP * dyP);
@@ -140,79 +137,104 @@
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
-      // Chaotic flow — multiple overlapping frequencies with per-particle randomness
-      // Each particle has unique seeds creating localized turbulence
-      var t1 = time * 1.5 + p.seed1;
-      var t2 = time * 0.9 + p.seed2;
-      var t3 = time * 2.2 + p.seed3;
+      // === CHAOTIC AMBIENT MOTION ===
+      var t1 = time * 2.0 + p.seed1;
+      var t2 = time * 1.2 + p.seed2;
+      var t3 = time * 2.8 + p.seed3;
+      var t4 = time * 0.7 + p.seed4;
 
-      // Large-scale flow field (slow, sweeping)
-      var flow = Math.sin(p.x * 0.004 + t2 * 0.4) * 1.0
-               + Math.cos(p.y * 0.005 + t2 * 0.3) * 0.8;
+      // Large sweeping flow
+      var flow = Math.sin(p.x * 0.003 + t2 * 0.5) * 1.2
+               + Math.cos(p.y * 0.004 + t4 * 0.4) * 1.0;
 
-      // Medium turbulence (regional chaos)
-      var turb = Math.sin(p.x * 0.015 + p.y * 0.008 + t1) * 0.9
-               + Math.cos(p.x * 0.01 - p.y * 0.012 + t3) * 0.7;
+      // Regional turbulence — fast, chaotic
+      var turb = Math.sin(p.x * 0.018 + p.y * 0.009 + t1) * 1.1
+               + Math.cos(p.x * 0.012 - p.y * 0.015 + t3) * 0.9;
 
-      // High-frequency jitter (per-particle noise)
-      var jitter = Math.sin(t1 * 3.0 + p.seed1 * 10) * 0.4
-                 + Math.cos(t3 * 2.5 + p.seed2 * 8) * 0.3;
+      // Per-particle jitter — high frequency, unique to each
+      var jitter = Math.sin(t1 * 4.0 + p.seed1 * 12) * 0.6
+                 + Math.cos(t3 * 3.5 + p.seed2 * 9) * 0.5
+                 + Math.sin(t4 * 5.0 + p.seed3 * 7) * 0.3;
 
-      // Directional gusts — sweeping patterns
-      var gust = Math.sin(p.x * 0.002 + time * 1.8) * Math.cos(p.y * 0.003 + time * 0.7) * 1.2;
+      // Gusts — large sweeping directional changes
+      var gust = Math.sin(p.x * 0.002 + time * 2.2) * Math.cos(p.y * 0.003 + time * 0.9) * 1.5;
 
-      // Per-particle drift adds uniqueness
-      var particleDrift = p.drift * Math.sin(time * 0.8 + p.seed3) * 0.5;
+      // Random drift per particle
+      var particleDrift = p.drift * Math.sin(time * 1.2 + p.seed3) * 0.7;
 
       var baseAngle = flow + turb + jitter + gust + particleDrift;
+
+      // === BLACK HOLE — Spring-back behavior ===
+      var dxBH = centerX - p.x;
+      var dyBH = centerY - p.y;
+      var distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
+
+      // How much the black hole resists disturbance (stronger near center)
+      var bhResistance = 0; // 0 = no resistance, 1 = full lock to black hole
 
       var targetAngle = baseAngle;
       var drawOpacity = p.baseOpacity;
       var drawLen = lineLen;
       var speed = returnSpeed;
 
-      // Black hole vortex at center
-      var dxBH = centerX - p.x;
-      var dyBH = centerY - p.y;
-      var distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
-
       if (distBH < blackHoleRadius) {
         var angleToBH = Math.atan2(dyBH, dxBH);
         var bhStrength = (1 - distBH / blackHoleRadius);
         bhStrength = bhStrength * bhStrength * bhStrength;
 
-        // Strong spiral — more rotation for vigorous swirl
-        var spiralOffset = bhStrength * 1.5 + Math.sin(time * 3) * bhStrength * 0.3;
-        targetAngle = angleToBH + spiralOffset;
+        // Resistance: near center = strong spring back, far = weak
+        bhResistance = bhStrength;
 
-        drawOpacity = p.baseOpacity + bhStrength * 0.4;
-        drawLen = lineLen + bhStrength * 8;
-        speed = returnSpeed + bhStrength * 0.2;
+        // Spiral with variation
+        var spiralOffset = bhStrength * 1.8 + Math.sin(time * 3.5 + p.seed1) * bhStrength * 0.5;
+        var bhAngle = angleToBH + spiralOffset;
 
-        // Event horizon fade
-        if (distBH < 35) {
-          var fade = distBH / 35;
+        // Blend: near center mostly black hole angle, far mostly ambient
+        targetAngle = bhAngle * bhStrength + baseAngle * (1 - bhStrength);
+
+        drawOpacity = p.baseOpacity + bhStrength * 0.35;
+        drawLen = lineLen + bhStrength * 10;
+        speed = returnSpeed + bhStrength * 0.25;
+
+        // Event horizon
+        if (distBH < 30) {
+          var fade = distBH / 30;
           drawOpacity *= fade;
           drawLen *= fade;
         }
       }
 
-      // Mouse cursor influence
+      // === MOUSE CURSOR — Irregular influence shape ===
       var dxM = mouseX - p.x;
       var dyM = mouseY - p.y;
       var distM = Math.sqrt(dxM * dxM + dyM * dyM);
 
-      if (distM < mouseInfluence) {
+      // Each particle has a different radius for the mouse influence
+      var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset;
+      // Add time-varying wobble to the radius
+      particleMouseRadius += Math.sin(time * 3 + p.seed1 * 5) * 25;
+
+      if (distM < particleMouseRadius) {
         var angleToMouse = Math.atan2(dyM, dxM);
-        var mStrength = (1 - distM / mouseInfluence);
+        var mStrength = (1 - distM / particleMouseRadius);
         mStrength = mStrength * mStrength;
 
-        var mouseDiff = angleDiff(targetAngle, angleToMouse);
-        targetAngle += mouseDiff * mStrength * 0.85;
+        // Reduce mouse influence based on black hole resistance
+        // Near center: mouse has little effect. Far: full effect.
+        var mouseEffect = mStrength * (1 - bhResistance * 0.85);
 
-        drawOpacity = Math.max(drawOpacity, p.baseOpacity + mStrength * 0.35);
-        drawLen = Math.max(drawLen, lineLen + mStrength * 10);
-        speed = Math.max(speed, followSpeed + mStrength * 0.35);
+        var mouseDiff = angleDiff(targetAngle, angleToMouse);
+        targetAngle += mouseDiff * mouseEffect * 0.9;
+
+        drawOpacity = Math.max(drawOpacity, p.baseOpacity + mouseEffect * 0.4);
+        drawLen = Math.max(drawLen, lineLen + mouseEffect * 12);
+        speed = Math.max(speed, followSpeed + mouseEffect * 0.4);
+      }
+
+      // Spring back: if inside black hole zone, speed toward black hole angle
+      // is boosted (resistance makes it snap back faster after disturbance)
+      if (bhResistance > 0.1) {
+        speed = Math.max(speed, returnSpeed + bhResistance * 0.35);
       }
 
       var diff = angleDiff(p.currentAngle, targetAngle);
@@ -225,11 +247,11 @@
     }
 
     // Glow at center
-    var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 80);
-    glowGrad.addColorStop(0, 'rgba(232, 228, 223, 0.06)');
+    var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 90);
+    glowGrad.addColorStop(0, 'rgba(232, 228, 223, 0.05)');
     glowGrad.addColorStop(1, 'rgba(232, 228, 223, 0)');
     ctx.fillStyle = glowGrad;
-    ctx.fillRect(centerX - 80, centerY - 80, 160, 160);
+    ctx.fillRect(centerX - 90, centerY - 90, 180, 180);
 
     requestAnimationFrame(animate);
   }
@@ -245,7 +267,7 @@
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.strokeStyle = 'rgba(232, 228, 223, ' + opacity + ')';
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     ctx.stroke();
   }
@@ -254,7 +276,6 @@
   resize();
   animate();
 
-  // Stop when landing hides
   if (landing) {
     var observer = new MutationObserver(function (mutations) {
       mutations.forEach(function (m) {
