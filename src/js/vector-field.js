@@ -213,7 +213,20 @@ function initVectorField() {
           var eeAngle = Math.atan2(dyEE, dxEE) + eeSpiralOffset;
           var eeDiff = angleDiff(targetAngle, eeAngle);
           targetAngle += eeDiff * eeStrength * 0.8;
-          drawOpacity *= (1 - eeStrength * 0.8);
+
+          // Base dimming from proximity to easter egg
+          var baseDim = eeStrength * 0.8;
+
+          // Extra dimming when cursor is near the easter egg
+          var dxCursorEE = mouseX - easterEggX;
+          var dyCursorEE = mouseY - easterEggY;
+          var cursorToEE = Math.sqrt(dxCursorEE * dxCursorEE + dyCursorEE * dyCursorEE);
+          var cursorNearEE = Math.max(0, 1 - cursorToEE / 200);
+          // When cursor hovers: nearly invisible
+          var totalDim = baseDim + cursorNearEE * eeStrength * 0.9;
+          if (totalDim > 0.98) totalDim = 0.98;
+
+          drawOpacity *= (1 - totalDim);
           speed = Math.max(speed, returnSpeed + eeStrength * 0.2);
         }
       }
@@ -223,7 +236,14 @@ function initVectorField() {
       var distM = Math.sqrt(dxM * dxM + dyM * dyM);
       var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset + Math.sin(time * 3 + p.seed1 * 5) * 25;
 
-      if (distM < particleMouseRadius) {
+      // Check if cursor is near easter egg — suppress brightening there
+      var nearEasterEgg = false;
+      if (isLandingPage) {
+        var _dce = Math.sqrt((mouseX - easterEggX) * (mouseX - easterEggX) + (mouseY - easterEggY) * (mouseY - easterEggY));
+        nearEasterEgg = _dce < 180;
+      }
+
+      if (distM < particleMouseRadius && !nearEasterEgg) {
         var mStrength = (1 - distM / particleMouseRadius);
         mStrength = mStrength * mStrength;
         var mouseEffect = mStrength * (1 - bhResistance * 0.85);

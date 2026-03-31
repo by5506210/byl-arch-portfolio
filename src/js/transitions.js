@@ -34,9 +34,13 @@
       },
 
       after: function (data) {
-        // Clean up old nav bar
+        // Clean up leftover elements from slideshow/project pages
         var oldBar = document.querySelector('.project-nav-bar');
         if (oldBar) oldBar.remove();
+        var oldTitle = document.querySelector('.slideshow__current-title');
+        if (oldTitle) oldTitle.remove();
+        var oldProgress = document.querySelector('.slideshow__progress');
+        if (oldProgress) oldProgress.remove();
 
         // Reinitialize all page features
         if (typeof initProjectPage === 'function') {

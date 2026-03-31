@@ -3,6 +3,12 @@
 // ============================================
 
 function initSlideshow() {
+  // Clean up any leftover elements from previous init
+  var oldTitle = document.querySelector('.slideshow__current-title');
+  if (oldTitle) oldTitle.remove();
+  var oldProgress = document.querySelector('.slideshow__progress');
+  if (oldProgress) oldProgress.remove();
+
   var container = document.getElementById('slideshow-container');
   var slides = Array.from(document.querySelectorAll('.slideshow__slide'));
   var scrollHint = document.getElementById('scroll-hint');
