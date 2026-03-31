@@ -269,7 +269,7 @@ function initVectorField() {
 
   window.addEventListener('resize', resize);
   resize();
-  animate();
+  requestAnimationFrame(animate);
 
   // Stop on landing hide
   var landing = document.getElementById('landing');
