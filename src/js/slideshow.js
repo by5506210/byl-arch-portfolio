@@ -160,12 +160,21 @@ function initSlideshow() {
   slides.forEach(function (slide) {
     slide.addEventListener('click', function () {
       if (slide.classList.contains('slideshow__slide--coming-soon')) return;
+      if (slide.classList.contains('slideshow__slide--divider')) return;
 
       var href = slide.dataset.href;
       if (!href) return;
 
-      var img = slide.querySelector('img');
-      if (!img) return;
+      var img = slide.querySelector('.slideshow__slide-img-wrapper img');
+
+      // If no full-size image (e.g. About Me slide), just navigate
+      if (!img) {
+        progressContainer.style.opacity = '0';
+        setTimeout(function () {
+          window.location.href = href;
+        }, 300);
+        return;
+      }
 
       var rect = img.getBoundingClientRect();
       var clone = img.cloneNode(true);

@@ -143,29 +143,24 @@
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
 
-      // === WIND FLOW — directional with organic variation ===
-      var t1 = time * 1.4 + p.seed1;
-      var t2 = time * 0.8 + p.seed2;
+      // === VIGOROUS OCEAN WAVES ===
+      var wavePhase = p.x * 0.008 + time * 2.5;
 
-      // Primary wind direction — sweeps diagonally across screen
-      // Shifts slowly over time so the wind "changes direction"
-      var windAngle = Math.sin(time * 0.15) * 0.8 + 0.3; // base wind direction
-      var wind = windAngle
-               + Math.sin(p.x * 0.006 + t2 * 0.5) * 0.6  // large-scale bend
-               + Math.cos(p.y * 0.005 + t2 * 0.35) * 0.4; // lateral sway
+      // Primary ocean swell — large rolling waves
+      var swell = Math.sin(wavePhase) * 1.2
+                + Math.sin(p.x * 0.005 + p.y * 0.01 + time * 1.8) * 0.8;
 
-      // Gusts — regional surges that sweep through
-      var gust = Math.sin(p.x * 0.003 + p.y * 0.002 + time * 2.0) * 0.7
-               * (0.5 + 0.5 * Math.sin(time * 0.4 + p.seed1 * 0.5)); // gust intensity pulses
+      // Cross-current — perpendicular ripples
+      var cross = Math.cos(p.y * 0.012 + time * 1.4) * 0.5
+                + Math.sin(p.x * 0.015 - time * 2.0) * 0.4;
 
-      // Turbulence — smaller eddies within the wind
-      var eddy = Math.sin(p.x * 0.02 + p.y * 0.01 + t1 * 1.2) * 0.3
-               + Math.cos(p.x * 0.015 - p.y * 0.018 + t1 * 0.9) * 0.25;
+      // Deep undercurrent — slow, wide
+      var deep = Math.sin((p.x + p.y) * 0.003 + time * 0.6) * 0.6;
 
-      // Per-particle breath — subtle individual variation
-      var breath = p.drift * Math.sin(time * 0.6 + p.seed3) * 0.15;
+      // Per-particle variation
+      var breath = p.drift * Math.sin(time * 0.5 + p.seed1) * 0.2;
 
-      var baseAngle = wind + gust + eddy + breath;
+      var baseAngle = swell + cross + deep + breath;
 
       // === BLACK HOLE — Spring-back behavior ===
       var dxBH = centerX - p.x;
