@@ -34,8 +34,9 @@ function initSlideshow() {
     slide.style.left = '0';
     slide.style.width = '100%';
     slide.style.height = '100vh';
-    // Don't override background on divider slides (they use CSS black)
-    if (!slide.classList.contains('slideshow__slide--divider')) {
+    // Don't override background on divider or about slides (they use CSS black)
+    if (!slide.classList.contains('slideshow__slide--divider') &&
+        !slide.classList.contains('slideshow__slide--about')) {
       slide.style.background = '#e8e4df';
     }
     slide.style.zIndex = String(i + 1);

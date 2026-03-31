@@ -43,10 +43,12 @@
           initProjectPage();
         }
 
-        // Reinitialize vector field for pages that have it
-        if (typeof initVectorField === 'function') {
-          initVectorField();
-        }
+        // Reinitialize vector field — delay to let DOM settle after transition
+        setTimeout(function () {
+          if (typeof initVectorField === 'function') {
+            initVectorField();
+          }
+        }, 50);
 
         // Update cursor
         var cursorEl = document.querySelector('.cursor');
