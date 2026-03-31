@@ -14,8 +14,7 @@
   --text-primary: #1a1a1a;
   --white: #ffffff;
 
-  --font-mono: 'Space Mono', monospace;
-  --font-sans: 'Helvetica Neue', 'Arial', sans-serif;
+  --font-primary: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
 }
 
 html {
@@ -27,7 +26,7 @@ html {
 body {
   background: var(--black);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   overflow-x: hidden;
   cursor: none;
 }
@@ -65,7 +64,7 @@ img {
 }
 
 .loader__monogram {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: 0.3em;
@@ -182,7 +181,7 @@ img {
   display: flex;
   flex-direction: column;
   gap: 0.3em;
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: clamp(0.9rem, 1.5vw, 1.1rem);
   line-height: 1.4;
 }
@@ -257,7 +256,7 @@ img {
 }
 
 .nav__link {
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -341,7 +340,7 @@ img {
 }
 
 .slideshow__title {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: clamp(1.2rem, 2.5vw, 2rem);
   font-weight: 700;
   color: var(--white);
@@ -359,7 +358,7 @@ img {
   position: absolute;
   top: 12%;
   right: 10%;
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -383,7 +382,7 @@ img {
 }
 
 .slideshow__coming-soon-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -391,7 +390,7 @@ img {
 }
 
 .slideshow__coming-soon-title {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: clamp(1.2rem, 2.5vw, 2rem);
   font-weight: 700;
   color: #999;
@@ -408,7 +407,7 @@ img {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -487,7 +486,7 @@ img {
 }
 
 .project-hero__category {
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -503,7 +502,7 @@ img {
 }
 
 .project-hero__title {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: clamp(2rem, 5vw, 4rem);
   font-weight: 700;
   color: var(--white);
@@ -527,7 +526,7 @@ img {
   top: 2rem;
   left: 2rem;
   z-index: 50;
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.8rem;
   color: var(--dark-gray);
   cursor: none;
@@ -598,14 +597,14 @@ img {
 }
 
 .coming-soon-page__title {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .coming-soon-page__label {
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -626,7 +625,7 @@ img {
 }
 
 .projects-index__category-title {
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -638,7 +637,7 @@ img {
 
 .projects-index__item {
   display: block;
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: clamp(1.2rem, 2vw, 1.6rem);
   font-weight: 500;
   color: var(--text-primary);
@@ -658,7 +657,7 @@ img {
 
 .projects-index__item--coming-soon::after {
   content: ' (Coming Soon)';
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -699,7 +698,7 @@ img {
 }
 
 .about__bio {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: clamp(1.1rem, 1.5vw, 1.3rem);
   line-height: 1.7;
   color: var(--text-primary);
@@ -707,7 +706,7 @@ img {
 }
 
 .about__section-title {
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -721,7 +720,7 @@ img {
 }
 
 .about__detail {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: 0.95rem;
   line-height: 1.8;
   color: var(--text-primary);
@@ -741,7 +740,7 @@ img {
 }
 
 .contact__label {
-  font-family: var(--font-mono);
+  font-family: var(--font-primary);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -749,7 +748,7 @@ img {
 }
 
 .contact__email {
-  font-family: var(--font-sans);
+  font-family: var(--font-primary);
   font-size: clamp(1.5rem, 3vw, 2.5rem);
   font-weight: 500;
   color: var(--text-primary);
@@ -758,6 +757,74 @@ img {
 
 .contact__email:hover {
   color: var(--dark-gray);
+}
+
+/* ============================================
+   PROJECT DETAILS — Axonometric + Info Side by Side
+   ============================================ */
+.project-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  padding: 6rem 8%;
+  align-items: start;
+}
+
+.project-details__drawing {
+  width: 100%;
+}
+
+.project-details__drawing img {
+  width: 100%;
+  height: auto;
+}
+
+.project-details__info {
+  padding-top: 1rem;
+}
+
+.project-details__title {
+  font-family: var(--font-primary);
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.project-details__meta {
+  margin-bottom: 2.5rem;
+}
+
+.project-details__meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  color: var(--text-primary);
+}
+
+.project-details__meta-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dark-gray);
+  font-weight: 400;
+}
+
+.project-details__meta-value {
+  font-weight: 400;
+  text-align: right;
+}
+
+.project-details__description {
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  font-weight: 300;
 }
 
 /* ============================================
@@ -805,6 +872,12 @@ img {
 
   .project-single img {
     max-width: 90%;
+  }
+
+  .project-details {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 3rem 6%;
   }
 
   .landing {
