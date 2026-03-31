@@ -136,6 +136,15 @@ img {
   overflow: hidden;
 }
 
+.landing__vector-field {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
 .landing__lines {
   display: flex;
   flex-direction: column;
@@ -144,6 +153,8 @@ img {
   font-size: clamp(0.85rem, 1.4vw, 1.05rem);
   line-height: 1.4;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .landing__line {
