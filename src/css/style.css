@@ -212,6 +212,7 @@ img {
   gap: 2rem;
   padding: 2rem 3rem;
   opacity: 0;
+  mix-blend-mode: normal;
 }
 
 .nav__link {
@@ -219,14 +220,17 @@ img {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--white);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
-  transition: color 0.3s ease, transform 0.3s ease;
+  color: var(--text-primary);
+  background: rgba(232, 228, 223, 0.7);
+  padding: 0.35em 0.7em;
+  border-radius: 2px;
+  transition: color 0.3s ease, background 0.3s ease, transform 0.3s ease;
   display: inline-block;
 }
 
 .nav__link:hover {
-  color: var(--concrete);
+  color: var(--black);
+  background: rgba(232, 228, 223, 0.95);
 }
 
 /* ============================================
@@ -262,6 +266,11 @@ img {
   align-items: center;
   justify-content: center;
   background: var(--concrete);
+  transform: translateY(100%);
+}
+
+.slideshow__slide:first-child {
+  transform: translateY(0%);
 }
 
 .slideshow__slide--coming-soon {
@@ -490,17 +499,19 @@ img {
   z-index: 50;
   font-family: var(--font-primary);
   font-size: 0.8rem;
-  color: var(--white);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
+  background: rgba(232, 228, 223, 0.7);
+  padding: 0.35em 0.7em;
+  border-radius: 2px;
   cursor: none;
-  transition: color 0.2s ease;
-  background: none;
+  transition: color 0.2s ease, background 0.2s ease;
   border: none;
   text-decoration: none;
 }
 
 .project-back:hover {
-  color: var(--concrete);
+  color: var(--black);
+  background: rgba(232, 228, 223, 0.95);
 }
 
 /* Project gallery */
