@@ -801,6 +801,196 @@ img {
   font-weight: 300;
 }
 
+.project-details__drawing--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.project-details__placeholder-text {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--dark-gray);
+}
+
+/* ============================================
+   PROJECT SECTION HEADERS
+   ============================================ */
+.project-section {
+  padding: 0 8%;
+  margin-top: 4rem;
+  margin-bottom: 2rem;
+}
+
+.project-section__header {
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  padding-top: 1.5rem;
+}
+
+.project-section__label {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.project-section__sublabel {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--dark-gray);
+  font-weight: 300;
+  max-width: 600px;
+}
+
+/* ============================================
+   PROJECT SEQUENCE — Numbered Steps
+   ============================================ */
+.project-sequence {
+  padding: 0 8% 4rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.project-sequence__step {
+  flex: 1;
+  position: relative;
+}
+
+.project-sequence__number {
+  font-family: var(--font-primary);
+  font-size: 3rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.06);
+  line-height: 1;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.project-sequence__image {
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.project-sequence__image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.project-sequence__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.project-sequence__caption-title {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+}
+
+.project-sequence__caption-desc {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--dark-gray);
+  font-weight: 300;
+}
+
+.project-sequence__divider {
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   SEASONAL NATURAL LIGHTING
+   ============================================ */
+.project-seasonal {
+  padding: 0 8% 4rem;
+}
+
+.project-seasonal__header {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.project-seasonal__season {
+  font-family: var(--font-primary);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.project-seasonal__date {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  color: var(--dark-gray);
+  letter-spacing: 0.05em;
+}
+
+.project-seasonal__images {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.project-seasonal__image {
+  overflow: hidden;
+}
+
+.project-seasonal__image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.project-seasonal__plan {
+  width: 100%;
+  text-align: center;
+}
+
+.project-seasonal__plan img {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  display: block;
+}
+
+.project-seasonal__plan-caption {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dark-gray);
+  margin-top: 0.75rem;
+}
+
 /* ============================================
    RESPONSIVE
    ============================================ */
@@ -852,6 +1042,28 @@ img {
     grid-template-columns: 1fr;
     gap: 2rem;
     padding: 3rem 6%;
+  }
+
+  .project-sequence {
+    flex-direction: column;
+    padding: 0 6% 3rem;
+  }
+
+  .project-sequence__divider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .project-seasonal__images {
+    grid-template-columns: 1fr;
+  }
+
+  .project-section {
+    padding: 0 6%;
+  }
+
+  .project-seasonal {
+    padding: 0 6% 3rem;
   }
 
   .landing {
