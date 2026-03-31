@@ -804,7 +804,7 @@ img {
    PROJECTS INDEX — Thumbnail Grid
    ============================================ */
 .projects-index {
-  background: var(--concrete);
+  background: rgba(232, 228, 223, 0.88);
   min-height: 100vh;
   padding: 6rem 8vw 4rem;
   position: relative;
@@ -894,13 +894,15 @@ img {
    ABOUT PAGE
    ============================================ */
 .about {
-  background: var(--concrete);
+  background: rgba(232, 228, 223, 0.88);
   min-height: 100vh;
   padding: 8rem 8vw 4rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6rem;
   align-items: start;
+  position: relative;
+  z-index: 1;
 }
 
 .about__photo {
@@ -1025,7 +1027,7 @@ img {
    CONTACT PAGE
    ============================================ */
 .contact-page {
-  background: var(--black);
+  background: rgba(10, 10, 10, 0.85);
   min-height: 100vh;
   color: var(--concrete);
   position: relative;

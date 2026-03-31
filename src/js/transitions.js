@@ -34,13 +34,18 @@
       },
 
       after: function (data) {
-        // Clean up old sticky title bar
-        var oldBar = document.querySelector('.project-title-bar');
+        // Clean up old nav bar
+        var oldBar = document.querySelector('.project-nav-bar');
         if (oldBar) oldBar.remove();
 
-        // Reinitialize project page features
+        // Reinitialize all page features
         if (typeof initProjectPage === 'function') {
           initProjectPage();
+        }
+
+        // Reinitialize vector field for pages that have it
+        if (typeof initVectorField === 'function') {
+          initVectorField();
         }
 
         // Update cursor

@@ -1,12 +1,17 @@
 // ============================================
-// VECTOR FIELD — Chaotic field with spring-back black hole
+// VECTOR FIELD — Ocean waves with spring-back black hole
 // ============================================
 
-(function () {
+// Track active instance so we can stop it on reinit
+var _vectorFieldRunning = false;
+
+function initVectorField() {
   var canvas = document.getElementById('vector-field');
   if (!canvas) return;
 
-  // On the landing page, skip if returning from portfolio
+  // Stop any previous instance
+  _vectorFieldRunning = false;
+
   var isLandingPage = !!document.getElementById('landing');
   if (isLandingPage && window.location.hash === '#portfolio') {
     canvas.style.display = 'none';
@@ -16,16 +21,18 @@
   var ctx = canvas.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
 
-  // Color mode: light lines on dark bg (default) or dark lines on light bg
   var isDarkLines = canvas.getAttribute('data-color') === 'dark';
   var lineColor = isDarkLines ? '26, 26, 26' : '232, 228, 223';
 
+  // Content pages get subtler lines so they don't fight with content
+  var isContentPage = !isLandingPage;
+  var opacityScale = isContentPage ? 0.5 : 1.0;
+
   var spacing = 24;
-  var lineLen = 15;
+  var lineLen = isContentPage ? 12 : 15;
   var mouseInfluence = 220;
   var returnSpeed = 0.08;
   var followSpeed = 0.25;
-
   var blackHoleRadius = 280;
 
   var mouseX = -1000;
@@ -34,6 +41,7 @@
   var centerY = 0;
   var particles = [];
   var running = true;
+  _vectorFieldRunning = true;
   var time = 0;
 
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
@@ -67,46 +75,27 @@
           col: col,
           row: row,
           currentAngle: Math.random() * Math.PI * 2,
-          baseOpacity: 0.18 + Math.random() * 0.1,
+          baseOpacity: (0.18 + Math.random() * 0.1) * opacityScale,
           seed1: Math.random() * 100,
           seed2: Math.random() * 100,
           seed3: Math.random() * 100,
-          seed4: Math.random() * 100,
           drift: (Math.random() - 0.5) * 3,
-          // Per-particle irregular mouse influence radius
           mouseRadiusOffset: (Math.random() - 0.5) * 80
         });
       }
     }
   }
 
-  var landing = document.getElementById('landing');
-  if (landing) {
-    landing.addEventListener('mousemove', function (e) {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    });
-  }
-  document.addEventListener('mousemove', function (e) {
+  function onMouseMove(e) {
     mouseX = e.clientX;
     mouseY = e.clientY;
-  });
+  }
 
+  document.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseleave', function () {
     mouseX = -1000;
     mouseY = -1000;
   });
-
-  if (landing) {
-    landing.addEventListener('touchstart', function (e) {
-      mouseX = e.touches[0].clientX;
-      mouseY = e.touches[0].clientY;
-    }, { passive: true });
-    landing.addEventListener('touchmove', function (e) {
-      mouseX = e.touches[0].clientX;
-      mouseY = e.touches[0].clientY;
-    }, { passive: true });
-  }
 
   function angleDiff(from, to) {
     var d = to - from;
@@ -116,17 +105,17 @@
   }
 
   function animate() {
-    if (!running) return;
+    if (!running || !_vectorFieldRunning) return;
     time += 0.016;
 
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
     // Portal reveal
-    var dxP = mouseX - centerX;
-    var dyP = mouseY - centerY;
-    var distToCenter = Math.sqrt(dxP * dxP + dyP * dyP);
-
     if (portal) {
+      var dxP = mouseX - centerX;
+      var dyP = mouseY - centerY;
+      var distToCenter = Math.sqrt(dxP * dxP + dyP * dyP);
+
       if (distToCenter < portalRevealDist && mouseX > 0) {
         if (!portalVisible) {
           portal.classList.add('is-visible');
@@ -146,56 +135,43 @@
       // === VIGOROUS OCEAN WAVES ===
       var wavePhase = p.x * 0.008 + time * 2.5;
 
-      // Primary ocean swell — large rolling waves
       var swell = Math.sin(wavePhase) * 1.2
                 + Math.sin(p.x * 0.005 + p.y * 0.01 + time * 1.8) * 0.8;
 
-      // Cross-current — perpendicular ripples
       var cross = Math.cos(p.y * 0.012 + time * 1.4) * 0.5
                 + Math.sin(p.x * 0.015 - time * 2.0) * 0.4;
 
-      // Deep undercurrent — slow, wide
       var deep = Math.sin((p.x + p.y) * 0.003 + time * 0.6) * 0.6;
 
-      // Per-particle variation
       var breath = p.drift * Math.sin(time * 0.5 + p.seed1) * 0.2;
 
       var baseAngle = swell + cross + deep + breath;
 
-      // === BLACK HOLE — Spring-back behavior ===
       var dxBH = centerX - p.x;
       var dyBH = centerY - p.y;
       var distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
 
-      // How much the black hole resists disturbance (stronger near center)
       var bhResistance = 0;
-
       var targetAngle = baseAngle;
       var drawOpacity = p.baseOpacity;
       var drawLen = lineLen;
       var speed = returnSpeed;
 
-      // Black hole vortex — only on landing page
+      // Black hole — landing page only
       if (isLandingPage && distBH < blackHoleRadius) {
         var angleToBH = Math.atan2(dyBH, dxBH);
         var bhStrength = (1 - distBH / blackHoleRadius);
         bhStrength = bhStrength * bhStrength * bhStrength;
-
-        // Resistance: near center = strong spring back, far = weak
         bhResistance = bhStrength;
 
-        // Spiral with variation
         var spiralOffset = bhStrength * 1.8 + Math.sin(time * 3.5 + p.seed1) * bhStrength * 0.5;
         var bhAngle = angleToBH + spiralOffset;
-
-        // Blend: near center mostly black hole angle, far mostly ambient
         targetAngle = bhAngle * bhStrength + baseAngle * (1 - bhStrength);
 
-        drawOpacity = p.baseOpacity + bhStrength * 0.35;
+        drawOpacity = p.baseOpacity + bhStrength * 0.35 * opacityScale;
         drawLen = lineLen + bhStrength * 10;
         speed = returnSpeed + bhStrength * 0.25;
 
-        // Event horizon
         if (distBH < 30) {
           var fade = distBH / 30;
           drawOpacity *= fade;
@@ -203,14 +179,12 @@
         }
       }
 
-      // === MOUSE CURSOR — Irregular influence shape ===
+      // Mouse cursor — irregular shape
       var dxM = mouseX - p.x;
       var dyM = mouseY - p.y;
       var distM = Math.sqrt(dxM * dxM + dyM * dyM);
 
-      // Each particle has a different radius for the mouse influence
       var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset;
-      // Add time-varying wobble to the radius
       particleMouseRadius += Math.sin(time * 3 + p.seed1 * 5) * 25;
 
       if (distM < particleMouseRadius) {
@@ -218,20 +192,16 @@
         var mStrength = (1 - distM / particleMouseRadius);
         mStrength = mStrength * mStrength;
 
-        // Reduce mouse influence based on black hole resistance
-        // Near center: mouse has little effect. Far: full effect.
         var mouseEffect = mStrength * (1 - bhResistance * 0.85);
 
         var mouseDiff = angleDiff(targetAngle, angleToMouse);
         targetAngle += mouseDiff * mouseEffect * 0.9;
 
-        drawOpacity = Math.max(drawOpacity, p.baseOpacity + mouseEffect * 0.4);
-        drawLen = Math.max(drawLen, lineLen + mouseEffect * 12);
+        drawOpacity = Math.max(drawOpacity, p.baseOpacity + mouseEffect * 0.3 * opacityScale);
+        drawLen = Math.max(drawLen, lineLen + mouseEffect * 10);
         speed = Math.max(speed, followSpeed + mouseEffect * 0.4);
       }
 
-      // Spring back: if inside black hole zone, speed toward black hole angle
-      // is boosted (resistance makes it snap back faster after disturbance)
       if (bhResistance > 0.1) {
         speed = Math.max(speed, returnSpeed + bhResistance * 0.35);
       }
@@ -245,7 +215,7 @@
       drawLine(p.x, p.y, p.currentAngle, drawLen, drawOpacity);
     }
 
-    // Glow at center (only on landing page)
+    // Glow at center — landing only
     if (isLandingPage) {
       var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 90);
       glowGrad.addColorStop(0, 'rgba(' + lineColor + ', 0.05)');
@@ -268,7 +238,7 @@
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.strokeStyle = 'rgba(' + lineColor + ', ' + opacity + ')';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = isContentPage ? 1 : 1.5;
     ctx.lineCap = 'round';
     ctx.stroke();
   }
@@ -277,6 +247,8 @@
   resize();
   animate();
 
+  // Stop on landing hide
+  var landing = document.getElementById('landing');
   if (landing) {
     var observer = new MutationObserver(function (mutations) {
       mutations.forEach(function (m) {
@@ -290,4 +262,7 @@
     });
     observer.observe(landing, { attributes: true });
   }
-})();
+}
+
+// Run on initial load
+initVectorField();
