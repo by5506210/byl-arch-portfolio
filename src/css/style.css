@@ -272,6 +272,20 @@ img {
   opacity: 0;
 }
 
+.slideshow-nav-bar__back {
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+  flex-shrink: 0;
+}
+
+.slideshow-nav-bar__back:hover {
+  opacity: 0.5;
+}
+
 .slideshow-nav-bar__spacer {
   flex: 1;
 }

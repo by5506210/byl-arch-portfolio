@@ -92,4 +92,14 @@
       }, 500);
     }, 900);
   }
+
+  // Back to landing button
+  var backBtn = document.getElementById('back-to-landing');
+  if (backBtn) {
+    backBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      // Remove hash and reload to show landing
+      window.location.href = window.location.pathname;
+    });
+  }
 })();
