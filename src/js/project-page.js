@@ -76,22 +76,12 @@ function initNavBar() {
   backEl.innerHTML = '&larr;';
   bar.appendChild(backEl);
 
-  // Center: project name (from hero if available)
-  var titleEl = hero ? hero.querySelector('.project-hero__title span') : null;
-  var catEl = hero ? hero.querySelector('.project-hero__category span') : null;
-
-  if (titleEl) {
-    var center = document.createElement('div');
-    center.classList.add('project-nav-bar__center');
-    center.innerHTML = '<span class="project-nav-bar__name">' + titleEl.textContent + '</span>' +
-      (catEl ? '<span class="project-nav-bar__type">&mdash; ' + catEl.textContent + '</span>' : '');
-    bar.appendChild(center);
-  } else {
-    // Non-project pages (about, contact, projects index) — add spacer
-    var spacer = document.createElement('div');
-    spacer.style.flex = '1';
-    bar.appendChild(spacer);
-  }
+  // Center: BYL logo (always present, links to homepage)
+  var logo = document.createElement('a');
+  logo.href = '../index.html#portfolio';
+  logo.classList.add('project-nav-bar__logo');
+  logo.textContent = 'BYL';
+  bar.appendChild(logo);
 
   // Right: nav links
   var links = document.createElement('div');

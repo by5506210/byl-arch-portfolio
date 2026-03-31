@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>? — Bryan Youn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #fff5ee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    .surprise {
+      text-align: center;
+      padding: 2rem;
+      max-width: 500px;
+    }
+
+    .surprise__emoji {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      animation: wiggle 1s ease-in-out infinite;
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+    }
+
+    .surprise__title {
+      font-size: 2.5rem;
+      font-weight: 200;
+      color: #4a3728;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .surprise__sub {
+      font-size: 0.85rem;
+      font-weight: 300;
+      color: #8b7355;
+      margin-bottom: 2.5rem;
+    }
+
+    .surprise__img {
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin: 0 auto 2rem;
+      border: 4px solid rgba(74, 55, 40, 0.1);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .surprise__img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .surprise__caption {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #8b7355;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 3rem;
+    }
+
+    .surprise__back {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: #4a3728;
+      text-decoration: none;
+      border: 1px solid rgba(74, 55, 40, 0.2);
+      padding: 0.6em 1.5em;
+      border-radius: 100px;
+      transition: all 0.3s ease;
+      letter-spacing: 0.05em;
+    }
+
+    .surprise__back:hover {
+      background: #4a3728;
+      color: #fff5ee;
+    }
+
+    /* Floating paw prints */
+    .paw {
+      position: fixed;
+      font-size: 1.2rem;
+      opacity: 0.08;
+      animation: drift 15s linear infinite;
+    }
+
+    @keyframes drift {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.08; }
+      90% { opacity: 0.08; }
+      100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating paw prints background -->
+  <script>
+    for (var i = 0; i < 12; i++) {
+      var paw = document.createElement('div');
+      paw.classList.add('paw');
+      paw.textContent = '\uD83D\uDC3E';
+      paw.style.left = (Math.random() * 100) + '%';
+      paw.style.animationDelay = (Math.random() * 15) + 's';
+      paw.style.animationDuration = (12 + Math.random() * 8) + 's';
+      document.body.appendChild(paw);
+    }
+  </script>
+
+  <div class="surprise">
+    <div class="surprise__emoji">&#x1F43E;</div>
+    <h1 class="surprise__title">You found me!</h1>
+    <p class="surprise__sub">Every architect needs a studio companion.</p>
+    <div class="surprise__img">
+      <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop&crop=face" alt="Good boy">
+    </div>
+    <p class="surprise__caption">Chief Morale Officer</p>
+    <a href="../index.html" class="surprise__back">Back to the void</a>
+  </div>
+</body>
+</html>

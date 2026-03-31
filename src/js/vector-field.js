@@ -33,7 +33,7 @@ function initVectorField() {
   var mouseInfluence = 220;
   var returnSpeed = 0.08;
   var followSpeed = 0.25;
-  var blackHoleRadius = 280;
+  var blackHoleRadius = 300;
 
   var mouseX = -1000;
   var mouseY = -1000;
@@ -49,6 +49,13 @@ function initVectorField() {
   var portalVisible = false;
   var portalRevealDist = 160;
 
+  // Easter egg: second black hole position (bottom-right area)
+  var easterEggX = 0;
+  var easterEggY = 0;
+  var easterEggRadius = 140;
+  var easterEgg = isLandingPage ? document.getElementById('easter-egg-portal') : null;
+  var easterEggVisible = false;
+
   canvas.style.pointerEvents = 'none';
 
   function resize() {
@@ -60,6 +67,9 @@ function initVectorField() {
     ctx.scale(dpr, dpr);
     centerX = window.innerWidth / 2;
     centerY = window.innerHeight / 2;
+    // Easter egg position — bottom-right quadrant
+    easterEggX = window.innerWidth * 0.82;
+    easterEggY = window.innerHeight * 0.78;
     buildGrid();
   }
 
@@ -191,18 +201,41 @@ function initVectorField() {
         bhStrength = bhStrength * bhStrength * bhStrength;
         bhResistance = bhStrength;
 
-        var spiralOffset = bhStrength * 1.8 + Math.sin(time * 3.5 + p.seed1) * bhStrength * 0.5;
+        var spiralOffset = bhStrength * 2.0 + Math.sin(time * 3.5 + p.seed1) * bhStrength * 0.6;
         var bhAngle = angleToBH + spiralOffset;
         targetAngle = bhAngle * bhStrength + baseAngle * (1 - bhStrength);
 
-        drawOpacity = p.baseOpacity + bhStrength * 0.35 * opacityScale;
-        drawLen = lineLen + bhStrength * 10;
-        speed = returnSpeed + bhStrength * 0.25;
+        drawOpacity = p.baseOpacity + bhStrength * 0.4 * opacityScale;
+        drawLen = lineLen + bhStrength * 12;
+        speed = returnSpeed + bhStrength * 0.3;
 
         if (distBH < 30) {
           var fade = distBH / 30;
           drawOpacity *= fade;
           drawLen *= fade;
+        }
+      }
+
+      // Easter egg black hole — subtle, darker
+      if (isLandingPage) {
+        var dxEE = easterEggX - p.x;
+        var dyEE = easterEggY - p.y;
+        var distEE = Math.sqrt(dxEE * dxEE + dyEE * dyEE);
+
+        if (distEE < easterEggRadius) {
+          var eeStrength = (1 - distEE / easterEggRadius);
+          eeStrength = eeStrength * eeStrength;
+          var angleToEE = Math.atan2(dyEE, dxEE);
+          var eeSpiralOffset = eeStrength * 1.2 + Math.sin(time * 2.0 + p.seed2) * eeStrength * 0.4;
+          var eeAngle = angleToEE + eeSpiralOffset;
+
+          // Blend easter egg influence
+          var eeDiff = angleDiff(targetAngle, eeAngle);
+          targetAngle += eeDiff * eeStrength * 0.6;
+
+          // Darken lines near easter egg (negative glow — lines fade out)
+          drawOpacity *= (1 - eeStrength * 0.7);
+          speed = Math.max(speed, returnSpeed + eeStrength * 0.15);
         }
       }
 
@@ -242,13 +275,40 @@ function initVectorField() {
       drawLine(p.x, p.y, p.currentAngle, drawLen, drawOpacity);
     }
 
-    // Glow at center — landing only
+    // Glow at center — landing only (slightly increased)
     if (isLandingPage) {
-      var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 90);
-      glowGrad.addColorStop(0, 'rgba(' + lineColor + ', 0.05)');
+      var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 120);
+      glowGrad.addColorStop(0, 'rgba(' + lineColor + ', 0.08)');
+      glowGrad.addColorStop(0.5, 'rgba(' + lineColor + ', 0.03)');
       glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
       ctx.fillStyle = glowGrad;
-      ctx.fillRect(centerX - 90, centerY - 90, 180, 180);
+      ctx.fillRect(centerX - 120, centerY - 120, 240, 240);
+
+      // Easter egg: dark spot (negative glow) — subtle visual cue
+      var darkGrad = ctx.createRadialGradient(easterEggX, easterEggY, 0, easterEggX, easterEggY, 60);
+      darkGrad.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+      darkGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = darkGrad;
+      ctx.fillRect(easterEggX - 60, easterEggY - 60, 120, 120);
+
+      // Easter egg portal reveal
+      var dxEEm = mouseX - easterEggX;
+      var dyEEm = mouseY - easterEggY;
+      var distToEE = Math.sqrt(dxEEm * dxEEm + dyEEm * dyEEm);
+
+      if (easterEgg) {
+        if (distToEE < 100 && mouseX > 0) {
+          if (!easterEggVisible) {
+            easterEgg.classList.add('is-visible');
+            easterEggVisible = true;
+          }
+        } else {
+          if (easterEggVisible) {
+            easterEgg.classList.remove('is-visible');
+            easterEggVisible = false;
+          }
+        }
+      }
     }
 
     requestAnimationFrame(animate);
