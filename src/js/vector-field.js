@@ -43,6 +43,7 @@ function initVectorField() {
   var running = true;
   _vectorFieldRunning = true;
   var time = 0;
+  var lastFrameTime = 0;
 
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
   var portalVisible = false;
@@ -97,6 +98,22 @@ function initVectorField() {
     mouseY = -1000;
   });
 
+  // Touch support for mobile
+  document.addEventListener('touchstart', function (e) {
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function (e) {
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function () {
+    mouseX = -1000;
+    mouseY = -1000;
+  });
+
   function angleDiff(from, to) {
     var d = to - from;
     while (d > Math.PI) d -= Math.PI * 2;
@@ -104,9 +121,16 @@ function initVectorField() {
     return d;
   }
 
-  function animate() {
+  function animate(timestamp) {
     if (!running || !_vectorFieldRunning) return;
-    time += 0.016;
+
+    // Delta-time: consistent speed regardless of frame rate (60fps vs 120fps)
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    var dt = (timestamp - lastFrameTime) / 1000; // seconds
+    lastFrameTime = timestamp;
+    // Clamp dt to avoid jumps on tab switch
+    if (dt > 0.1) dt = 0.016;
+    time += dt;
 
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
