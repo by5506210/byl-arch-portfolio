@@ -27,6 +27,32 @@ function initSlideshow() {
 
   var dots = Array.from(progressContainer.querySelectorAll('.slideshow__dot'));
 
+  // Create fixed title label
+  var titleLabel = document.createElement('div');
+  titleLabel.classList.add('slideshow__current-title');
+  titleLabel.innerHTML = '<span class="slideshow__current-name"></span>' +
+                          '<span class="slideshow__current-index"></span>';
+  document.body.appendChild(titleLabel);
+  var titleNameEl = titleLabel.querySelector('.slideshow__current-name');
+  var titleIndexEl = titleLabel.querySelector('.slideshow__current-index');
+  var lastTitleIndex = -1;
+
+  // Gather slide names (from data-project or title-wrapper text)
+  var slideNames = slides.map(function (slide) {
+    var titleEl = slide.querySelector('.slideshow__title');
+    if (titleEl) return titleEl.textContent;
+    var dividerTitle = slide.querySelector('.slideshow__divider-title');
+    if (dividerTitle) return dividerTitle.textContent;
+    var aboutName = slide.querySelector('.slideshow__about-name');
+    if (aboutName) return aboutName.textContent;
+    return '';
+  });
+
+  // Count only project slides (not dividers/about) for numbering
+  var projectCount = slides.filter(function (s) {
+    return s.dataset.href && !s.classList.contains('slideshow__slide--about');
+  }).length;
+
   // Setup slides
   slides.forEach(function (slide, i) {
     slide.style.position = 'absolute';
@@ -88,6 +114,30 @@ function initSlideshow() {
     });
 
     updateDots(activeIndex);
+
+    // Update fixed title label
+    if (activeIndex !== lastTitleIndex) {
+      lastTitleIndex = activeIndex;
+      var slide = slides[activeIndex];
+      var name = slideNames[activeIndex] || '';
+      var isDivider = slide.classList.contains('slideshow__slide--divider');
+      var isAbout = slide.classList.contains('slideshow__slide--about');
+
+      if (isDivider || isAbout || !name) {
+        titleLabel.classList.remove('is-visible');
+      } else {
+        // Find project number (count only project slides before this one)
+        var projNum = 0;
+        for (var j = 0; j <= activeIndex; j++) {
+          if (slides[j].dataset.href && !slides[j].classList.contains('slideshow__slide--about')) {
+            projNum++;
+          }
+        }
+        titleNameEl.textContent = name;
+        titleIndexEl.textContent = String(projNum).padStart(2, '0') + ' / ' + String(projectCount).padStart(2, '0');
+        titleLabel.classList.add('is-visible');
+      }
+    }
   }
 
   // Wheel handler

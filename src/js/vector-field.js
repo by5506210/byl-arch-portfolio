@@ -284,18 +284,23 @@ function initVectorField() {
       ctx.fillStyle = glowGrad;
       ctx.fillRect(centerX - 120, centerY - 120, 240, 240);
 
-      // Easter egg: dark spot — more noticeable
-      var darkGrad = ctx.createRadialGradient(easterEggX, easterEggY, 0, easterEggX, easterEggY, 90);
-      darkGrad.addColorStop(0, 'rgba(0, 0, 0, 0.25)');
-      darkGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.08)');
-      darkGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = darkGrad;
-      ctx.fillRect(easterEggX - 90, easterEggY - 90, 180, 180);
-
-      // Easter egg portal reveal
+      // Easter egg portal reveal + dynamic dark glow
       var dxEEm = mouseX - easterEggX;
       var dyEEm = mouseY - easterEggY;
       var distToEE = Math.sqrt(dxEEm * dxEEm + dyEEm * dyEEm);
+
+      // Dark glow intensifies when cursor is near
+      var cursorProximity = Math.max(0, 1 - distToEE / 200);
+      var darkCenter = 0.25 + cursorProximity * 0.3; // 0.25 base → 0.55 when hovering
+      var darkMid = 0.08 + cursorProximity * 0.15;
+      var darkRadius = 90 + cursorProximity * 40;
+
+      var darkGrad = ctx.createRadialGradient(easterEggX, easterEggY, 0, easterEggX, easterEggY, darkRadius);
+      darkGrad.addColorStop(0, 'rgba(0, 0, 0, ' + darkCenter + ')');
+      darkGrad.addColorStop(0.6, 'rgba(0, 0, 0, ' + darkMid + ')');
+      darkGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = darkGrad;
+      ctx.fillRect(easterEggX - darkRadius, easterEggY - darkRadius, darkRadius * 2, darkRadius * 2);
 
       if (easterEgg) {
         if (distToEE < 100 && mouseX > 0) {
