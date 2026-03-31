@@ -236,21 +236,27 @@ function initVectorField() {
       var distM = Math.sqrt(dxM * dxM + dyM * dyM);
       var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset + Math.sin(time * 3 + p.seed1 * 5) * 25;
 
-      // Check if cursor is near easter egg — suppress brightening there
-      var nearEasterEgg = false;
+      // Smooth easter egg suppression: gradually reduce cursor brightening
+      // as cursor approaches the easter egg (no hard cutoff)
+      var eeSuppression = 0;
       if (isLandingPage) {
         var _dce = Math.sqrt((mouseX - easterEggX) * (mouseX - easterEggX) + (mouseY - easterEggY) * (mouseY - easterEggY));
-        nearEasterEgg = _dce < 180;
+        eeSuppression = Math.max(0, 1 - _dce / 250); // 0 far away → 1 right on top
+        eeSuppression = eeSuppression * eeSuppression; // quadratic for smooth ramp
       }
 
-      if (distM < particleMouseRadius && !nearEasterEgg) {
+      if (distM < particleMouseRadius) {
         var mStrength = (1 - distM / particleMouseRadius);
         mStrength = mStrength * mStrength;
         var mouseEffect = mStrength * (1 - bhResistance * 0.85);
+
+        // Reduce brightening near easter egg (smooth fade, not sudden)
+        var brightenAmount = mouseEffect * 0.3 * opacityScale * (1 - eeSuppression);
+
         var mouseDiff = angleDiff(targetAngle, Math.atan2(dyM, dxM));
         targetAngle += mouseDiff * mouseEffect * 0.9;
-        drawOpacity = Math.max(drawOpacity, p.baseOpacity + mouseEffect * 0.3 * opacityScale);
-        drawLen = Math.max(drawLen, lineLen + mouseEffect * 10);
+        drawOpacity = Math.max(drawOpacity, p.baseOpacity + brightenAmount);
+        drawLen = Math.max(drawLen, lineLen + mouseEffect * 10 * (1 - eeSuppression * 0.5));
         speed = Math.max(speed, followSpeed + mouseEffect * 0.4);
       }
 
