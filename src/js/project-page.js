@@ -13,7 +13,8 @@ function initGalleryReveals() {
       if (entry.isIntersecting) {
         var delay = revealIndex * 0.12;
         entry.target.style.transitionDelay = delay + 's';
-        entry.target.querySelector('img').style.transitionDelay = delay + 's';
+        var img = entry.target.querySelector('img');
+        if (img) img.style.transitionDelay = delay + 's';
         entry.target.classList.add('is-revealed');
         observer.unobserve(entry.target);
         revealIndex++;
@@ -55,32 +56,77 @@ function initParallaxHero() {
   }, { passive: true });
 }
 
-// Sticky project title bar
-function initStickyTitleBar() {
+// Integrated nav bar — contains back, project name, and nav links
+function initNavBar() {
   var hero = document.querySelector('.project-hero');
-  if (!hero) return;
+  var backLink = document.querySelector('.project-back');
+  var nav = document.querySelector('.nav');
 
-  var titleEl = hero.querySelector('.project-hero__title span');
-  var catEl = hero.querySelector('.project-hero__category span');
-  if (!titleEl) return;
-
+  // Build the unified bar
   var bar = document.createElement('div');
-  bar.classList.add('project-title-bar');
-  bar.innerHTML = '<span class="project-title-bar__name">' + titleEl.textContent + '</span>' +
-    (catEl ? '<span class="project-title-bar__type">' + catEl.textContent + '</span>' : '');
+  bar.classList.add('project-nav-bar');
+
+  // Left: back arrow
+  var backEl = document.createElement('a');
+  backEl.href = backLink ? backLink.href : '../index.html#portfolio';
+  backEl.classList.add('project-nav-bar__back');
+  backEl.innerHTML = '&larr;';
+  bar.appendChild(backEl);
+
+  // Center: project name (from hero if available)
+  var titleEl = hero ? hero.querySelector('.project-hero__title span') : null;
+  var catEl = hero ? hero.querySelector('.project-hero__category span') : null;
+
+  if (titleEl) {
+    var center = document.createElement('div');
+    center.classList.add('project-nav-bar__center');
+    center.innerHTML = '<span class="project-nav-bar__name">' + titleEl.textContent + '</span>' +
+      (catEl ? '<span class="project-nav-bar__type">&mdash; ' + catEl.textContent + '</span>' : '');
+    bar.appendChild(center);
+  } else {
+    // Non-project pages (about, contact, projects index) — add spacer
+    var spacer = document.createElement('div');
+    spacer.style.flex = '1';
+    bar.appendChild(spacer);
+  }
+
+  // Right: nav links
+  var links = document.createElement('div');
+  links.classList.add('project-nav-bar__links');
+  links.innerHTML =
+    '<a href="' + (nav ? nav.querySelector('[href*="projects"]').href : 'projects.html') + '" class="project-nav-bar__link">Projects</a>' +
+    '<a href="' + (nav ? nav.querySelector('[href*="about"]').href : 'about.html') + '" class="project-nav-bar__link">About</a>' +
+    '<a href="' + (nav ? nav.querySelector('[href*="contact"]').href : 'contact.html') + '" class="project-nav-bar__link">Contact</a>';
+  bar.appendChild(links);
+
   document.body.appendChild(bar);
 
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        bar.classList.remove('is-visible');
-      } else {
-        bar.classList.add('is-visible');
-      }
-    });
-  }, { threshold: 0 });
+  // Hide old nav and back button
+  if (backLink) backLink.style.display = 'none';
+  if (nav) nav.style.display = 'none';
 
-  observer.observe(hero);
+  // If hero exists, show/hide the center text on scroll
+  if (hero) {
+    // Bar starts transparent over the hero, becomes solid when scrolled past
+    bar.classList.add('project-nav-bar--over-hero');
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          bar.classList.add('project-nav-bar--over-hero');
+          bar.classList.remove('project-nav-bar--solid');
+        } else {
+          bar.classList.remove('project-nav-bar--over-hero');
+          bar.classList.add('project-nav-bar--solid');
+        }
+      });
+    }, { threshold: 0 });
+
+    observer.observe(hero);
+  } else {
+    // No hero — always solid
+    bar.classList.add('project-nav-bar--solid');
+  }
 }
 
 // Animated spec counters
@@ -90,7 +136,6 @@ function initSpecCounters() {
 
   values.forEach(function (el) {
     var text = el.textContent.trim();
-    // Match numbers like 8,430.59 or 36
     var match = text.match(/^([\d,]+\.?\d*)/);
     if (!match) return;
 
@@ -162,7 +207,6 @@ function initFilmstrip() {
   var isDragging = false;
   var startX = 0;
   var currentX = 0;
-  var lastX = 0;
   var velocity = 0;
   var animFrame;
 
@@ -179,7 +223,6 @@ function initFilmstrip() {
     track.style.transform = 'translateX(' + currentX + 'px)';
   }
 
-  // Mouse events
   filmstrip.addEventListener('mousedown', function (e) {
     isDragging = true;
     startX = e.clientX - currentX;
@@ -201,7 +244,6 @@ function initFilmstrip() {
     applyMomentum();
   });
 
-  // Touch events
   filmstrip.addEventListener('touchstart', function (e) {
     isDragging = true;
     startX = e.touches[0].clientX - currentX;
@@ -234,9 +276,13 @@ function initFilmstrip() {
 
 // Initialize all features
 function initProjectPage() {
+  // Clean up previous bar if exists
+  var oldBar = document.querySelector('.project-nav-bar');
+  if (oldBar) oldBar.remove();
+
   initGalleryReveals();
   initParallaxHero();
-  initStickyTitleBar();
+  initNavBar();
   initSpecCounters();
   initFilmstrip();
 }
