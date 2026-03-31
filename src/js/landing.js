@@ -1,5 +1,5 @@
 // ============================================
-// LANDING PAGE — Portal transition (no text)
+// LANDING PAGE — Portal transition
 // ============================================
 
 (function () {
@@ -33,47 +33,63 @@
   function triggerTransition() {
     landing.classList.add('landing--transitioning');
 
-    // Flash the portal bright before transitioning
+    // Phase 1: Portal expands into a circle that swallows the screen
     if (portal) {
-      portal.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      portal.style.transition = 'none';
       portal.style.opacity = '1';
-      portal.style.transform = 'translate(-50%, -50%) scale(2)';
     }
 
+    // Create expanding ring overlay
+    var ring = document.createElement('div');
+    ring.style.cssText = 'position:fixed;top:50%;left:50%;width:0;height:0;' +
+      'border-radius:50%;background:var(--concrete,#e8e4df);' +
+      'transform:translate(-50%,-50%);z-index:101;' +
+      'transition:width 1s cubic-bezier(0.76,0,0.24,1),height 1s cubic-bezier(0.76,0,0.24,1);';
+    document.body.appendChild(ring);
+
+    // Calculate size needed to cover entire screen from center
+    var diag = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight) * 2;
+
+    // Trigger expansion
+    requestAnimationFrame(function () {
+      ring.style.width = diag + 'px';
+      ring.style.height = diag + 'px';
+    });
+
+    // After the ring covers the screen, show the portfolio
     setTimeout(function () {
       var site = document.getElementById('site');
       site.style.display = 'block';
+      landing.style.display = 'none';
+      document.body.style.overflow = '';
+      document.body.style.background = '#e8e4df';
 
-      // Fade landing out
-      landing.style.transition = 'opacity 0.8s cubic-bezier(0.76, 0, 0.24, 1)';
-      landing.style.opacity = '0';
+      var cursorEl = document.querySelector('.cursor');
+      if (cursorEl) cursorEl.classList.add('cursor--dark');
+
+      var nav = document.getElementById('nav');
+      if (nav) {
+        nav.style.transition = 'opacity 0.6s';
+        nav.style.opacity = '1';
+      }
+
+      // Fade out the ring overlay
+      ring.style.transition = 'opacity 0.5s ease';
+      ring.style.opacity = '0';
 
       setTimeout(function () {
-        landing.style.display = 'none';
-        document.body.style.overflow = '';
-        document.body.style.background = '#e8e4df';
+        ring.remove();
 
-        var cursorEl = document.querySelector('.cursor');
-        if (cursorEl) cursorEl.classList.add('cursor--dark');
-
-        var nav = document.getElementById('nav');
-        if (nav) {
-          nav.style.transition = 'opacity 0.6s';
-          nav.style.opacity = '1';
+        var hint = document.getElementById('scroll-hint');
+        if (hint) {
+          hint.style.transition = 'opacity 0.6s';
+          hint.style.opacity = '1';
         }
-
-        setTimeout(function () {
-          var hint = document.getElementById('scroll-hint');
-          if (hint) {
-            hint.style.transition = 'opacity 0.6s';
-            hint.style.opacity = '1';
-          }
-        }, 300);
 
         if (typeof initSlideshow === 'function') {
           initSlideshow();
         }
-      }, 800);
-    }, 300);
+      }, 500);
+    }, 900);
   }
 })();

@@ -21,6 +21,7 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
 body {
@@ -29,6 +30,8 @@ body {
   font-family: var(--font-primary);
   font-weight: 300;
   overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
   cursor: none;
 }
 
@@ -1383,6 +1386,11 @@ img {
 
   .slideshow__slide-img-wrapper {
     width: 100%;
+  }
+
+  .slideshow__title-wrapper {
+    bottom: 25%;
+    left: 6%;
   }
 
   .slideshow__coming-soon-card {

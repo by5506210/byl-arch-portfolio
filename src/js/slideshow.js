@@ -10,7 +10,6 @@ function initSlideshow() {
 
   if (totalSlides === 0) return;
 
-  // Scroll progress: 0 = first slide, 1 = between first and second, etc.
   var scrollProgress = 0;
   var targetProgress = 0;
   var hasScrolled = false;
@@ -28,7 +27,7 @@ function initSlideshow() {
 
   var dots = Array.from(progressContainer.querySelectorAll('.slideshow__dot'));
 
-  // Setup slides — all stacked, positioned offscreen below except first
+  // Setup slides
   slides.forEach(function (slide, i) {
     slide.style.position = 'absolute';
     slide.style.top = '0';
@@ -57,29 +56,23 @@ function initSlideshow() {
     });
   }
 
-  // Apply scroll position to slides
   function applyScroll(progress) {
     var currentIndex = Math.floor(progress);
     var fraction = progress - currentIndex;
 
     slides.forEach(function (slide, i) {
       if (i < currentIndex) {
-        // Already scrolled past — visible underneath
         slide.style.transform = 'translateY(0%)';
       } else if (i === currentIndex) {
-        // Current slide — stays put
         slide.style.transform = 'translateY(0%)';
       } else if (i === currentIndex + 1) {
-        // Next slide — partially rising based on scroll fraction
         var offset = (1 - fraction) * 100;
         slide.style.transform = 'translateY(' + offset + '%)';
       } else {
-        // Future slides — offscreen
         slide.style.transform = 'translateY(100%)';
       }
     });
 
-    // Update active class for title animation
     var activeIndex = Math.round(progress);
     activeIndex = Math.max(0, Math.min(activeIndex, totalSlides - 1));
     slides.forEach(function (slide, i) {
@@ -93,8 +86,8 @@ function initSlideshow() {
     updateDots(activeIndex);
   }
 
-  // Wheel handler — accumulate delta for gradual movement
-  var scrollSensitivity = 0.0015; // how much each pixel of wheel delta moves progress
+  // Wheel handler
+  var scrollSensitivity = 0.0015;
 
   container.addEventListener('wheel', function (e) {
     e.preventDefault();
@@ -108,13 +101,11 @@ function initSlideshow() {
     targetProgress = Math.max(0, Math.min(targetProgress, totalSlides - 1));
   }, { passive: false });
 
-  // Smooth interpolation loop
+  // Animation loop
   function animate() {
     var diff = targetProgress - scrollProgress;
-    // Lerp with easing
     scrollProgress += diff * 0.12;
 
-    // Snap when very close to a full slide
     if (Math.abs(diff) < 0.001) {
       scrollProgress = targetProgress;
     }
@@ -124,15 +115,18 @@ function initSlideshow() {
   }
   requestAnimationFrame(animate);
 
-  // Touch support
+  // Touch support — prevent rubber banding
   var touchStartY = 0;
   var touchLastY = 0;
+
   container.addEventListener('touchstart', function (e) {
     touchStartY = e.touches[0].clientY;
     touchLastY = touchStartY;
-  }, { passive: true });
+  }, { passive: false });
 
   container.addEventListener('touchmove', function (e) {
+    e.preventDefault(); // Prevents iOS rubber banding / overscroll bounce
+
     var touchY = e.touches[0].clientY;
     var delta = touchLastY - touchY;
     touchLastY = touchY;
@@ -144,11 +138,12 @@ function initSlideshow() {
 
     targetProgress += delta * 0.003;
     targetProgress = Math.max(0, Math.min(targetProgress, totalSlides - 1));
-  }, { passive: true });
+  }, { passive: false });
 
   // Keyboard
   document.addEventListener('keydown', function (e) {
-    if (document.getElementById('landing').style.display !== 'none') return;
+    var landingEl = document.getElementById('landing');
+    if (landingEl && landingEl.style.display !== 'none') return;
     if (e.key === 'ArrowDown' || e.key === ' ') {
       e.preventDefault();
       targetProgress = Math.min(Math.floor(targetProgress) + 1, totalSlides - 1);
@@ -181,10 +176,9 @@ function initSlideshow() {
       clone.style.transition = 'all 0.6s cubic-bezier(0.76, 0, 0.24, 1)';
       document.body.appendChild(clone);
 
-      // Hide dots during transition
       progressContainer.style.opacity = '0';
 
-      clone.offsetHeight; // Force reflow
+      clone.offsetHeight;
 
       clone.style.top = '0';
       clone.style.left = '0';
