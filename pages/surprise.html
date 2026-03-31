@@ -4,39 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>? — Bryan Youn</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: #0a0a0a;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Inter', sans-serif;
       overflow: hidden;
       cursor: default;
     }
 
-    .surprise {
-      text-align: center;
-    }
-
     .surprise__img {
-      width: 320px;
-      height: 320px;
-      border-radius: 50%;
-      overflow: hidden;
-      margin: 0 auto 2.5rem;
-      animation: float 4s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-12px); }
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
     }
 
     .surprise__img img {
@@ -46,34 +29,27 @@
     }
 
     .surprise__back {
-      font-family: 'Inter', sans-serif;
-      font-size: 0.7rem;
+      position: fixed;
+      top: 2rem;
+      left: 2rem;
+      z-index: 10;
+      font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.8rem;
       font-weight: 300;
-      color: rgba(232, 228, 223, 0.3);
+      color: rgba(255, 255, 255, 0.4);
       text-decoration: none;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
       transition: color 0.3s ease;
     }
 
     .surprise__back:hover {
-      color: rgba(232, 228, 223, 0.7);
-    }
-
-    @media (max-width: 768px) {
-      .surprise__img {
-        width: 240px;
-        height: 240px;
-      }
+      color: rgba(255, 255, 255, 0.8);
     }
   </style>
 </head>
 <body>
-  <div class="surprise">
-    <div class="surprise__img">
-      <img src="https://images.unsplash.com/photo-1612195583950-b8fd34c87093?w=500&h=500&fit=crop&crop=face" alt="Dachshund">
-    </div>
-    <a href="../index.html" class="surprise__back">&larr;</a>
+  <div class="surprise__img">
+    <img src="https://images.unsplash.com/photo-1612195583950-b8fd34c87093?w=1600&h=1000&fit=crop&crop=face" alt="Dachshund">
   </div>
+  <a href="../index.html#portfolio" class="surprise__back">&larr;</a>
 </body>
 </html>
