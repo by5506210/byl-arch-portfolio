@@ -297,8 +297,8 @@ img {
 }
 
 .slideshow__slide-img-wrapper {
-  width: 100%;
-  height: 100%;
+  width: 85%;
+  max-height: 80vh;
   overflow: hidden;
   position: relative;
 }
@@ -1385,7 +1385,7 @@ img {
   }
 
   .slideshow__slide-img-wrapper {
-    width: 100%;
+    width: 95%;
   }
 
   .slideshow__title-wrapper {
