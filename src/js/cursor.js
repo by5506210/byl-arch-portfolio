@@ -23,36 +23,32 @@
 
   function updateCursor() {
     if (!snapping) {
-      // Check if we should pull cursor toward the bold "click here" line
-      var boldLine = document.querySelector('.landing__line--bold');
       var pullX = mouseX;
       var pullY = mouseY;
 
-      if (boldLine && isLanding && isLanding.style.display !== 'none') {
-        var rect = boldLine.getBoundingClientRect();
-        var centerX = rect.left + rect.width / 2;
-        var centerY = rect.top + rect.height / 2;
-        var dx = centerX - mouseX;
-        var dy = centerY - mouseY;
+      // Black hole pull toward portal center on landing page
+      if (isLanding && isLanding.style.display !== 'none') {
+        var cx = window.innerWidth / 2;
+        var cy = window.innerHeight / 2;
+        var dx = cx - mouseX;
+        var dy = cy - mouseY;
         var dist = Math.sqrt(dx * dx + dy * dy);
         var pullRadius = 250;
 
-        if (dist < pullRadius && dist > 5) {
-          // Black hole pull — stronger as you get closer
+        if (dist < pullRadius && dist > 3) {
           var strength = (1 - dist / pullRadius);
-          strength = strength * strength * 0.4; // Quadratic, max 40%
+          strength = strength * strength * 0.45;
           pullX = mouseX + dx * strength;
           pullY = mouseY + dy * strength;
         }
 
-        // On landing page, cursor follows instantly (no lerp lag)
+        // Instant follow on landing
         cursorX = pullX;
         cursorY = pullY;
       } else {
-        // On other pages, subtle smoothing
-        var lerpSpeed = 0.35;
-        cursorX += (pullX - cursorX) * lerpSpeed;
-        cursorY += (pullY - cursorY) * lerpSpeed;
+        // Smooth follow on other pages
+        cursorX += (pullX - cursorX) * 0.35;
+        cursorY += (pullY - cursorY) * 0.35;
       }
 
       cursor.style.left = cursorX + 'px';
@@ -66,24 +62,23 @@
   document.addEventListener('mouseover', function (e) {
     var target = e.target;
 
-    var link = target.closest('a, button, .project-back');
+    // Snap to links/buttons
+    var link = target.closest('a, button, .project-back, .landing__portal');
     if (link && !target.closest('.slideshow__slide')) {
       var rect = link.getBoundingClientRect();
       snapping = true;
       cursor.className = 'cursor cursor--snap';
-      if (isLanding && !isLanding.classList.contains('cursor--dark')) {
-        // Keep light cursor colors on landing
-      } else {
-        cursor.classList.add('cursor--dark');
-      }
+      var isDark = !isLanding || isLanding.style.display === 'none';
+      if (isDark) cursor.classList.add('cursor--dark');
       cursor.style.left = (rect.left + rect.width / 2) + 'px';
       cursor.style.top = (rect.top + rect.height / 2) + 'px';
       cursor.style.width = (rect.width + 16) + 'px';
       cursor.style.height = (rect.height + 10) + 'px';
-      cursor.style.borderRadius = '8px';
+      cursor.style.borderRadius = '50%';
       return;
     }
 
+    // Hovering clickable slide
     if (target.closest('.slideshow__slide:not(.slideshow__slide--coming-soon)')) {
       snapping = false;
       cursor.className = 'cursor cursor--hover-image';
@@ -93,6 +88,7 @@
       return;
     }
 
+    // Default
     snapping = false;
     var isDark = !isLanding || isLanding.style.display === 'none' || window.location.hash === '#portfolio';
     cursor.className = 'cursor' + (isDark ? ' cursor--dark' : '');
