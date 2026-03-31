@@ -236,13 +236,19 @@ function initVectorField() {
       var distM = Math.sqrt(dxM * dxM + dyM * dyM);
       var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset + Math.sin(time * 3 + p.seed1 * 5) * 25;
 
-      // Smooth easter egg suppression: gradually reduce cursor brightening
-      // as cursor approaches the easter egg (no hard cutoff)
+      // How close is the CURSOR to the easter egg?
       var eeSuppression = 0;
       if (isLandingPage) {
         var _dce = Math.sqrt((mouseX - easterEggX) * (mouseX - easterEggX) + (mouseY - easterEggY) * (mouseY - easterEggY));
-        eeSuppression = Math.max(0, 1 - _dce / 250); // 0 far away → 1 right on top
-        eeSuppression = eeSuppression * eeSuppression; // quadratic for smooth ramp
+        eeSuppression = Math.max(0, 1 - _dce / 250);
+        eeSuppression = eeSuppression * eeSuppression;
+      }
+
+      // How close is THIS PARTICLE to the easter egg?
+      var particleNearEE = 0;
+      if (isLandingPage) {
+        var _dpe = Math.sqrt((p.x - easterEggX) * (p.x - easterEggX) + (p.y - easterEggY) * (p.y - easterEggY));
+        particleNearEE = Math.max(0, 1 - _dpe / easterEggRadius);
       }
 
       if (distM < particleMouseRadius) {
@@ -250,13 +256,20 @@ function initVectorField() {
         mStrength = mStrength * mStrength;
         var mouseEffect = mStrength * (1 - bhResistance * 0.85);
 
-        // Reduce brightening near easter egg (smooth fade, not sudden)
-        var brightenAmount = mouseEffect * 0.3 * opacityScale * (1 - eeSuppression);
+        // Near easter egg: cursor dims particles instead of brightening
+        if (eeSuppression > 0.01 && particleNearEE > 0) {
+          // Actively dim — stronger when both cursor and particle are near EE
+          var dimFactor = eeSuppression * particleNearEE * mouseEffect;
+          drawOpacity *= Math.max(0.02, 1 - dimFactor * 3);
+        } else {
+          // Normal brightening
+          var brightenAmount = mouseEffect * 0.3 * opacityScale * (1 - eeSuppression);
+          drawOpacity = Math.max(drawOpacity, p.baseOpacity + brightenAmount);
+        }
 
         var mouseDiff = angleDiff(targetAngle, Math.atan2(dyM, dxM));
         targetAngle += mouseDiff * mouseEffect * 0.9;
-        drawOpacity = Math.max(drawOpacity, p.baseOpacity + brightenAmount);
-        drawLen = Math.max(drawLen, lineLen + mouseEffect * 10 * (1 - eeSuppression * 0.5));
+        drawLen = Math.max(drawLen, lineLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
         speed = Math.max(speed, followSpeed + mouseEffect * 0.4);
       }
 

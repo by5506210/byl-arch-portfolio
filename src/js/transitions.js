@@ -45,6 +45,8 @@
         // Clean up leftover elements from slideshow/project pages
         var oldBar = document.querySelector('.project-nav-bar');
         if (oldBar) oldBar.remove();
+        var oldSlideBar = document.querySelector('.slideshow-nav-bar');
+        if (oldSlideBar) oldSlideBar.remove();
         var oldTitle = document.querySelector('.slideshow__current-title');
         if (oldTitle) oldTitle.remove();
         var oldProgress = document.querySelector('.slideshow__progress');
