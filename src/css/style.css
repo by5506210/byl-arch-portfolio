@@ -253,6 +253,50 @@ img {
 }
 
 /* ============================================
+   SLIDESHOW NAV BAR
+   ============================================ */
+.slideshow-nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 2.5rem;
+  z-index: 55;
+  background: rgba(232, 228, 223, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  opacity: 0;
+}
+
+.slideshow-nav-bar__spacer {
+  flex: 1;
+}
+
+.slideshow-nav-bar__links {
+  display: flex;
+  gap: 2rem;
+}
+
+.slideshow-nav-bar__link {
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+}
+
+.slideshow-nav-bar__link:hover {
+  opacity: 0.5;
+}
+
+/* ============================================
    SITE WRAPPER
    ============================================ */
 .site {
@@ -1218,7 +1262,7 @@ img {
 
 .project-nav-bar__name {
   font-family: var(--font-primary);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1243,9 +1287,10 @@ img {
 
 .project-nav-bar__link {
   font-family: var(--font-primary);
-  font-size: 0.72rem;
+  font-size: 0.82rem;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-decoration: none;
   transition: color 0.3s ease, opacity 0.3s ease;
 }
@@ -1460,7 +1505,20 @@ img {
   }
 
   .project-nav-bar__link {
-    font-size: 0.62rem;
+    font-size: 0.7rem;
+  }
+
+  .slideshow-nav-bar {
+    padding: 0 1.2rem;
+    height: 40px;
+  }
+
+  .slideshow-nav-bar__links {
+    gap: 1.2rem;
+  }
+
+  .slideshow-nav-bar__link {
+    font-size: 0.7rem;
   }
 
   .projects-index__grid {
