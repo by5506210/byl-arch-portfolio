@@ -5,6 +5,11 @@
 (function () {
   if (typeof barba === 'undefined' || typeof gsap === 'undefined') return;
 
+  // Create shared overlay for seamless transitions
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#e8e4df;z-index:9999;pointer-events:none;opacity:0;';
+  document.body.appendChild(overlay);
+
   barba.init({
     preventRunning: true,
     // Don't intercept links back to index.html (full reload needed for landing skip)
@@ -14,31 +19,52 @@
       return false;
     },
     transitions: [{
-      name: 'fade',
+      name: 'wipe',
 
       leave: function (data) {
-        return gsap.to(data.current.container, {
-          opacity: 0,
-          duration: 0.35,
-          ease: 'power2.inOut'
-        });
+        // Match overlay to destination page background
+        var nextNs = data.next.url.path || '';
+        var isContactPage = nextNs.indexOf('contact') !== -1;
+        overlay.style.background = isContactPage ? '#0a0a0a' : '#e8e4df';
+
+        return gsap.timeline()
+          .to(data.current.container, {
+            opacity: 0,
+            y: -20,
+            duration: 0.4,
+            ease: 'power2.in'
+          })
+          .to(overlay, {
+            opacity: 1,
+            duration: 0.2,
+            ease: 'power1.in'
+          }, '-=0.15');
       },
 
       enter: function (data) {
         window.scrollTo(0, 0);
 
-        // Set body background to match incoming page BEFORE fade-in
         if (data.next.namespace === 'contact') {
           document.body.style.background = '#0a0a0a';
         } else {
           document.body.style.background = '#e8e4df';
         }
 
-        return gsap.from(data.next.container, {
-          opacity: 0,
-          duration: 0.35,
-          ease: 'power2.inOut'
-        });
+        // Set initial state
+        gsap.set(data.next.container, { opacity: 0, y: 20 });
+
+        return gsap.timeline()
+          .to(overlay, {
+            opacity: 0,
+            duration: 0.3,
+            ease: 'power1.out'
+          })
+          .to(data.next.container, {
+            opacity: 1,
+            y: 0,
+            duration: 0.45,
+            ease: 'power2.out'
+          }, '-=0.2');
       },
 
       after: function (data) {
@@ -57,7 +83,7 @@
           initProjectPage();
         }
 
-        // Reinitialize vector field — delay to let DOM settle after transition
+        // Reinitialize vector field
         setTimeout(function () {
           if (typeof initVectorField === 'function') {
             initVectorField();
@@ -69,5 +95,32 @@
         if (cursorEl) cursorEl.classList.add('cursor--dark');
       }
     }]
+  });
+
+  // Smooth transition for links going back to index.html
+  // (Barba prevents these, so we handle manually with a fade-out)
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href*="index.html"]');
+    if (!link) return;
+
+    e.preventDefault();
+    var href = link.getAttribute('href');
+
+    overlay.style.background = '#0a0a0a'; // landing is dark
+    gsap.timeline()
+      .to(document.querySelector('[data-barba="container"]') || document.body, {
+        opacity: 0,
+        y: -20,
+        duration: 0.35,
+        ease: 'power2.in'
+      })
+      .to(overlay, {
+        opacity: 1,
+        duration: 0.25,
+        ease: 'power1.in',
+        onComplete: function () {
+          window.location.href = href;
+        }
+      }, '-=0.1');
   });
 })();
