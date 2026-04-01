@@ -347,9 +347,9 @@ function initVectorField() {
       // Waves with layer-specific speed
       var waveTime = time * layerSpeedMult;
       var wavePhase = p.x * 0.006 + waveTime * 1.6;
-      var swell = _sin(wavePhase) * 1.4 + _sin(p.x * 0.004 + p.y * 0.008 + waveTime * 1.15) * 1.0;
-      var cross = _cos(p.y * 0.01 + waveTime * 0.9) * 0.7 + _sin(p.x * 0.012 - waveTime * 1.25) * 0.5;
-      var deep = _sin((p.x + p.y) * 0.003 + waveTime * 0.45) * 0.8;
+      var swell = _sin(wavePhase) * 1.8 + _sin(p.x * 0.004 + p.y * 0.008 + waveTime * 1.15) * 1.3;
+      var cross = _cos(p.y * 0.01 + waveTime * 0.9) * 0.9 + _sin(p.x * 0.012 - waveTime * 1.25) * 0.65;
+      var deep = _sin((p.x + p.y) * 0.003 + waveTime * 0.45) * 1.0;
 
       var random = p.drift * _sin(waveTime * 0.7 + p.seed1) * 0.08
                  + _sin(waveTime * 1.3 + p.seed2 * 5) * 0.05
