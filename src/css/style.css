@@ -312,10 +312,20 @@ img {
   justify-content: space-between;
   padding: 0 2.5rem;
   z-index: 55;
-  background: rgba(232, 228, 223, 0.85);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: transparent;
   opacity: 0;
+}
+
+.slideshow-nav-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(to bottom, rgba(232, 228, 223, 0.6) 0%, rgba(232, 228, 223, 0) 100%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .slideshow-nav-bar__back {
@@ -1500,8 +1510,21 @@ img {
   justify-content: space-between;
   padding: 0 2.5rem;
   z-index: 55;
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: border-color 0.3s ease;
   border-bottom: 1px solid transparent;
+}
+
+.project-nav-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  pointer-events: none;
+  z-index: -1;
+  transition: height 0.4s ease, opacity 0.4s ease;
+  opacity: 0;
 }
 
 /* Over hero — transparent with white text */
@@ -1520,11 +1543,15 @@ img {
   opacity: 0;
 }
 
-/* Scrolled past hero — solid with dark text and project name */
+/* Scrolled past hero — gradient fade with dark text and project name */
 .project-nav-bar--solid {
-  background: rgba(232, 228, 223, 0.92);
-  backdrop-filter: blur(10px);
-  border-bottom-color: rgba(0, 0, 0, 0.06);
+  background: transparent;
+}
+
+.project-nav-bar--solid::after {
+  height: 80px;
+  opacity: 1;
+  background: linear-gradient(to bottom, rgba(232, 228, 223, 0.7) 0%, rgba(232, 228, 223, 0) 100%);
 }
 
 .project-nav-bar--solid .project-nav-bar__back,
