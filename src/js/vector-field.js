@@ -304,9 +304,9 @@ function initVectorField() {
       // Waves with layer-specific speed
       var waveTime = time * layerSpeedMult;
       var wavePhase = p.x * 0.006 + waveTime * 1.6;
-      var swell = _sin(wavePhase) * 1.1 + _sin(p.x * 0.004 + p.y * 0.008 + waveTime * 1.15) * 0.8;
-      var cross = _cos(p.y * 0.01 + waveTime * 0.9) * 0.55 + _sin(p.x * 0.012 - waveTime * 1.25) * 0.4;
-      var deep = _sin((p.x + p.y) * 0.003 + waveTime * 0.45) * 0.65;
+      var swell = _sin(wavePhase) * 1.4 + _sin(p.x * 0.004 + p.y * 0.008 + waveTime * 1.15) * 1.0;
+      var cross = _cos(p.y * 0.01 + waveTime * 0.9) * 0.7 + _sin(p.x * 0.012 - waveTime * 1.25) * 0.5;
+      var deep = _sin((p.x + p.y) * 0.003 + waveTime * 0.45) * 0.8;
 
       var random = p.drift * _sin(waveTime * 0.7 + p.seed1) * 0.08
                  + _sin(waveTime * 1.3 + p.seed2 * 5) * 0.05
@@ -379,6 +379,7 @@ function initVectorField() {
       var targetAngle = baseAngle;
       var drawOpacity = (p.baseOpacity * lcOpacity) + rippleOpacityBoost + wakeOpacityBoost;
       var drawLen = (lineLen * lcLen) + rippleLenBoost;
+      var widthScale = 1;
       var speed = returnSpeed;
 
       // --- AWAKENING: fade opacity in ---
@@ -416,11 +417,13 @@ function initVectorField() {
           var eeDiff = angleDiff(targetAngle, eeAngle);
           targetAngle += eeDiff * eeStrength * 0.8;
 
-          var baseDim = eeStrength * 0.8;
+          var baseDim = eeStrength * 0.85;
           var totalDim = baseDim + cursorNearEECached * eeStrength * 0.9;
-          if (totalDim > 0.98) totalDim = 0.98;
+          if (totalDim > 0.99) totalDim = 0.99;
 
           drawOpacity *= (1 - totalDim);
+          drawLen *= (1 - totalDim * 0.7);
+          widthScale *= (1 - totalDim * 0.6);
           speed = _max(speed, returnSpeed + eeStrength * 0.2);
         }
       }
@@ -473,7 +476,7 @@ function initVectorField() {
 
       // Width based on rotation: more rotated from horizontal = thicker
       var angleFactor = sinA < 0 ? -sinA : sinA; // abs without function call
-      var angleWidth = (lineWidth * lcWidth) * (0.4 + angleFactor * 0.8);
+      var angleWidth = (lineWidth * lcWidth) * (0.4 + angleFactor * 0.8) * widthScale;
 
       // Quantize opacity into bucket for batched drawing
       // Clamp to [0, 1] and map to bucket index
