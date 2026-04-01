@@ -283,7 +283,7 @@ function initVectorField() {
           drawOpacity = p.baseOpacity + bhStrength * 0.4 * opacityScale + rippleOpacityBoost;
           drawLen = lineLen + bhStrength * 12 + rippleLenBoost;
           speed = returnSpeed + bhStrength * 0.3;
-          if (distBH < 30) { var fade = distBH / 30; drawOpacity *= fade; drawLen *= fade; }
+          if (distBH < 35) continue;
         }
 
         var dxEE = easterEggX - p.x;
