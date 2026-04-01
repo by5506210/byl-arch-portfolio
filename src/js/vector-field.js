@@ -111,6 +111,15 @@ function initVectorField() {
   var lastWakeX = -1000;
   var lastWakeY = -1000;
 
+  // --- MOBILE: gravitational current + discovery nudges ---
+  var hasEverTouched = false;
+  var lastInteractionTime = 0;
+  var idleNudgeInterval = 5; // seconds before first idle ripple
+  var lastIdleNudgeTime = -10;
+  var idleNudgeCooldown = 4; // seconds between idle ripples
+  // Gravitational pull strength (mobile only, subtle)
+  var gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
+
   canvas.style.pointerEvents = 'none';
 
   function resize() {
@@ -128,6 +137,7 @@ function initVectorField() {
     spacing = isMobile ? 16 : 24;
     lineLen = isContentPage ? 12 : (isMobile ? 11 : 16);
     lineWidth = isContentPage ? 1 : (isMobile ? 1.2 : 1.7);
+    gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
     rippleMaxRadius = Math.max(window.innerWidth, window.innerHeight) * 0.8;
     buildGrid();
   }
@@ -233,6 +243,39 @@ function initVectorField() {
       wakeTrail.shift();
     }
 
+    // --- MOBILE DISCOVERY: first-touch ripple + idle nudges ---
+    if (isLandingPage && isMobile) {
+      var isTouching = mouseX > 0 && mouseY > 0;
+
+      // #4: First touch anywhere → ripple from center
+      if (isTouching && !hasEverTouched) {
+        hasEverTouched = true;
+        lastRippleTime = -10; // bypass cooldown
+        spawnRipple();
+      }
+
+      // Track last interaction time
+      if (isTouching) {
+        lastInteractionTime = time;
+      }
+
+      // #5: Idle nudge — gentle ripple from center after no touch
+      if (!isTouching && hasEverTouched && time > awakenDuration) {
+        var idleDuration = time - lastInteractionTime;
+        if (idleDuration > idleNudgeInterval && time - lastIdleNudgeTime > idleNudgeCooldown) {
+          lastIdleNudgeTime = time;
+          lastRippleTime = -10;
+          spawnRipple();
+        }
+      }
+      // Also nudge if user has NEVER touched and awakening is done
+      if (!hasEverTouched && time > awakenDuration + 3 && time - lastIdleNudgeTime > idleNudgeCooldown) {
+        lastIdleNudgeTime = time;
+        lastRippleTime = -10;
+        spawnRipple();
+      }
+    }
+
     // Portal reveal + ripple trigger
     if (portal) {
       var dxP = mouseX - centerX;
@@ -313,6 +356,26 @@ function initVectorField() {
                  + _cos(waveTime * 0.9 + p.seed3 * 3) * 0.04;
 
       var liveAngle = swell + cross + deep + random;
+
+      // --- #1: GRAVITATIONAL CURRENT (mobile only) ---
+      // Subtle inward bias — like water circling a drain
+      if (gravityStrength > 0) {
+        var gdx = centerX - p.x;
+        var gdy = centerY - p.y;
+        var gDistSq = gdx * gdx + gdy * gdy;
+        // Only apply outside the black hole zone to avoid fighting the spiral
+        if (gDistSq > blackHoleRadiusSq) {
+          var gAngle = _atan2(gdy, gdx);
+          // Spiral offset so it's not just pointing at center — add a swirl
+          var gSpiral = gAngle + 0.6;
+          var gDiff = angleDiff(liveAngle, gSpiral);
+          // Stronger pull closer to center, fades at edges
+          var gDist = _sqrt(gDistSq);
+          var maxGravDist = _max(window.innerWidth, window.innerHeight) * 0.6;
+          var gFalloff = _max(0, 1 - gDist / maxGravDist);
+          liveAngle += gDiff * gravityStrength * gFalloff;
+        }
+      }
 
       // --- AWAKENING: blend from startAngle to live wave angle ---
       var baseAngle = startAngle * (1 - awakenEased) + liveAngle * awakenEased;
