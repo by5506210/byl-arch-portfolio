@@ -106,9 +106,8 @@ img {
 }
 
 .cursor--snap {
-  background: rgba(26, 26, 26, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
+  background: rgba(26, 26, 26, 0.06);
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
 }
 
 .cursor--hover-image {
@@ -314,6 +313,12 @@ img {
   z-index: 55;
   background: none;
   opacity: 0;
+}
+
+.slideshow-nav-bar__back,
+.slideshow-nav-bar__link,
+.slideshow-nav-bar__logo {
+  text-shadow: 0 0 12px rgba(232, 228, 223, 0.6), 0 0 4px rgba(232, 228, 223, 0.3);
 }
 
 .slideshow-nav-bar__back {
@@ -1509,7 +1514,7 @@ img {
 .project-nav-bar--over-hero .project-nav-bar__back,
 .project-nav-bar--over-hero .project-nav-bar__link {
   color: var(--white);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7), 0 0 4px rgba(0, 0, 0, 0.4);
 }
 
 .project-nav-bar--over-hero .project-nav-bar__name,
@@ -1525,7 +1530,7 @@ img {
 .project-nav-bar--solid .project-nav-bar__back,
 .project-nav-bar--solid .project-nav-bar__link {
   color: var(--text-primary);
-  text-shadow: none;
+  text-shadow: 0 0 12px rgba(232, 228, 223, 0.8), 0 0 4px rgba(232, 228, 223, 0.5);
 }
 
 .project-nav-bar--solid .project-nav-bar__name,
@@ -1587,6 +1592,7 @@ img {
    FILMSTRIP — Horizontal Drag Scroll
    ============================================ */
 .project-filmstrip {
+  position: relative;
   padding: 0 8%;
   margin-bottom: 4rem;
   overflow: hidden;
@@ -1654,6 +1660,66 @@ img {
   line-height: 1.6;
   color: var(--dark-gray);
   font-weight: 300;
+}
+
+/* Filmstrip arrows */
+.project-filmstrip__arrow {
+  position: absolute;
+  top: 45%;
+  transform: translateY(-50%);
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+  border-radius: 0;
+  z-index: 2;
+}
+
+.project-filmstrip__arrow:hover {
+  border-color: rgba(0, 0, 0, 0.35);
+}
+
+.project-filmstrip__arrow--disabled {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.project-filmstrip__arrow--prev {
+  left: 2%;
+}
+
+.project-filmstrip__arrow--next {
+  right: 2%;
+}
+
+/* Filmstrip dots */
+.project-filmstrip__dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+}
+
+.project-filmstrip__dot {
+  width: 24px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.12);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.3s ease, width 0.3s ease;
+}
+
+.project-filmstrip__dot--active {
+  background: rgba(0, 0, 0, 0.5);
+  width: 36px;
 }
 
 /* ============================================

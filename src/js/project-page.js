@@ -193,17 +193,23 @@ function animateCounter(el) {
   requestAnimationFrame(tick);
 }
 
-// Filmstrip drag scroll
+// Filmstrip drag scroll + slider controls
 function initFilmstrip() {
   var filmstrip = document.querySelector('.project-filmstrip');
   if (!filmstrip) return;
 
   var track = filmstrip.querySelector('.project-filmstrip__track');
+  var frames = filmstrip.querySelectorAll('.project-filmstrip__frame');
+  var prevBtn = filmstrip.querySelector('.project-filmstrip__arrow--prev');
+  var nextBtn = filmstrip.querySelector('.project-filmstrip__arrow--next');
+  var dots = filmstrip.querySelectorAll('.project-filmstrip__dot');
   var isDragging = false;
   var startX = 0;
   var currentX = 0;
   var velocity = 0;
   var animFrame;
+  var currentSlide = 0;
+  var totalSlides = frames.length;
 
   function getMaxScroll() {
     return -(track.scrollWidth - filmstrip.offsetWidth);
@@ -217,6 +223,77 @@ function initFilmstrip() {
     currentX = clamp(x);
     track.style.transform = 'translateX(' + currentX + 'px)';
   }
+
+  function goToSlide(index) {
+    if (index < 0) index = 0;
+    if (index >= totalSlides) index = totalSlides - 1;
+    currentSlide = index;
+
+    // Calculate target position based on frame offset
+    var frame = frames[index];
+    var targetX = -(frame.offsetLeft - filmstrip.offsetWidth * 0.08);
+    targetX = clamp(targetX);
+
+    // Smooth animate
+    cancelAnimationFrame(animFrame);
+    var startPos = currentX;
+    var dist = targetX - startPos;
+    var startTime = null;
+    var duration = 400;
+
+    function slideAnim(ts) {
+      if (!startTime) startTime = ts;
+      var elapsed = ts - startTime;
+      var t = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      t = 1 - Math.pow(1 - t, 3);
+      setPosition(startPos + dist * t);
+      if (elapsed < duration) {
+        animFrame = requestAnimationFrame(slideAnim);
+      } else {
+        updateControls();
+      }
+    }
+    animFrame = requestAnimationFrame(slideAnim);
+    updateControls();
+  }
+
+  function updateControls() {
+    // Update dots
+    if (dots.length) {
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle('project-filmstrip__dot--active', i === currentSlide);
+      });
+    }
+    // Update arrows
+    if (prevBtn) prevBtn.classList.toggle('project-filmstrip__arrow--disabled', currentSlide === 0);
+    if (nextBtn) nextBtn.classList.toggle('project-filmstrip__arrow--disabled', currentSlide >= totalSlides - 1);
+  }
+
+  // Detect which slide is closest after drag
+  function snapToNearest() {
+    var closest = 0;
+    var closestDist = Infinity;
+    for (var i = 0; i < totalSlides; i++) {
+      var frameTarget = -(frames[i].offsetLeft - filmstrip.offsetWidth * 0.08);
+      var d = Math.abs(currentX - frameTarget);
+      if (d < closestDist) {
+        closestDist = d;
+        closest = i;
+      }
+    }
+    currentSlide = closest;
+    updateControls();
+  }
+
+  // Arrow click handlers
+  if (prevBtn) prevBtn.addEventListener('click', function () { goToSlide(currentSlide - 1); });
+  if (nextBtn) nextBtn.addEventListener('click', function () { goToSlide(currentSlide + 1); });
+
+  // Dot click handlers
+  dots.forEach(function (dot, i) {
+    dot.addEventListener('click', function () { goToSlide(i); });
+  });
 
   filmstrip.addEventListener('mousedown', function (e) {
     isDragging = true;
@@ -260,13 +337,18 @@ function initFilmstrip() {
 
   function applyMomentum() {
     function drift() {
-      if (Math.abs(velocity) < 0.5) return;
+      if (Math.abs(velocity) < 0.5) {
+        snapToNearest();
+        return;
+      }
       velocity *= 0.92;
       setPosition(currentX + velocity);
       animFrame = requestAnimationFrame(drift);
     }
     drift();
   }
+
+  updateControls();
 }
 
 // Initialize all features

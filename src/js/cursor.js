@@ -70,11 +70,20 @@
       cursor.className = 'cursor cursor--snap';
       var isDark = !isLanding || isLanding.style.display === 'none';
       if (isDark) cursor.classList.add('cursor--dark');
+
+      // iPad-style: rectangle that hugs the element with padding
+      var padX = 20;
+      var padY = 12;
+      var w = rect.width + padX;
+      var h = rect.height + padY;
+      // Rounded corners proportional to height, capped for pill vs rect
+      var radius = Math.min(7, h * 0.25);
+
       cursor.style.left = (rect.left + rect.width / 2) + 'px';
       cursor.style.top = (rect.top + rect.height / 2) + 'px';
-      cursor.style.width = (rect.width + 16) + 'px';
-      cursor.style.height = (rect.height + 10) + 'px';
-      cursor.style.borderRadius = Math.min(8, rect.height / 2) + 'px';
+      cursor.style.width = w + 'px';
+      cursor.style.height = h + 'px';
+      cursor.style.borderRadius = radius + 'px';
       return;
     }
 
