@@ -51,12 +51,14 @@
         cursorY += (pullY - cursorY) * 0.35;
       }
 
-      cursor.style.left = cursorX + 'px';
-      cursor.style.top = cursorY + 'px';
+      cursor.style.transform = 'translate(' + (cursorX - 7) + 'px,' + (cursorY - 7) + 'px)';
     }
     requestAnimationFrame(updateCursor);
   }
   requestAnimationFrame(updateCursor);
+
+  // Track current cursor state to avoid redundant class changes
+  var currentState = 'default';
 
   // Cursor states
   document.addEventListener('mouseover', function (e) {
@@ -67,9 +69,14 @@
     if (link && !target.closest('.slideshow__slide')) {
       var rect = link.getBoundingClientRect();
       snapping = true;
-      cursor.className = 'cursor cursor--snap';
-      var isDark = !isLanding || isLanding.style.display === 'none';
-      if (isDark) cursor.classList.add('cursor--dark');
+
+      if (currentState !== 'snap') {
+        cursor.classList.remove('cursor--hover-image');
+        cursor.classList.add('cursor--snap');
+        var isDark = !isLanding || isLanding.style.display === 'none';
+        cursor.classList.toggle('cursor--dark', isDark);
+        currentState = 'snap';
+      }
 
       // iPad-style: rectangle that hugs the element with padding
       var padX = 20;
@@ -79,18 +86,22 @@
       // Rounded corners proportional to height, capped for pill vs rect
       var radius = Math.min(7, h * 0.25);
 
-      cursor.style.left = (rect.left + rect.width / 2) + 'px';
-      cursor.style.top = (rect.top + rect.height / 2) + 'px';
       cursor.style.width = w + 'px';
       cursor.style.height = h + 'px';
       cursor.style.borderRadius = radius + 'px';
+      cursor.style.transform = 'translate(' + (rect.left + rect.width / 2 - w / 2) + 'px,' + (rect.top + rect.height / 2 - h / 2) + 'px)';
       return;
     }
 
     // Hovering clickable slide
     if (target.closest('.slideshow__slide:not(.slideshow__slide--coming-soon)')) {
       snapping = false;
-      cursor.className = 'cursor cursor--hover-image';
+      if (currentState !== 'hover-image') {
+        cursor.classList.remove('cursor--snap');
+        cursor.classList.add('cursor--hover-image');
+        cursor.classList.remove('cursor--dark');
+        currentState = 'hover-image';
+      }
       cursor.style.width = '';
       cursor.style.height = '';
       cursor.style.borderRadius = '';
@@ -99,8 +110,12 @@
 
     // Default
     snapping = false;
-    var isDark = !isLanding || isLanding.style.display === 'none' || window.location.hash === '#portfolio';
-    cursor.className = 'cursor' + (isDark ? ' cursor--dark' : '');
+    if (currentState !== 'default') {
+      cursor.classList.remove('cursor--snap', 'cursor--hover-image');
+      var isDark = !isLanding || isLanding.style.display === 'none' || window.location.hash === '#portfolio';
+      cursor.classList.toggle('cursor--dark', isDark);
+      currentState = 'default';
+    }
     cursor.style.width = '';
     cursor.style.height = '';
     cursor.style.borderRadius = '';

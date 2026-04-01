@@ -166,10 +166,21 @@ function initVectorField() {
     [0.3,  0.5,  1.0,  0.7]    // back — faint, same speed
   ];
 
+  // --- PRE-CACHED CONSTANTS ---
+  var PI = Math.PI;
+  var TWO_PI = PI * 2;
+  var _sin = Math.sin;
+  var _cos = Math.cos;
+  var _atan2 = Math.atan2;
+  var _sqrt = Math.sqrt;
+  var _abs = Math.abs;
+  var _max = Math.max;
+  var _min = Math.min;
+
   function angleDiff(from, to) {
     var d = to - from;
-    while (d > Math.PI) d -= Math.PI * 2;
-    while (d < -Math.PI) d += Math.PI * 2;
+    while (d > PI) d -= TWO_PI;
+    while (d < -PI) d += TWO_PI;
     return d;
   }
 
@@ -198,9 +209,10 @@ function initVectorField() {
     var mouseY = _vfMouseY;
 
     // --- AWAKENING factor: 0 (asleep) → 1 (fully alive) ---
-    var awaken = isLandingPage ? Math.min(1, time / awakenDuration) : 1;
+    var awaken = isLandingPage ? _min(1, time / awakenDuration) : 1;
     // Smooth ease-out for organic feel
-    var awakenEased = 1 - Math.pow(1 - awaken, 3);
+    var t1 = 1 - awaken;
+    var awakenEased = 1 - t1 * t1 * t1;
 
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
@@ -208,8 +220,7 @@ function initVectorField() {
     if (mouseX > 0 && mouseY > 0) {
       var wdx = mouseX - lastWakeX;
       var wdy = mouseY - lastWakeY;
-      var wDist = Math.sqrt(wdx * wdx + wdy * wdy);
-      if (wDist > 30) { // sample every ~30px of movement
+      if (wdx * wdx + wdy * wdy > 900) { // 30*30 = 900, skip sqrt
         wakeTrail.push({ x: mouseX, y: mouseY, time: time });
         lastWakeX = mouseX;
         lastWakeY = mouseY;
@@ -226,15 +237,15 @@ function initVectorField() {
     if (portal) {
       var dxP = mouseX - centerX;
       var dyP = mouseY - centerY;
-      var distToCenter = Math.sqrt(dxP * dxP + dyP * dyP);
+      var distToCenterSq = dxP * dxP + dyP * dyP;
 
-      if (distToCenter < portalRevealDist && mouseX > 0) {
+      if (distToCenterSq < portalRevealDist * portalRevealDist && mouseX > 0) {
         if (!portalVisible) { portal.classList.add('is-visible'); portalVisible = true; }
         if (!wasNearPortal) {
           spawnRipple();
           wasNearPortal = true;
         }
-        if (distToCenter < 80) {
+        if (distToCenterSq < 6400) { // 80*80
           spawnRipple();
         }
       } else {
@@ -252,21 +263,54 @@ function initVectorField() {
       }
     }
 
-    for (var i = 0; i < particles.length; i++) {
+    // --- Pre-compute per-frame easter egg cursor distance (invariant across particles) ---
+    var eeSuppression = 0;
+    var cursorNearEECached = 0;
+    if (isLandingPage) {
+      var _dceX = mouseX - easterEggX;
+      var _dceY = mouseY - easterEggY;
+      var _dceSq = _dceX * _dceX + _dceY * _dceY;
+      var _dce = _sqrt(_dceSq);
+      eeSuppression = _max(0, 1 - _dce / 250);
+      eeSuppression = eeSuppression * eeSuppression;
+      cursorNearEECached = _max(0, 1 - _dce / 200);
+    }
+
+    // --- Pre-compute squared radii for threshold comparisons ---
+    var blackHoleRadiusSq = blackHoleRadius * blackHoleRadius;
+    var easterEggRadiusSq = easterEggRadius * easterEggRadius;
+
+    // --- Draw buffers: quantize opacity into buckets for batched drawing ---
+    // Each bucket stores line segments as flat arrays: [x1, y1, x2, y2, x1, y1, x2, y2, ...]
+    var OPACITY_BUCKETS = 50;
+    var bucketLines = new Array(OPACITY_BUCKETS);
+    var bucketWidthSums = new Array(OPACITY_BUCKETS);
+    var bucketCounts = new Array(OPACITY_BUCKETS);
+    for (var bi = 0; bi < OPACITY_BUCKETS; bi++) {
+      bucketLines[bi] = [];
+      bucketWidthSums[bi] = 0;
+      bucketCounts[bi] = 0;
+    }
+
+    var pLen = particles.length;
+    for (var i = 0; i < pLen; i++) {
       var p = particles[i];
       var lc = layerConfig[p.layer];
       var layerSpeedMult = lc[2];
+      var lcOpacity = lc[0];
+      var lcLen = lc[3];
+      var lcWidth = lc[1];
 
       // Waves with layer-specific speed
       var waveTime = time * layerSpeedMult;
       var wavePhase = p.x * 0.006 + waveTime * 1.6;
-      var swell = Math.sin(wavePhase) * 1.1 + Math.sin(p.x * 0.004 + p.y * 0.008 + waveTime * 1.15) * 0.8;
-      var cross = Math.cos(p.y * 0.01 + waveTime * 0.9) * 0.55 + Math.sin(p.x * 0.012 - waveTime * 1.25) * 0.4;
-      var deep = Math.sin((p.x + p.y) * 0.003 + waveTime * 0.45) * 0.65;
+      var swell = _sin(wavePhase) * 1.1 + _sin(p.x * 0.004 + p.y * 0.008 + waveTime * 1.15) * 0.8;
+      var cross = _cos(p.y * 0.01 + waveTime * 0.9) * 0.55 + _sin(p.x * 0.012 - waveTime * 1.25) * 0.4;
+      var deep = _sin((p.x + p.y) * 0.003 + waveTime * 0.45) * 0.65;
 
-      var random = p.drift * Math.sin(waveTime * 0.7 + p.seed1) * 0.08
-                 + Math.sin(waveTime * 1.3 + p.seed2 * 5) * 0.05
-                 + Math.cos(waveTime * 0.9 + p.seed3 * 3) * 0.04;
+      var random = p.drift * _sin(waveTime * 0.7 + p.seed1) * 0.08
+                 + _sin(waveTime * 1.3 + p.seed2 * 5) * 0.05
+                 + _cos(waveTime * 0.9 + p.seed3 * 3) * 0.04;
 
       var liveAngle = swell + cross + deep + random;
 
@@ -285,17 +329,17 @@ function initVectorField() {
         var ringOuter = rp.radius + 120;
         var ringInner = rp.radius - 120;
         if (rdx > ringOuter || rdx < -ringOuter || rdy > ringOuter || rdy < -ringOuter) continue;
-        var rDist = Math.sqrt(rdx * rdx + rdy * rdy);
+        var rDist = _sqrt(rdx * rdx + rdy * rdy);
         if (rDist > ringOuter || (ringInner > 0 && rDist < ringInner)) continue;
-        var distFromRing = Math.abs(rDist - rp.radius);
+        var distFromRing = _abs(rDist - rp.radius);
 
         if (distFromRing < ringWidth) {
-          var ageFade = Math.max(0, 1 - rp.radius / rp.maxRadius);
+          var ageFade = _max(0, 1 - rp.radius / rp.maxRadius);
           ageFade = ageFade * ageFade;
           var ringStrength = (1 - distFromRing / ringWidth) * ageFade;
 
-          var radialAngle = Math.atan2(rdy, rdx);
-          var tangentAngle = radialAngle + Math.PI * 0.5;
+          var radialAngle = _atan2(rdy, rdx);
+          var tangentAngle = radialAngle + PI * 0.5;
           var outwardPush = radialAngle * 0.15;
           rippleAngleOffset += angleDiff(0, tangentAngle + outwardPush) * ringStrength * 0.7;
           rippleOpacityBoost += ringStrength * 0.2 * opacityScale;
@@ -308,19 +352,21 @@ function initVectorField() {
       // --- WAKE TRAIL INFLUENCE ---
       var wakeAngleOffset = 0;
       var wakeOpacityBoost = 0;
+      var wakeRadiusSq = wakeRadius * wakeRadius;
       for (var wi = 0; wi < wakeTrail.length; wi++) {
         var wp = wakeTrail[wi];
         var wdx2 = p.x - wp.x;
         var wdy2 = p.y - wp.y;
         // Fast bounding-box reject
         if (wdx2 > wakeRadius || wdx2 < -wakeRadius || wdy2 > wakeRadius || wdy2 < -wakeRadius) continue;
-        var wDist2 = Math.sqrt(wdx2 * wdx2 + wdy2 * wdy2);
-        if (wDist2 < wakeRadius) {
+        var wDistSq2 = wdx2 * wdx2 + wdy2 * wdy2;
+        if (wDistSq2 < wakeRadiusSq) {
+          var wDist2 = _sqrt(wDistSq2);
           var wAge = (time - wp.time) / wakeMaxAge; // 0→1
           var wFade = (1 - wAge) * (1 - wAge); // quadratic fadeout
           var wStrength = (1 - wDist2 / wakeRadius) * wFade;
           // Push outward from wake point
-          var wAngle = Math.atan2(wdy2, wdx2);
+          var wAngle = _atan2(wdy2, wdx2);
           wakeAngleOffset += angleDiff(0, wAngle) * wStrength * 0.4;
           wakeOpacityBoost += wStrength * 0.1 * opacityScale;
         }
@@ -330,8 +376,8 @@ function initVectorField() {
 
       var bhResistance = 0;
       var targetAngle = baseAngle;
-      var drawOpacity = (p.baseOpacity * lc[0]) + rippleOpacityBoost + wakeOpacityBoost;
-      var drawLen = (lineLen * lc[3]) + rippleLenBoost;
+      var drawOpacity = (p.baseOpacity * lcOpacity) + rippleOpacityBoost + wakeOpacityBoost;
+      var drawLen = (lineLen * lcLen) + rippleLenBoost;
       var speed = returnSpeed;
 
       // --- AWAKENING: fade opacity in ---
@@ -340,102 +386,120 @@ function initVectorField() {
       if (isLandingPage) {
         var dxBH = centerX - p.x;
         var dyBH = centerY - p.y;
-        var distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
+        var distBHSq = dxBH * dxBH + dyBH * dyBH;
 
-        if (distBH < blackHoleRadius) {
+        if (distBHSq < blackHoleRadiusSq) {
+          var distBH = _sqrt(distBHSq);
           var bhStrength = (1 - distBH / blackHoleRadius);
           bhStrength = bhStrength * bhStrength * bhStrength;
           bhResistance = bhStrength;
-          var spiralOffset = bhStrength * 2.0 + Math.sin(time * 3.5 + p.seed1) * bhStrength * 0.6;
-          var bhAngle = Math.atan2(dyBH, dxBH) + spiralOffset;
+          var spiralOffset = bhStrength * 2.0 + _sin(time * 3.5 + p.seed1) * bhStrength * 0.6;
+          var bhAngle = _atan2(dyBH, dxBH) + spiralOffset;
           targetAngle = bhAngle * bhStrength * awakenEased + baseAngle * (1 - bhStrength);
-          drawOpacity = (p.baseOpacity * lc[0] + bhStrength * 0.4 * opacityScale + rippleOpacityBoost + wakeOpacityBoost) * awakenEased;
-          drawLen = lineLen * lc[3] + bhStrength * 12 + rippleLenBoost;
+          drawOpacity = (p.baseOpacity * lcOpacity + bhStrength * 0.4 * opacityScale + rippleOpacityBoost + wakeOpacityBoost) * awakenEased;
+          drawLen = lineLen * lcLen + bhStrength * 12 + rippleLenBoost;
           speed = returnSpeed + bhStrength * 0.3;
-          if (distBH < 35) { var fade = distBH / 35; drawOpacity *= fade; drawLen = lineLen * lc[3] * fade + bhStrength * 12 * fade; }
+          if (distBH < 35) { var fade = distBH / 35; drawOpacity *= fade; drawLen = lineLen * lcLen * fade + bhStrength * 12 * fade; }
         }
 
         var dxEE = easterEggX - p.x;
         var dyEE = easterEggY - p.y;
-        var distEE = Math.sqrt(dxEE * dxEE + dyEE * dyEE);
+        var distEESq = dxEE * dxEE + dyEE * dyEE;
 
-        if (distEE < easterEggRadius) {
+        if (distEESq < easterEggRadiusSq) {
+          var distEE = _sqrt(distEESq);
           var eeStrength = (1 - distEE / easterEggRadius);
           eeStrength = eeStrength * eeStrength;
-          var eeSpiralOffset = eeStrength * 1.8 + Math.sin(time * 2.5 + p.seed2) * eeStrength * 0.5;
-          var eeAngle = Math.atan2(dyEE, dxEE) + eeSpiralOffset;
+          var eeSpiralOffset = eeStrength * 1.8 + _sin(time * 2.5 + p.seed2) * eeStrength * 0.5;
+          var eeAngle = _atan2(dyEE, dxEE) + eeSpiralOffset;
           var eeDiff = angleDiff(targetAngle, eeAngle);
           targetAngle += eeDiff * eeStrength * 0.8;
 
           var baseDim = eeStrength * 0.8;
-          var dxCursorEE = mouseX - easterEggX;
-          var dyCursorEE = mouseY - easterEggY;
-          var cursorToEE = Math.sqrt(dxCursorEE * dxCursorEE + dyCursorEE * dyCursorEE);
-          var cursorNearEE = Math.max(0, 1 - cursorToEE / 200);
-          var totalDim = baseDim + cursorNearEE * eeStrength * 0.9;
+          var totalDim = baseDim + cursorNearEECached * eeStrength * 0.9;
           if (totalDim > 0.98) totalDim = 0.98;
 
           drawOpacity *= (1 - totalDim);
-          speed = Math.max(speed, returnSpeed + eeStrength * 0.2);
+          speed = _max(speed, returnSpeed + eeStrength * 0.2);
         }
       }
 
       var dxM = mouseX - p.x;
       var dyM = mouseY - p.y;
-      var distM = Math.sqrt(dxM * dxM + dyM * dyM);
-      var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset + Math.sin(time * 3 + p.seed1 * 5) * 25;
-
-      var eeSuppression = 0;
-      if (isLandingPage) {
-        var _dce = Math.sqrt((mouseX - easterEggX) * (mouseX - easterEggX) + (mouseY - easterEggY) * (mouseY - easterEggY));
-        eeSuppression = Math.max(0, 1 - _dce / 250);
-        eeSuppression = eeSuppression * eeSuppression;
-      }
+      var distMSq = dxM * dxM + dyM * dyM;
+      var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset + _sin(time * 3 + p.seed1 * 5) * 25;
+      var particleMouseRadiusSq = particleMouseRadius * particleMouseRadius;
 
       var particleNearEE = 0;
       if (isLandingPage) {
-        var _dpe = Math.sqrt((p.x - easterEggX) * (p.x - easterEggX) + (p.y - easterEggY) * (p.y - easterEggY));
-        particleNearEE = Math.max(0, 1 - _dpe / easterEggRadius);
+        var _dpeX = p.x - easterEggX;
+        var _dpeY = p.y - easterEggY;
+        var _dpeSq = _dpeX * _dpeX + _dpeY * _dpeY;
+        if (_dpeSq < easterEggRadiusSq) {
+          particleNearEE = _max(0, 1 - _sqrt(_dpeSq) / easterEggRadius);
+        }
       }
 
-      if (distM < particleMouseRadius) {
+      if (distMSq < particleMouseRadiusSq) {
+        var distM = _sqrt(distMSq);
         var mStrength = (1 - distM / particleMouseRadius);
         mStrength = mStrength * mStrength;
         var mouseEffect = mStrength * (1 - bhResistance * 0.85);
 
         if (particleNearEE > 0) {
           var dimFactor = particleNearEE * mouseEffect;
-          drawOpacity *= Math.max(0.02, 1 - dimFactor * 3);
+          drawOpacity *= _max(0.02, 1 - dimFactor * 3);
         } else {
           var brightenAmount = mouseEffect * 0.3 * opacityScale;
-          drawOpacity = Math.max(drawOpacity, p.baseOpacity * lc[0] + brightenAmount);
+          drawOpacity = _max(drawOpacity, p.baseOpacity * lcOpacity + brightenAmount);
         }
 
-        var mouseDiff = angleDiff(targetAngle, Math.atan2(dyM, dxM));
+        var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
         targetAngle += mouseDiff * mouseEffect * 0.9;
-        drawLen = Math.max(drawLen, lineLen * lc[3] + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
-        speed = Math.max(speed, followSpeed + mouseEffect * 0.4);
+        drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
+        speed = _max(speed, followSpeed + mouseEffect * 0.4);
       }
 
-      if (bhResistance > 0.1) speed = Math.max(speed, returnSpeed + bhResistance * 0.35);
+      if (bhResistance > 0.1) speed = _max(speed, returnSpeed + bhResistance * 0.35);
 
       p.currentAngle += angleDiff(p.currentAngle, targetAngle) * speed;
-      while (p.currentAngle > Math.PI) p.currentAngle -= Math.PI * 2;
-      while (p.currentAngle < -Math.PI) p.currentAngle += Math.PI * 2;
+      while (p.currentAngle > PI) p.currentAngle -= TWO_PI;
+      while (p.currentAngle < -PI) p.currentAngle += TWO_PI;
 
-      var halfLen = drawLen / 2;
-      var cos = Math.cos(p.currentAngle);
-      var sin = Math.sin(p.currentAngle);
+      var halfLen = drawLen * 0.5;
+      var cosA = _cos(p.currentAngle);
+      var sinA = _sin(p.currentAngle);
 
       // Width based on rotation: more rotated from horizontal = thicker
-      var angleFactor = Math.abs(Math.sin(p.currentAngle)); // 0 at horizontal, 1 at vertical
-      var angleWidth = (lineWidth * lc[1]) * (0.4 + angleFactor * 0.8);
+      var angleFactor = sinA < 0 ? -sinA : sinA; // abs without function call
+      var angleWidth = (lineWidth * lcWidth) * (0.4 + angleFactor * 0.8);
+
+      // Quantize opacity into bucket for batched drawing
+      // Clamp to [0, 1] and map to bucket index
+      var clampedOpacity = drawOpacity < 0 ? 0 : (drawOpacity > 1 ? 1 : drawOpacity);
+      var bucketIdx = (clampedOpacity * (OPACITY_BUCKETS - 1) + 0.5) | 0;
+      var bucket = bucketLines[bucketIdx];
+      bucket.push(p.x - cosA * halfLen, p.y - sinA * halfLen, p.x + cosA * halfLen, p.y + sinA * halfLen);
+      bucketWidthSums[bucketIdx] += angleWidth;
+      bucketCounts[bucketIdx]++;
+    }
+
+    // --- BATCHED DRAW: one beginPath/stroke per opacity bucket ---
+    var rgbaPrefix = 'rgba(' + lineColor + ', ';
+    for (var bk = 0; bk < OPACITY_BUCKETS; bk++) {
+      var bLines = bucketLines[bk];
+      var bCount = bucketCounts[bk];
+      if (bCount === 0) continue;
+
+      var bOpacity = bk / (OPACITY_BUCKETS - 1);
+      ctx.strokeStyle = rgbaPrefix + bOpacity + ')';
+      ctx.lineWidth = bucketWidthSums[bk] / bCount; // average width for this bucket
 
       ctx.beginPath();
-      ctx.moveTo(p.x - cos * halfLen, p.y - sin * halfLen);
-      ctx.lineTo(p.x + cos * halfLen, p.y + sin * halfLen);
-      ctx.strokeStyle = 'rgba(' + lineColor + ', ' + drawOpacity + ')';
-      ctx.lineWidth = angleWidth;
+      for (var bj = 0; bj < bLines.length; bj += 4) {
+        ctx.moveTo(bLines[bj], bLines[bj + 1]);
+        ctx.lineTo(bLines[bj + 2], bLines[bj + 3]);
+      }
       ctx.stroke();
     }
 
@@ -448,7 +512,7 @@ function initVectorField() {
         if (ripAlpha < 0.005) continue;
 
         ctx.beginPath();
-        ctx.arc(drip.x, drip.y, drip.radius, 0, Math.PI * 2);
+        ctx.arc(drip.x, drip.y, drip.radius, 0, TWO_PI);
         ctx.strokeStyle = 'rgba(' + lineColor + ', ' + ripAlpha + ')';
         ctx.lineWidth = 1.5;
         ctx.stroke();
@@ -456,7 +520,7 @@ function initVectorField() {
         var innerR = drip.radius * 0.85;
         if (innerR > 5) {
           ctx.beginPath();
-          ctx.arc(drip.x, drip.y, innerR, 0, Math.PI * 2);
+          ctx.arc(drip.x, drip.y, innerR, 0, TWO_PI);
           ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (ripAlpha * 0.5) + ')';
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -466,7 +530,7 @@ function initVectorField() {
 
     // --- PORTAL BREATHING GLOW (synced to waves) ---
     if (isLandingPage) {
-      var breathe = 0.5 + 0.5 * Math.sin(time * 1.6); // synced to main wave speed
+      var breathe = 0.5 + 0.5 * _sin(time * 1.6); // synced to main wave speed
       var breatheRadius = 120 + breathe * 30;
       var breatheInner = 0.07 + breathe * 0.05;
       var breatheMid = 0.025 + breathe * 0.02;
@@ -480,8 +544,8 @@ function initVectorField() {
 
       var dxEEm = mouseX - easterEggX;
       var dyEEm = mouseY - easterEggY;
-      var distToEE = Math.sqrt(dxEEm * dxEEm + dyEEm * dyEEm);
-      var cursorProximity = Math.max(0, 1 - distToEE / 200);
+      var distToEE = _sqrt(dxEEm * dxEEm + dyEEm * dyEEm);
+      var cursorProximity = _max(0, 1 - distToEE / 200);
       var darkCenter = 0.25 + cursorProximity * 0.3;
       var darkMid = 0.08 + cursorProximity * 0.15;
       var darkRadius = 90 + cursorProximity * 40;

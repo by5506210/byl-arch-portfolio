@@ -26,6 +26,9 @@ function initGalleryReveals() {
   });
 
   images.forEach(function (img) {
+    // Add native lazy loading to gallery images below the fold
+    var imgEl = img.querySelector('img');
+    if (imgEl) imgEl.loading = 'lazy';
     observer.observe(img);
   });
 }
@@ -211,8 +214,25 @@ function initFilmstrip() {
   var currentSlide = 0;
   var totalSlides = frames.length;
 
+  // Cache layout values to avoid reflow in hot paths
+  var cachedMaxScroll = 0;
+  var cachedFrameOffsets = [];
+  var cachedFilmstripWidth = 0;
+
+  function cacheLayout() {
+    cachedFilmstripWidth = filmstrip.offsetWidth;
+    cachedMaxScroll = -(track.scrollWidth - cachedFilmstripWidth);
+    cachedFrameOffsets = [];
+    for (var i = 0; i < totalSlides; i++) {
+      cachedFrameOffsets.push(frames[i].offsetLeft);
+    }
+  }
+  cacheLayout();
+
+  window.addEventListener('resize', cacheLayout);
+
   function getMaxScroll() {
-    return -(track.scrollWidth - filmstrip.offsetWidth);
+    return cachedMaxScroll;
   }
 
   function clamp(val) {
@@ -229,9 +249,8 @@ function initFilmstrip() {
     if (index >= totalSlides) index = totalSlides - 1;
     currentSlide = index;
 
-    // Calculate target position based on frame offset
-    var frame = frames[index];
-    var targetX = -(frame.offsetLeft - filmstrip.offsetWidth * 0.08);
+    // Calculate target position based on cached frame offset
+    var targetX = -(cachedFrameOffsets[index] - cachedFilmstripWidth * 0.08);
     targetX = clamp(targetX);
 
     // Smooth animate
@@ -270,12 +289,12 @@ function initFilmstrip() {
     if (nextBtn) nextBtn.classList.toggle('project-filmstrip__arrow--disabled', currentSlide >= totalSlides - 1);
   }
 
-  // Detect which slide is closest after drag
+  // Detect which slide is closest after drag (uses cached offsets)
   function snapToNearest() {
     var closest = 0;
     var closestDist = Infinity;
     for (var i = 0; i < totalSlides; i++) {
-      var frameTarget = -(frames[i].offsetLeft - filmstrip.offsetWidth * 0.08);
+      var frameTarget = -(cachedFrameOffsets[i] - cachedFilmstripWidth * 0.08);
       var d = Math.abs(currentX - frameTarget);
       if (d < closestDist) {
         closestDist = d;

@@ -62,6 +62,26 @@ function initSlideshow() {
     return s.dataset.href && !s.classList.contains('slideshow__slide--about');
   }).length;
 
+  // Precompute project number for each slide (avoids recounting in hot path)
+  var slideProjectNumbers = [];
+  var runningProjNum = 0;
+  slides.forEach(function (slide) {
+    if (slide.dataset.href && !slide.classList.contains('slideshow__slide--about')) {
+      runningProjNum++;
+    }
+    slideProjectNumbers.push(runningProjNum);
+  });
+
+  // Precompute which slides are dark (divider or about)
+  var slideDark = slides.map(function (slide) {
+    return slide.classList.contains('slideshow__slide--divider') ||
+           slide.classList.contains('slideshow__slide--about');
+  });
+
+  // Cache nav element
+  var nav = document.getElementById('nav');
+  var lastActiveIndex = -1;
+
   // Setup slides
   slides.forEach(function (slide, i) {
     slide.style.position = 'absolute';
@@ -85,94 +105,63 @@ function initSlideshow() {
     }
   });
 
-  function updateDots(index) {
-    dots.forEach(function (dot, i) {
-      if (i === index) {
-        dot.classList.add('is-active');
-      } else {
-        dot.classList.remove('is-active');
-      }
-    });
-  }
-
   function applyScroll(progress) {
     var currentIndex = Math.floor(progress);
     var fraction = progress - currentIndex;
 
-    slides.forEach(function (slide, i) {
-      if (i < currentIndex) {
-        slide.style.transform = 'translateY(0%)';
-      } else if (i === currentIndex) {
-        slide.style.transform = 'translateY(0%)';
+    // Only update transforms for the visible window of slides
+    // Slides before currentIndex are at 0%, slides after currentIndex+1 are at 100%
+    // Only the transitioning slide (currentIndex+1) needs per-frame updates
+    for (var i = 0; i < totalSlides; i++) {
+      if (i <= currentIndex) {
+        slides[i].style.transform = 'translateY(0%)';
       } else if (i === currentIndex + 1) {
-        var offset = (1 - fraction) * 100;
-        slide.style.transform = 'translateY(' + offset + '%)';
+        slides[i].style.transform = 'translateY(' + ((1 - fraction) * 100) + '%)';
       } else {
-        slide.style.transform = 'translateY(100%)';
+        slides[i].style.transform = 'translateY(100%)';
       }
-    });
+    }
 
     var activeIndex = Math.round(progress);
     activeIndex = Math.max(0, Math.min(activeIndex, totalSlides - 1));
-    slides.forEach(function (slide, i) {
-      if (i === activeIndex) {
-        slide.classList.add('is-active');
-      } else {
-        slide.classList.remove('is-active');
-      }
-    });
 
-    updateDots(activeIndex);
+    // Only update classes/DOM when the active slide actually changes
+    if (activeIndex !== lastActiveIndex) {
+      // Toggle is-active only on the two affected slides
+      if (lastActiveIndex >= 0) slides[lastActiveIndex].classList.remove('is-active');
+      slides[activeIndex].classList.add('is-active');
 
-    // Switch nav bar text color based on slide background
-    var nav = document.getElementById('nav');
-    if (nav) {
-      var activeSlide = slides[activeIndex];
-      var isDark = activeSlide.classList.contains('slideshow__slide--divider') ||
-                   activeSlide.classList.contains('slideshow__slide--about');
-      if (isDark) {
-        nav.classList.add('slideshow-nav-bar--on-dark');
-      } else {
-        nav.classList.remove('slideshow-nav-bar--on-dark');
-      }
-      // Switch progress dots to light on dark slides
-      dots.forEach(function (dot) {
-        if (isDark) {
-          dot.classList.add('slideshow__dot--light');
-        } else {
-          dot.classList.remove('slideshow__dot--light');
-        }
-      });
-      // Switch scroll hint color
-      if (scrollHint) {
-        if (isDark) {
-          scrollHint.classList.add('slideshow__scroll-hint--on-dark');
-        } else {
-          scrollHint.classList.remove('slideshow__scroll-hint--on-dark');
+      // Update dots — only toggle the two affected dots
+      if (lastActiveIndex >= 0 && dots[lastActiveIndex]) dots[lastActiveIndex].classList.remove('is-active');
+      if (dots[activeIndex]) dots[activeIndex].classList.add('is-active');
+
+      // Switch nav bar text color based on slide background (use precomputed dark flag)
+      var isDark = slideDark[activeIndex];
+      if (nav) {
+        nav.classList.toggle('slideshow-nav-bar--on-dark', isDark);
+        // Switch progress dots to light on dark slides
+        dots.forEach(function (dot) {
+          dot.classList.toggle('slideshow__dot--light', isDark);
+        });
+        // Switch scroll hint color
+        if (scrollHint) {
+          scrollHint.classList.toggle('slideshow__scroll-hint--on-dark', isDark);
         }
       }
+
+      lastActiveIndex = activeIndex;
     }
 
     // Update fixed title label
     if (activeIndex !== lastTitleIndex) {
       lastTitleIndex = activeIndex;
-      var slide = slides[activeIndex];
       var name = slideNames[activeIndex] || '';
-      var isDivider = slide.classList.contains('slideshow__slide--divider');
-      var isAbout = slide.classList.contains('slideshow__slide--about');
 
-      if (isDivider || isAbout || !name) {
+      if (slideDark[activeIndex] || !name) {
         titleLabel.classList.remove('is-visible');
       } else {
-        // Find project number (count only project slides before this one)
-        var projNum = 0;
-        for (var j = 0; j <= activeIndex; j++) {
-          if (slides[j].dataset.href && !slides[j].classList.contains('slideshow__slide--about')) {
-            projNum++;
-          }
-        }
         titleNameEl.textContent = name;
-        titleIndexEl.textContent = String(projNum).padStart(2, '0') + ' / ' + String(projectCount).padStart(2, '0');
+        titleIndexEl.textContent = String(slideProjectNumbers[activeIndex]).padStart(2, '0') + ' / ' + String(projectCount).padStart(2, '0');
         titleLabel.classList.add('is-visible');
       }
     }
@@ -193,16 +182,24 @@ function initSlideshow() {
     targetProgress = Math.max(0, Math.min(targetProgress, totalSlides - 1));
   }, { passive: false });
 
-  // Animation loop
+  // Animation loop — skip applyScroll when idle
+  var isIdle = false;
+
   function animate() {
     var diff = targetProgress - scrollProgress;
-    scrollProgress += diff * 0.12;
 
     if (Math.abs(diff) < 0.001) {
-      scrollProgress = targetProgress;
+      if (!isIdle) {
+        scrollProgress = targetProgress;
+        applyScroll(scrollProgress);
+        isIdle = true;
+      }
+    } else {
+      scrollProgress += diff * 0.12;
+      applyScroll(scrollProgress);
+      isIdle = false;
     }
 
-    applyScroll(scrollProgress);
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);

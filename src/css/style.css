@@ -65,6 +65,8 @@ img {
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   animation: grain-shift 0.5s steps(1) infinite;
+  will-change: transform;
+  contain: strict;
 }
 
 @keyframes grain-shift {
@@ -89,11 +91,9 @@ img {
   border: 1px solid rgba(0, 0, 0, 0.15);
   pointer-events: none;
   z-index: 10000;
-  transform: translate(-50%, -50%);
+  will-change: transform;
   transition: width 0.25s cubic-bezier(0.23, 1, 0.32, 1),
               height 0.25s cubic-bezier(0.23, 1, 0.32, 1),
-              left 0.15s cubic-bezier(0.23, 1, 0.32, 1),
-              top 0.15s cubic-bezier(0.23, 1, 0.32, 1),
               background 0.25s ease,
               border 0.25s ease,
               border-radius 0.25s cubic-bezier(0.23, 1, 0.32, 1),
@@ -134,6 +134,7 @@ img {
   background: var(--black);
   z-index: 100;
   overflow: hidden;
+  contain: layout style;
 }
 
 .landing__vector-field {
@@ -169,6 +170,7 @@ img {
   cursor: pointer;
   opacity: 0;
   transition: opacity 1.2s ease, transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: opacity, transform;
 }
 
 .landing__portal.is-visible {
@@ -188,6 +190,7 @@ img {
   border: 1px solid rgba(232, 228, 223, 0.2);
   border-radius: 50%;
   animation: portal-rotate 14s linear infinite;
+  will-change: transform;
 }
 
 .landing__portal-ring--inner {
@@ -209,6 +212,7 @@ img {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   animation: portal-pulse 4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes portal-rotate {
@@ -253,6 +257,7 @@ img {
   background: rgba(232, 228, 223, 0.3);
   border-radius: 50%;
   animation: easter-pulse 3s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes easter-pulse {
@@ -403,6 +408,7 @@ img {
   height: 100vh;
   overflow: hidden;
   background: var(--concrete);
+  contain: layout style;
 }
 
 .slideshow__slide {
@@ -416,6 +422,7 @@ img {
   justify-content: center;
   background: var(--concrete);
   transform: translateY(100%);
+  will-change: transform;
 }
 
 .slideshow__slide:first-child {
@@ -672,6 +679,7 @@ img {
 
 .slideshow__scroll-hint svg {
   animation: bounce-arrow 1.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes bounce-arrow {
@@ -809,6 +817,8 @@ img {
 /* Project gallery */
 .project-gallery {
   padding: 4rem 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 2000px;
 }
 
 .project-gallery__image {
@@ -1261,6 +1271,8 @@ img {
   gap: 4rem;
   padding: 6rem 8%;
   align-items: start;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
 }
 
 .project-details__drawing {
@@ -1380,6 +1392,8 @@ img {
   display: flex;
   gap: 1.5rem;
   align-items: stretch;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
 }
 
 .project-sequence__step {
@@ -1444,6 +1458,8 @@ img {
    ============================================ */
 .project-seasonal {
   padding: 0 8% 4rem;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
 }
 
 .project-seasonal__header {
