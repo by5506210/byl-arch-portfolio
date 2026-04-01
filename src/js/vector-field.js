@@ -172,8 +172,8 @@ function initVectorField() {
   // Depth layer config: [opacityMult, widthMult, speedMult, lenMult]
   var layerConfig = [
     [1.0,  1.0,  1.0,  1.0],   // front — full
-    [0.55, 0.7,  1.0,  0.85],  // mid — subtler, same speed
-    [0.3,  0.5,  1.0,  0.7]    // back — faint, same speed
+    [0.7,  0.8,  1.0,  0.9],   // mid — visible, waves still read clearly
+    [0.45, 0.6,  1.0,  0.8]    // back — softer but not invisible
   ];
 
   // --- PRE-CACHED CONSTANTS ---
@@ -539,7 +539,7 @@ function initVectorField() {
 
       // Width based on rotation: more rotated from horizontal = thicker
       var angleFactor = sinA < 0 ? -sinA : sinA; // abs without function call
-      var angleWidth = (lineWidth * lcWidth) * (0.4 + angleFactor * 0.8) * widthScale;
+      var angleWidth = (lineWidth * lcWidth) * (0.6 + angleFactor * 0.6) * widthScale;
 
       // Quantize opacity into bucket for batched drawing
       // Clamp to [0, 1] and map to bucket index
