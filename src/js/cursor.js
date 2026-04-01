@@ -74,7 +74,7 @@
       cursor.style.top = (rect.top + rect.height / 2) + 'px';
       cursor.style.width = (rect.width + 16) + 'px';
       cursor.style.height = (rect.height + 10) + 'px';
-      cursor.style.borderRadius = '50%';
+      cursor.style.borderRadius = Math.min(8, rect.height / 2) + 'px';
       return;
     }
 
