@@ -321,6 +321,7 @@ function initVectorField() {
       var rippleAngleOffset = 0;
       var rippleOpacityBoost = 0;
       var rippleLenBoost = 0;
+      var ringWidth = 120;
       for (var rj = 0; rj < ripples.length; rj++) {
         var rp = ripples[rj];
         var rdx = p.x - rp.x;
