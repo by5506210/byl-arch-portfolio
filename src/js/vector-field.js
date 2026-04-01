@@ -105,8 +105,9 @@ function initVectorField() {
 
   // --- WAKE TRAIL ---
   var wakeTrail = []; // {x, y, time}
-  var wakeMaxAge = 1.2; // seconds the wake lingers
-  var wakeRadius = 140;
+  var wakeMaxAge = 0.8; // seconds the wake lingers
+  var wakeRadius = 100;
+  var wakeMaxPoints = 12;
   var lastWakeX = -1000;
   var lastWakeY = -1000;
 
@@ -208,10 +209,12 @@ function initVectorField() {
       var wdx = mouseX - lastWakeX;
       var wdy = mouseY - lastWakeY;
       var wDist = Math.sqrt(wdx * wdx + wdy * wdy);
-      if (wDist > 15) { // sample every ~15px of movement
+      if (wDist > 30) { // sample every ~30px of movement
         wakeTrail.push({ x: mouseX, y: mouseY, time: time });
         lastWakeX = mouseX;
         lastWakeY = mouseY;
+        // Hard cap
+        while (wakeTrail.length > wakeMaxPoints) wakeTrail.shift();
       }
     }
     // Prune old wake points
@@ -278,8 +281,12 @@ function initVectorField() {
         var rp = ripples[rj];
         var rdx = p.x - rp.x;
         var rdy = p.y - rp.y;
+        // Fast bounding-box reject before sqrt
+        var ringOuter = rp.radius + 120;
+        var ringInner = rp.radius - 120;
+        if (rdx > ringOuter || rdx < -ringOuter || rdy > ringOuter || rdy < -ringOuter) continue;
         var rDist = Math.sqrt(rdx * rdx + rdy * rdy);
-        var ringWidth = 120;
+        if (rDist > ringOuter || (ringInner > 0 && rDist < ringInner)) continue;
         var distFromRing = Math.abs(rDist - rp.radius);
 
         if (distFromRing < ringWidth) {
@@ -305,6 +312,8 @@ function initVectorField() {
         var wp = wakeTrail[wi];
         var wdx2 = p.x - wp.x;
         var wdy2 = p.y - wp.y;
+        // Fast bounding-box reject
+        if (wdx2 > wakeRadius || wdx2 < -wakeRadius || wdy2 > wakeRadius || wdy2 < -wakeRadius) continue;
         var wDist2 = Math.sqrt(wdx2 * wdx2 + wdy2 * wdy2);
         if (wDist2 < wakeRadius) {
           var wAge = (time - wp.time) / wakeMaxAge; // 0→1
@@ -323,7 +332,6 @@ function initVectorField() {
       var targetAngle = baseAngle;
       var drawOpacity = (p.baseOpacity * lc[0]) + rippleOpacityBoost + wakeOpacityBoost;
       var drawLen = (lineLen * lc[3]) + rippleLenBoost;
-      var drawWidth = lineWidth * lc[1];
       var speed = returnSpeed;
 
       // --- AWAKENING: fade opacity in ---
