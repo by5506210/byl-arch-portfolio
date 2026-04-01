@@ -161,8 +161,8 @@ function initVectorField() {
   // Depth layer config: [opacityMult, widthMult, speedMult, lenMult]
   var layerConfig = [
     [1.0,  1.0,  1.0,  1.0],   // front — full
-    [0.55, 0.7,  0.75, 0.85],  // mid — subtler, slower
-    [0.3,  0.5,  0.5,  0.7]    // back — faint, slow
+    [0.55, 0.7,  1.0,  0.85],  // mid — subtler, same speed
+    [0.3,  0.5,  1.0,  0.7]    // back — faint, same speed
   ];
 
   function angleDiff(from, to) {
