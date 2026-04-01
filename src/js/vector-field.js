@@ -114,9 +114,9 @@ function initVectorField() {
   // --- MOBILE: gravitational current + discovery nudges ---
   var hasEverTouched = false;
   var lastInteractionTime = 0;
-  var idleNudgeInterval = 5; // seconds before first idle ripple
+  var idleNudgeInterval = 3; // seconds before first idle ripple
   var lastIdleNudgeTime = -10;
-  var idleNudgeCooldown = 4; // seconds between idle ripples
+  var idleNudgeCooldown = 2.5; // seconds between idle ripples
   // Gravitational pull strength (mobile only, subtle)
   var gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
 
@@ -269,7 +269,7 @@ function initVectorField() {
         }
       }
       // Also nudge if user has NEVER touched and awakening is done
-      if (!hasEverTouched && time > awakenDuration + 3 && time - lastIdleNudgeTime > idleNudgeCooldown) {
+      if (!hasEverTouched && time > awakenDuration + 1.5 && time - lastIdleNudgeTime > idleNudgeCooldown) {
         lastIdleNudgeTime = time;
         lastRippleTime = -10;
         spawnRipple();
