@@ -418,11 +418,16 @@ function initVectorField() {
       var halfLen = drawLen / 2;
       var cos = Math.cos(p.currentAngle);
       var sin = Math.sin(p.currentAngle);
+
+      // Width based on rotation: more rotated from horizontal = thicker
+      var angleFactor = Math.abs(Math.sin(p.currentAngle)); // 0 at horizontal, 1 at vertical
+      var angleWidth = (lineWidth * lc[1]) * (0.4 + angleFactor * 0.8);
+
       ctx.beginPath();
       ctx.moveTo(p.x - cos * halfLen, p.y - sin * halfLen);
       ctx.lineTo(p.x + cos * halfLen, p.y + sin * halfLen);
       ctx.strokeStyle = 'rgba(' + lineColor + ', ' + drawOpacity + ')';
-      ctx.lineWidth = drawWidth;
+      ctx.lineWidth = angleWidth;
       ctx.stroke();
     }
 
