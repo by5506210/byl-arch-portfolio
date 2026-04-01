@@ -124,6 +124,35 @@ function initSlideshow() {
 
     updateDots(activeIndex);
 
+    // Switch nav bar text color based on slide background
+    var nav = document.getElementById('nav');
+    if (nav) {
+      var activeSlide = slides[activeIndex];
+      var isDark = activeSlide.classList.contains('slideshow__slide--divider') ||
+                   activeSlide.classList.contains('slideshow__slide--about');
+      if (isDark) {
+        nav.classList.add('slideshow-nav-bar--on-dark');
+      } else {
+        nav.classList.remove('slideshow-nav-bar--on-dark');
+      }
+      // Switch progress dots to light on dark slides
+      dots.forEach(function (dot) {
+        if (isDark) {
+          dot.classList.add('slideshow__dot--light');
+        } else {
+          dot.classList.remove('slideshow__dot--light');
+        }
+      });
+      // Switch scroll hint color
+      if (scrollHint) {
+        if (isDark) {
+          scrollHint.classList.add('slideshow__scroll-hint--on-dark');
+        } else {
+          scrollHint.classList.remove('slideshow__scroll-hint--on-dark');
+        }
+      }
+    }
+
     // Update fixed title label
     if (activeIndex !== lastTitleIndex) {
       lastTitleIndex = activeIndex;

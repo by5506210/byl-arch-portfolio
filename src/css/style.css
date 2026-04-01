@@ -319,6 +319,15 @@ img {
 .slideshow-nav-bar__link,
 .slideshow-nav-bar__logo {
   text-shadow: 0 0 12px rgba(232, 228, 223, 0.6), 0 0 4px rgba(232, 228, 223, 0.3);
+  transition: color 0.4s ease, text-shadow 0.4s ease, opacity 0.3s ease;
+}
+
+/* Nav on dark slides (dividers, about) */
+.slideshow-nav-bar--on-dark .slideshow-nav-bar__back,
+.slideshow-nav-bar--on-dark .slideshow-nav-bar__link,
+.slideshow-nav-bar--on-dark .slideshow-nav-bar__logo {
+  color: var(--concrete);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6), 0 0 4px rgba(0, 0, 0, 0.3);
 }
 
 .slideshow-nav-bar__back {
@@ -654,7 +663,11 @@ img {
   letter-spacing: 0.1em;
   color: var(--dark-gray);
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.4s ease, color 0.4s ease;
+}
+
+.slideshow__scroll-hint--on-dark {
+  color: rgba(232, 228, 223, 0.5);
 }
 
 .slideshow__scroll-hint svg {
@@ -688,12 +701,20 @@ img {
   height: 6px;
   border-radius: 50%;
   background: rgba(26, 26, 26, 0.2);
-  transition: background 0.3s ease, transform 0.3s ease;
+  transition: background 0.4s ease, transform 0.3s ease;
 }
 
 .slideshow__dot.is-active {
   background: var(--text-primary);
   transform: scale(1.4);
+}
+
+.slideshow__dot.slideshow__dot--light {
+  background: rgba(232, 228, 223, 0.2);
+}
+
+.slideshow__dot--light.is-active {
+  background: var(--concrete);
 }
 
 /* ============================================
