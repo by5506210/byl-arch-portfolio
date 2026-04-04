@@ -160,6 +160,7 @@ img {
 
 /* Portal button — centered, hidden until cursor approaches */
 .landing__portal {
+  --portal-charge: 0;
   position: fixed;
   top: 50%;
   left: 50%;
@@ -181,16 +182,21 @@ img {
   transform: translate(-50%, -50%) scale(1.1);
 }
 
+.landing__portal.is-charging {
+  opacity: 1;
+}
+
 .landing__portal-ring {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  border: 1px solid rgba(232, 228, 223, 0.2);
+  border: 1px solid rgba(232, 228, 223, calc(0.2 + var(--portal-charge) * 0.55));
   border-radius: 50%;
   animation: portal-rotate 14s linear infinite;
   will-change: transform;
+  box-shadow: 0 0 calc(12px + var(--portal-charge) * 30px) rgba(232, 228, 223, calc(0.08 + var(--portal-charge) * 0.28));
 }
 
 .landing__portal-ring--inner {
@@ -198,8 +204,9 @@ img {
   left: 15%;
   width: 70%;
   height: 70%;
-  border-color: rgba(232, 228, 223, 0.35);
+  border-color: rgba(232, 228, 223, calc(0.35 + var(--portal-charge) * 0.45));
   animation: portal-rotate-reverse 9s linear infinite;
+  transform: scale(calc(1 + var(--portal-charge) * 0.08));
 }
 
 .landing__portal-dot {
@@ -213,6 +220,8 @@ img {
   transform: translate(-50%, -50%);
   animation: portal-pulse 4s ease-in-out infinite;
   will-change: transform, opacity;
+  opacity: calc(0.7 + var(--portal-charge) * 0.3);
+  box-shadow: 0 0 calc(8px + var(--portal-charge) * 22px) rgba(232, 228, 223, calc(0.18 + var(--portal-charge) * 0.32));
 }
 
 @keyframes portal-rotate {

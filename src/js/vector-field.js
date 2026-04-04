@@ -10,6 +10,9 @@ var _vfMouseX = -1000;
 var _vfMouseY = -1000;
 var _vfListenersAttached = false;
 var _vfResizeHandler = null;
+var _vfLastScrollY = 0;
+var _vfLastTouchY = null;
+var _vfScrollVelocity = 0;
 
 function _vfAttachListeners() {
   if (_vfListenersAttached) return;
@@ -26,15 +29,30 @@ function _vfAttachListeners() {
   document.addEventListener('touchstart', function (e) {
     _vfMouseX = e.touches[0].clientX;
     _vfMouseY = e.touches[0].clientY;
+    _vfLastTouchY = e.touches[0].clientY;
   }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     _vfMouseX = e.touches[0].clientX;
     _vfMouseY = e.touches[0].clientY;
+    if (_vfLastTouchY !== null) {
+      _vfScrollVelocity += (_vfLastTouchY - e.touches[0].clientY) * 0.035;
+    }
+    _vfLastTouchY = e.touches[0].clientY;
   }, { passive: true });
   document.addEventListener('touchend', function () {
     _vfMouseX = -1000;
     _vfMouseY = -1000;
+    _vfLastTouchY = null;
   });
+  window.addEventListener('wheel', function (e) {
+    _vfScrollVelocity += e.deltaY * 0.018;
+  }, { passive: true });
+  _vfLastScrollY = window.scrollY || window.pageYOffset || 0;
+  window.addEventListener('scroll', function () {
+    var scrollY = window.scrollY || window.pageYOffset || 0;
+    _vfScrollVelocity += (scrollY - _vfLastScrollY) * 0.08;
+    _vfLastScrollY = scrollY;
+  }, { passive: true });
 }
 
 function initVectorField() {
@@ -88,6 +106,10 @@ function initVectorField() {
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
   var portalVisible = false;
   var portalRevealDist = 160;
+  var portalCharge = 0;
+  var portalChargeDuration = 0.9;
+  var portalHoldRadius = 85;
+  var portalHoldTriggered = false;
 
   var easterEggX = 0;
   var easterEggY = 0;
@@ -217,6 +239,9 @@ function initVectorField() {
 
     var mouseX = _vfMouseX;
     var mouseY = _vfMouseY;
+    _vfScrollVelocity *= 0.9;
+    if (_abs(_vfScrollVelocity) < 0.001) _vfScrollVelocity = 0;
+    var scrollTilt = _max(-1, _min(1, _vfScrollVelocity / 22));
 
     // --- AWAKENING factor: 0 (asleep) → 1 (fully alive) ---
     var awaken = isLandingPage ? _min(1, time / awakenDuration) : 1;
@@ -281,6 +306,7 @@ function initVectorField() {
       var dxP = mouseX - centerX;
       var dyP = mouseY - centerY;
       var distToCenterSq = dxP * dxP + dyP * dyP;
+      var fingerInHoldZone = isMobile && mouseX > 0 && distToCenterSq < portalHoldRadius * portalHoldRadius;
 
       if (distToCenterSq < portalRevealDist * portalRevealDist && mouseX > 0) {
         if (!portalVisible) { portal.classList.add('is-visible'); portalVisible = true; }
@@ -294,6 +320,23 @@ function initVectorField() {
       } else {
         if (portalVisible) { portal.classList.remove('is-visible'); portalVisible = false; }
         wasNearPortal = false;
+      }
+
+      if (fingerInHoldZone && !portalHoldTriggered) {
+        portalCharge = _min(1, portalCharge + dt / portalChargeDuration);
+        portal.classList.add('is-charging');
+        portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
+        if (portalCharge >= 1 && typeof window.triggerLandingTransition === 'function') {
+          portalHoldTriggered = true;
+          window.triggerLandingTransition();
+        }
+      } else {
+        portalCharge = _max(0, portalCharge - dt * 1.8);
+        if (portalCharge <= 0.001) {
+          portalCharge = 0;
+          portal.classList.remove('is-charging');
+        }
+        portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
       }
     }
 
@@ -356,6 +399,11 @@ function initVectorField() {
                  + _cos(waveTime * 0.9 + p.seed3 * 3) * 0.04;
 
       var liveAngle = swell + cross + deep + random;
+
+      if (scrollTilt !== 0) {
+        var scrollAngle = scrollTilt > 0 ? PI * 0.5 : -PI * 0.5;
+        liveAngle += angleDiff(liveAngle, scrollAngle) * _abs(scrollTilt) * 0.32;
+      }
 
       // --- #1: GRAVITATIONAL CURRENT (mobile only) ---
       // Subtle inward bias — like water circling a drain

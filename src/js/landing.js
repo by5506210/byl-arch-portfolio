@@ -5,6 +5,7 @@
 (function () {
   var landing = document.getElementById('landing');
   if (!landing) return;
+  var isTransitioning = false;
 
   // Always attach "The Aphelion" back button (even if landing is skipped)
   var backBtn = document.getElementById('back-to-landing');
@@ -40,6 +41,8 @@
   }
 
   function triggerTransition() {
+    if (isTransitioning) return;
+    isTransitioning = true;
     landing.classList.add('landing--transitioning');
 
     if (portal) {
@@ -97,4 +100,6 @@
       }, 500);
     }, 900);
   }
+
+  window.triggerLandingTransition = triggerTransition;
 })();
