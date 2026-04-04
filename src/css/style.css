@@ -1144,6 +1144,9 @@ img {
   min-height: 100vh;
   color: var(--concrete);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .contact-page__hero {
@@ -1166,24 +1169,24 @@ img {
   padding: 0 8%;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid rgba(232, 228, 223, 0.08);
   position: relative;
   z-index: 1;
+  max-width: 38rem;
 }
 
 .contact-page__card {
   display: flex;
   align-items: center;
-  padding: 2rem 0;
-  border-bottom: 1px solid rgba(232, 228, 223, 0.06);
+  justify-content: flex-start;
+  padding: 1.25rem 0;
   text-decoration: none;
   color: var(--concrete);
-  transition: padding-left 0.3s ease, background 0.3s ease;
+  border-bottom: 1px solid rgba(232, 228, 223, 0.08);
+  transition: opacity 0.3s ease;
 }
 
 .contact-page__card:hover {
-  padding-left: 1.5rem;
-  background: rgba(232, 228, 223, 0.03);
+  opacity: 0.75;
 }
 
 .contact-page__card-label {
@@ -1199,7 +1202,7 @@ img {
 
 .contact-page__card-value {
   font-family: var(--font-primary);
-  font-size: 1.2rem;
+  font-size: clamp(1.15rem, 2.8vw, 1.75rem);
   font-weight: 300;
   flex: 1;
   letter-spacing: 0.01em;
@@ -1252,6 +1255,7 @@ img {
   color: rgba(232, 228, 223, 0.2);
   position: relative;
   z-index: 1;
+  margin-top: auto;
 }
 
 .contact-page .site-footer__links a {
