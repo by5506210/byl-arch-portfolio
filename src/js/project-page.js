@@ -2,6 +2,17 @@
 // PROJECT PAGE — All interactive features
 // ============================================
 
+function rememberPageForBackNav() {
+  var current = window.location.pathname + window.location.search + window.location.hash;
+  var last = sessionStorage.getItem('bylCurrentPage');
+
+  if (last && last !== current) {
+    sessionStorage.setItem('bylPreviousPage', last);
+  }
+
+  sessionStorage.setItem('bylCurrentPage', current);
+}
+
 // Gallery reveal with stagger
 function initGalleryReveals() {
   var images = document.querySelectorAll('.project-gallery__image');
@@ -63,8 +74,25 @@ function initParallaxHero() {
 function initNavBar() {
   // Skip on slideshow page — it has its own nav bar
   if (document.querySelector('.slideshow-nav-bar')) return;
+  rememberPageForBackNav();
 
   var hero = document.querySelector('.project-hero');
+  var currentPath = window.location.pathname + window.location.search + window.location.hash;
+  var fallbackBackHref = '../index.html#portfolio';
+  var storedPreviousPage = sessionStorage.getItem('bylPreviousPage');
+  var backHref = fallbackBackHref;
+
+  if (storedPreviousPage && storedPreviousPage !== currentPath) {
+    backHref = storedPreviousPage;
+  } else if (document.referrer) {
+    try {
+      var referrerUrl = new URL(document.referrer, window.location.href);
+      var referrerPath = referrerUrl.pathname + referrerUrl.search + referrerUrl.hash;
+      if (referrerUrl.origin === window.location.origin && referrerPath !== currentPath) {
+        backHref = referrerUrl.href;
+      }
+    } catch (err) {}
+  }
 
   // Build the unified bar
   var bar = document.createElement('div');
@@ -72,16 +100,12 @@ function initNavBar() {
 
   // Left: back arrow — goes to previous page
   var backEl = document.createElement('a');
-  backEl.href = '#';
+  backEl.href = backHref;
   backEl.classList.add('project-nav-bar__back');
   backEl.innerHTML = '&larr;';
   backEl.addEventListener('click', function (e) {
     e.preventDefault();
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      window.location.href = '../index.html#portfolio';
-    }
+    window.location.href = backHref;
   });
   bar.appendChild(backEl);
 

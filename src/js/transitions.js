@@ -5,6 +5,19 @@
 (function () {
   if (typeof barba === 'undefined' || typeof gsap === 'undefined') return;
 
+  function rememberCurrentPage() {
+    var current = window.location.pathname + window.location.search + window.location.hash;
+    var last = sessionStorage.getItem('bylCurrentPage');
+
+    if (last && last !== current) {
+      sessionStorage.setItem('bylPreviousPage', last);
+    }
+
+    sessionStorage.setItem('bylCurrentPage', current);
+  }
+
+  rememberCurrentPage();
+
   // Create shared overlay for seamless transitions
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#e8e4df;z-index:9999;pointer-events:none;opacity:0;';
@@ -93,6 +106,8 @@
         // Update cursor
         var cursorEl = document.querySelector('.cursor');
         if (cursorEl) cursorEl.classList.add('cursor--dark');
+
+        rememberCurrentPage();
       }
     }]
   });

@@ -13,6 +13,15 @@ var _vfResizeHandler = null;
 var _vfLastScrollY = 0;
 var _vfLastTouchY = null;
 var _vfScrollVelocity = 0;
+var _vfScrollDirection = 0;
+var _vfScrollKick = 0;
+
+function _vfRegisterScroll(delta) {
+  if (!delta || Math.abs(delta) < 0.5) return;
+  _vfScrollVelocity += delta;
+  _vfScrollDirection = delta > 0 ? 1 : -1;
+  _vfScrollKick = 1;
+}
 
 function _vfAttachListeners() {
   if (_vfListenersAttached) return;
@@ -35,7 +44,7 @@ function _vfAttachListeners() {
     _vfMouseX = e.touches[0].clientX;
     _vfMouseY = e.touches[0].clientY;
     if (_vfLastTouchY !== null) {
-      _vfScrollVelocity += (_vfLastTouchY - e.touches[0].clientY) * 0.035;
+      _vfRegisterScroll((_vfLastTouchY - e.touches[0].clientY) * 0.18);
     }
     _vfLastTouchY = e.touches[0].clientY;
   }, { passive: true });
@@ -45,12 +54,12 @@ function _vfAttachListeners() {
     _vfLastTouchY = null;
   });
   window.addEventListener('wheel', function (e) {
-    _vfScrollVelocity += e.deltaY * 0.018;
+    _vfRegisterScroll(e.deltaY * 0.05);
   }, { passive: true });
   _vfLastScrollY = window.scrollY || window.pageYOffset || 0;
   window.addEventListener('scroll', function () {
     var scrollY = window.scrollY || window.pageYOffset || 0;
-    _vfScrollVelocity += (scrollY - _vfLastScrollY) * 0.08;
+    _vfRegisterScroll((scrollY - _vfLastScrollY) * 0.6);
     _vfLastScrollY = scrollY;
   }, { passive: true });
 }
@@ -240,8 +249,10 @@ function initVectorField() {
     var mouseX = _vfMouseX;
     var mouseY = _vfMouseY;
     _vfScrollVelocity *= 0.9;
+    _vfScrollKick *= 0.9;
     if (_abs(_vfScrollVelocity) < 0.001) _vfScrollVelocity = 0;
-    var scrollTilt = _max(-1, _min(1, _vfScrollVelocity / 22));
+    if (_vfScrollKick < 0.001) _vfScrollKick = 0;
+    var scrollTilt = _max(-1, _min(1, _vfScrollVelocity / 10));
 
     // --- AWAKENING factor: 0 (asleep) → 1 (fully alive) ---
     var awaken = isLandingPage ? _min(1, time / awakenDuration) : 1;
@@ -269,7 +280,7 @@ function initVectorField() {
     }
 
     // --- MOBILE DISCOVERY: first-touch ripple + idle nudges ---
-    if (isLandingPage && isMobile) {
+    if (isLandingPage) {
       var isTouching = mouseX > 0 && mouseY > 0;
 
       // #4: First touch anywhere → ripple from center
@@ -293,7 +304,7 @@ function initVectorField() {
           spawnRipple();
         }
       }
-      // Also nudge if user has NEVER touched and awakening is done
+      // Also nudge if user has NEVER interacted and awakening is done
       if (!hasEverTouched && time > awakenDuration + 1.5 && time - lastIdleNudgeTime > idleNudgeCooldown) {
         lastIdleNudgeTime = time;
         lastRippleTime = -10;
@@ -400,11 +411,6 @@ function initVectorField() {
 
       var liveAngle = swell + cross + deep + random;
 
-      if (scrollTilt !== 0) {
-        var scrollAngle = scrollTilt > 0 ? PI * 0.5 : -PI * 0.5;
-        liveAngle += angleDiff(liveAngle, scrollAngle) * _abs(scrollTilt) * 0.32;
-      }
-
       // --- #1: GRAVITATIONAL CURRENT (mobile only) ---
       // Subtle inward bias — like water circling a drain
       if (gravityStrength > 0) {
@@ -486,12 +492,22 @@ function initVectorField() {
 
       baseAngle += wakeAngleOffset;
 
+      if (_vfScrollKick > 0 && _vfScrollDirection !== 0) {
+        var scrollAngle = _vfScrollDirection > 0 ? PI * 0.5 : -PI * 0.5;
+        var snapStrength = _min(1, _vfScrollKick * 1.35 + _abs(scrollTilt) * 0.3);
+        baseAngle = scrollAngle * snapStrength + baseAngle * (1 - snapStrength);
+      }
+
       var bhResistance = 0;
       var targetAngle = baseAngle;
       var drawOpacity = (p.baseOpacity * lcOpacity) + rippleOpacityBoost + wakeOpacityBoost;
       var drawLen = (lineLen * lcLen) + rippleLenBoost;
       var widthScale = 1;
       var speed = returnSpeed;
+
+      if (_vfScrollKick > 0) {
+        speed = _max(speed, 0.38 + _vfScrollKick * 0.22);
+      }
 
       // --- AWAKENING: fade opacity in ---
       drawOpacity *= awakenEased;
