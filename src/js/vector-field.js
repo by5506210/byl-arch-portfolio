@@ -104,6 +104,8 @@ function initVectorField() {
 
   var centerX = 0;
   var centerY = 0;
+  var fieldWidth = 0;
+  var fieldHeight = 0;
   var particles = [];
   var time = 0;
   var lastFrameTime = 0;
@@ -154,29 +156,35 @@ function initVectorField() {
   canvas.style.pointerEvents = 'none';
 
   function resize() {
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
+    var parent = canvas.parentElement;
+    fieldWidth = window.innerWidth;
+    fieldHeight = isLandingPage
+      ? window.innerHeight
+      : _max(window.innerHeight, parent ? parent.scrollHeight : window.innerHeight);
+
+    canvas.width = fieldWidth * dpr;
+    canvas.height = fieldHeight * dpr;
+    canvas.style.width = fieldWidth + 'px';
+    canvas.style.height = fieldHeight + 'px';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
-    centerX = window.innerWidth / 2;
-    centerY = window.innerHeight / 2;
-    easterEggX = window.innerWidth * 0.82;
-    easterEggY = window.innerHeight * 0.78;
-    isMobile = window.innerWidth < 768;
+    centerX = fieldWidth / 2;
+    centerY = fieldHeight / 2;
+    easterEggX = fieldWidth * 0.82;
+    easterEggY = isLandingPage ? fieldHeight * 0.78 : window.innerHeight * 0.78;
+    isMobile = fieldWidth < 768;
     spacing = isMobile ? 16 : 24;
     lineLen = isContentPage ? 12 : (isMobile ? 11 : 16);
     lineWidth = isContentPage ? 1 : (isMobile ? 1.2 : 1.7);
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
-    rippleMaxRadius = Math.max(window.innerWidth, window.innerHeight) * 0.8;
+    rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
     buildGrid();
   }
 
   function buildGrid() {
     particles = [];
-    var cols = Math.ceil(window.innerWidth / spacing) + 1;
-    var rows = Math.ceil(window.innerHeight / spacing) + 1;
+    var cols = Math.ceil(fieldWidth / spacing) + 1;
+    var rows = Math.ceil(fieldHeight / spacing) + 1;
 
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
@@ -248,6 +256,9 @@ function initVectorField() {
 
     var mouseX = _vfMouseX;
     var mouseY = _vfMouseY;
+    if (!isLandingPage && mouseY > 0) {
+      mouseY += window.scrollY || window.pageYOffset || 0;
+    }
     _vfScrollVelocity *= 0.9;
     _vfScrollKick *= 0.9;
     if (_abs(_vfScrollVelocity) < 0.001) _vfScrollVelocity = 0;
@@ -260,7 +271,7 @@ function initVectorField() {
     var t1 = 1 - awaken;
     var awakenEased = 1 - t1 * t1 * t1;
 
-    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    ctx.clearRect(0, 0, fieldWidth, fieldHeight);
 
     // --- WAKE TRAIL: record cursor path ---
     if (mouseX > 0 && mouseY > 0) {
