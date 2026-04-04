@@ -377,9 +377,16 @@ img {
 }
 
 .site--morphing {
-  opacity: 0.06;
+  opacity: 0.03;
   transform: scale(1.008);
   filter: blur(5px);
+}
+
+.site--morphing.site--morphing-underlay {
+  opacity: 0.48;
+  transform: scale(1.003);
+  filter: blur(1.35px);
+  transition: opacity 0.48s ease, transform 0.48s ease, filter 0.48s ease;
 }
 
 .site--morphing-active {
