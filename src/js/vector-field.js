@@ -109,6 +109,7 @@ function initVectorField() {
   var particles = [];
   var time = 0;
   var lastFrameTime = 0;
+  var assembleState = null;
 
   // --- ENTRY AWAKENING ---
   var awakenDuration = 2.5; // seconds to fully awaken
@@ -245,6 +246,44 @@ function initVectorField() {
     });
   }
 
+  function startAssembleTransition(config) {
+    if (!isLandingPage) return;
+    var targets = (config && config.targets) ? config.targets.slice() : [];
+    var duration = (config && config.duration) ? config.duration : 0.82;
+    var targetCount = _min(targets.length, particles.length);
+    var sortedParticles = particles.slice().sort(function (a, b) {
+      var da = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
+      var db = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
+      return da - db;
+    });
+    targets.sort(function (a, b) {
+      return a.priority - b.priority;
+    });
+
+    for (var i = 0; i < sortedParticles.length; i++) {
+      var p = sortedParticles[i];
+      var assigned = i < targetCount;
+      var target = assigned ? targets[i] : null;
+      p.assembleFromX = p.x;
+      p.assembleFromY = p.y;
+      p.assembleFromAngle = p.currentAngle;
+      p.assembleToX = assigned ? target.x : centerX + ((i % 11) - 5) * 4;
+      p.assembleToY = assigned ? target.y : centerY + (((i / 11) | 0) % 11 - 5) * 4;
+      p.assembleToAngle = assigned ? target.angle : PI * 0.5;
+      p.assembleOpacity = assigned ? target.opacity : 0;
+      p.assembleLen = assigned ? target.len : lineLen * 0.35;
+      p.assembleWidth = assigned ? target.width : 0.2;
+    }
+
+    assembleState = {
+      active: true,
+      startTime: time,
+      duration: duration
+    };
+  }
+
+  window.startVectorFieldAssemble = startAssembleTransition;
+
   function animate(timestamp) {
     if (myId !== _vectorFieldInstanceId) return;
 
@@ -272,6 +311,67 @@ function initVectorField() {
     var awakenEased = 1 - t1 * t1 * t1;
 
     ctx.clearRect(0, 0, fieldWidth, fieldHeight);
+
+    if (assembleState && assembleState.active) {
+      var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
+      var a1 = 1 - assembleProgress;
+      var assembleEase = 1 - a1 * a1 * a1 * a1;
+      var ASSEMBLE_BUCKETS = 50;
+      var assembleLines = new Array(ASSEMBLE_BUCKETS);
+      var assembleWidthSums = new Array(ASSEMBLE_BUCKETS);
+      var assembleCounts = new Array(ASSEMBLE_BUCKETS);
+
+      for (var ab = 0; ab < ASSEMBLE_BUCKETS; ab++) {
+        assembleLines[ab] = [];
+        assembleWidthSums[ab] = 0;
+        assembleCounts[ab] = 0;
+      }
+
+      for (var ai = 0; ai < particles.length; ai++) {
+        var ap = particles[ai];
+        var alc = layerConfig[ap.layer];
+        var drawX = ap.assembleFromX + (ap.assembleToX - ap.assembleFromX) * assembleEase;
+        var drawY = ap.assembleFromY + (ap.assembleToY - ap.assembleFromY) * assembleEase;
+        var drawAngle = ap.assembleFromAngle + angleDiff(ap.assembleFromAngle, ap.assembleToAngle) * assembleEase;
+        var drawLenAssemble = (lineLen * alc[3]) * (1 - assembleEase) + ap.assembleLen * assembleEase;
+        var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.45) * (1 - assembleEase) + ap.assembleOpacity * assembleEase;
+        var widthScaleAssemble = (0.55 + alc[1] * 0.4) * (1 - assembleEase) + ap.assembleWidth * assembleEase;
+        var halfLenAssemble = drawLenAssemble * 0.5;
+        var cosAssemble = _cos(drawAngle);
+        var sinAssemble = _sin(drawAngle);
+        var angleFactorAssemble = sinAssemble < 0 ? -sinAssemble : sinAssemble;
+        var lineWidthAssemble = (lineWidth * alc[1]) * (0.65 + angleFactorAssemble * 0.55) * widthScaleAssemble;
+        var clampedAssembleOpacity = drawOpacityAssemble < 0 ? 0 : (drawOpacityAssemble > 1 ? 1 : drawOpacityAssemble);
+        var assembleBucketIdx = (clampedAssembleOpacity * (ASSEMBLE_BUCKETS - 1) + 0.5) | 0;
+        var assembleBucket = assembleLines[assembleBucketIdx];
+        assembleBucket.push(
+          drawX - cosAssemble * halfLenAssemble,
+          drawY - sinAssemble * halfLenAssemble,
+          drawX + cosAssemble * halfLenAssemble,
+          drawY + sinAssemble * halfLenAssemble
+        );
+        assembleWidthSums[assembleBucketIdx] += lineWidthAssemble;
+        assembleCounts[assembleBucketIdx]++;
+      }
+
+      var assemblePrefix = 'rgba(' + lineColor + ', ';
+      for (var ak = 0; ak < ASSEMBLE_BUCKETS; ak++) {
+        var aLines = assembleLines[ak];
+        var aCount = assembleCounts[ak];
+        if (aCount === 0) continue;
+        ctx.strokeStyle = assemblePrefix + (ak / (ASSEMBLE_BUCKETS - 1)) + ')';
+        ctx.lineWidth = assembleWidthSums[ak] / aCount;
+        ctx.beginPath();
+        for (var aj = 0; aj < aLines.length; aj += 4) {
+          ctx.moveTo(aLines[aj], aLines[aj + 1]);
+          ctx.lineTo(aLines[aj + 2], aLines[aj + 3]);
+        }
+        ctx.stroke();
+      }
+
+      requestAnimationFrame(animate);
+      return;
+    }
 
     // --- WAKE TRAIL: record cursor path ---
     if (mouseX > 0 && mouseY > 0) {
