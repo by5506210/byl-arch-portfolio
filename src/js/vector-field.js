@@ -280,7 +280,8 @@ function initVectorField() {
       active: true,
       startTime: time,
       duration: duration,
-      activeCount: targetCount
+      activeCount: targetCount,
+      sortedParticles: sortedParticles
     };
   }
 
@@ -318,6 +319,7 @@ function initVectorField() {
       var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
       var a1 = 1 - assembleProgress;
       var assembleEase = 1 - a1 * a1 * a1 * a1;
+      var meltProgress = assembleProgress < 0.58 ? 0 : ((assembleProgress - 0.58) / 0.42);
       var ASSEMBLE_BUCKETS = 50;
       var assembleLines = new Array(ASSEMBLE_BUCKETS);
       var assembleWidthSums = new Array(ASSEMBLE_BUCKETS);
@@ -329,8 +331,8 @@ function initVectorField() {
         assembleCounts[ab] = 0;
       }
 
-      for (var ai = 0; ai < assembleState.activeCount; ai++) {
-        var ap = particles[ai];
+      for (var ai = 0; ai < assembleState.sortedParticles.length; ai++) {
+        var ap = assembleState.sortedParticles[ai];
         var alc = layerConfig[ap.layer];
         var drawX = ap.assembleFromX + (ap.assembleToX - ap.assembleFromX) * assembleEase;
         var drawY = ap.assembleFromY + (ap.assembleToY - ap.assembleFromY) * assembleEase;
@@ -338,6 +340,21 @@ function initVectorField() {
         var drawLenAssemble = (lineLen * alc[3]) * (1 - assembleEase) + ap.assembleLen * assembleEase;
         var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.45) * (1 - assembleEase) + ap.assembleOpacity * assembleEase;
         var widthScaleAssemble = (0.55 + alc[1] * 0.4) * (1 - assembleEase) + ap.assembleWidth * assembleEase;
+
+        if (ai >= assembleState.activeCount) {
+          drawOpacityAssemble *= (1 - assembleEase) * 0.85;
+          drawLenAssemble *= 1 - assembleEase * 0.7;
+          widthScaleAssemble *= 1 - assembleEase * 0.55;
+        }
+
+        if (meltProgress > 0) {
+          drawOpacityAssemble *= 1 - meltProgress * 0.72;
+          drawLenAssemble *= 1 - meltProgress * 0.3;
+          widthScaleAssemble *= 1 - meltProgress * 0.24;
+        }
+
+        if (drawOpacityAssemble <= 0.002 || drawLenAssemble <= 0.2 || widthScaleAssemble <= 0.02) continue;
+
         var halfLenAssemble = drawLenAssemble * 0.5;
         var cosAssemble = _cos(drawAngle);
         var sinAssemble = _sin(drawAngle);

@@ -91,7 +91,7 @@
   function buildAssemblyTargets() {
     var width = window.innerWidth;
     var height = window.innerHeight;
-    var sampleScale = width < 768 ? 0.13 : 0.15;
+    var sampleScale = width < 768 ? 0.16 : 0.18;
     var sampleCanvas = document.createElement('canvas');
     var sampleWidth = Math.max(120, Math.round(width * sampleScale));
     var sampleHeight = Math.max(90, Math.round(height * sampleScale));
@@ -132,9 +132,9 @@
           x: ((x + 0.5) / sampleWidth) * width,
           y: ((y + 0.5) / sampleHeight) * height,
           angle: Math.PI * 0.5,
-          opacity: 0.9,
-          len: width < 768 ? 7 : 8,
-          width: 1.05,
+          opacity: 0.96,
+          len: width < 768 ? 4.6 : 5.4,
+          width: 0.62,
           priority: Math.abs(x - sampleWidth * 0.5) + Math.abs(y - sampleHeight * 0.5) * 0.75
         });
       }
@@ -169,8 +169,8 @@
     if (typeof window.startVectorFieldAssemble === 'function') {
       window.startVectorFieldAssemble({
         targets: buildAssemblyTargets(),
-        duration: 0.74,
-        maxParticles: window.innerWidth < 768 ? 820 : 1250
+        duration: 0.96,
+        maxParticles: window.innerWidth < 768 ? 1000 : 1650
       });
     }
 
@@ -199,7 +199,7 @@
         hint.style.transition = 'opacity 0.6s';
         hint.style.opacity = '1';
       }
-    }, 760);
+    }, 880);
   }
 
   window.triggerLandingTransition = triggerTransition;
