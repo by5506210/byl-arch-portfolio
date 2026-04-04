@@ -88,27 +88,114 @@
     );
   }
 
+  function collectTargetsFromElement(el, scaleX, scaleY, sampleWidth, sampleHeight, options) {
+    if (!el) return [];
+    var rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return [];
+
+    var padX = options.padX || 16;
+    var padY = options.padY || 12;
+    var left = Math.max(0, Math.floor(rect.left * scaleX) - padX);
+    var top = Math.max(0, Math.floor(rect.top * scaleY) - padY);
+    var right = Math.min(sampleWidth, Math.ceil((rect.left + rect.width) * scaleX) + padX);
+    var bottom = Math.min(sampleHeight, Math.ceil((rect.top + rect.height) * scaleY) + padY);
+    var regionW = Math.max(1, right - left);
+    var regionH = Math.max(1, bottom - top);
+
+    var canvas = document.createElement('canvas');
+    canvas.width = regionW;
+    canvas.height = regionH;
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, regionW, regionH);
+    ctx.translate(-left, -top);
+    paintElementText(ctx, el, scaleX, scaleY);
+
+    var image = ctx.getImageData(left, top, regionW, regionH).data;
+    var targets = [];
+    var stage = options.stage || 0;
+    var opacity = options.opacity || 0.95;
+    var lenMin = options.lenMin || 3.2;
+    var lenMax = options.lenMax || 6.2;
+    var widthMin = options.widthMin || 0.42;
+    var widthMax = options.widthMax || 0.8;
+    var priorityWeight = options.priorityWeight || 1;
+
+    for (var y = 0; y < regionH; y++) {
+      for (var x = 0; x < regionW; x++) {
+        var idx = (y * regionW + x) * 4 + 3;
+        var alpha = image[idx] / 255;
+        if (alpha < 0.22) continue;
+
+        var gx = left + x;
+        var gy = top + y;
+        var mod = ((gx * 17 + gy * 13) % 11) / 10;
+        var len = lenMin + (lenMax - lenMin) * mod;
+        var width = widthMin + (widthMax - widthMin) * (1 - mod * 0.85);
+        var centerBias = Math.abs(gx - sampleWidth * 0.5) + Math.abs(gy - sampleHeight * 0.5) * 0.75;
+
+        targets.push({
+          x: ((gx + 0.5) / sampleWidth) * window.innerWidth,
+          y: ((gy + 0.5) / sampleHeight) * window.innerHeight,
+          angle: Math.PI * 0.5,
+          opacity: opacity * alpha,
+          len: len,
+          width: width,
+          stage: stage,
+          priority: centerBias * priorityWeight + stage * 320
+        });
+      }
+    }
+
+    return targets;
+  }
+
   function buildAssemblyTargets() {
     var width = window.innerWidth;
     var height = window.innerHeight;
-    var sampleScale = width < 768 ? 0.16 : 0.18;
+    var sampleScale = width < 768 ? 0.2 : 0.24;
     var sampleCanvas = document.createElement('canvas');
     var sampleWidth = Math.max(120, Math.round(width * sampleScale));
     var sampleHeight = Math.max(90, Math.round(height * sampleScale));
-    sampleCanvas.width = sampleWidth;
-    sampleCanvas.height = sampleHeight;
-    var ctx = sampleCanvas.getContext('2d');
     var scaleX = sampleWidth / width;
     var scaleY = sampleHeight / height;
-
-    ctx.clearRect(0, 0, sampleWidth, sampleHeight);
+    var targets = [];
     var nav = document.getElementById('nav');
     if (nav) {
-      paintElementText(ctx, nav.querySelector('.slideshow-nav-bar__back'), scaleX, scaleY);
-      paintElementText(ctx, nav.querySelector('.slideshow-nav-bar__logo'), scaleX, scaleY);
+      targets = targets.concat(collectTargetsFromElement(nav.querySelector('.slideshow-nav-bar__back'), scaleX, scaleY, sampleWidth, sampleHeight, {
+        stage: 0.08,
+        lenMin: 2.2,
+        lenMax: 4.2,
+        widthMin: 0.28,
+        widthMax: 0.56,
+        opacity: 0.74,
+        padX: 10,
+        padY: 8,
+        priorityWeight: 0.9
+      }));
+      targets = targets.concat(collectTargetsFromElement(nav.querySelector('.slideshow-nav-bar__logo'), scaleX, scaleY, sampleWidth, sampleHeight, {
+        stage: 0.12,
+        lenMin: 2.4,
+        lenMax: 4.8,
+        widthMin: 0.32,
+        widthMax: 0.6,
+        opacity: 0.82,
+        padX: 10,
+        padY: 8,
+        priorityWeight: 0.9
+      }));
       var navLinks = nav.querySelectorAll('.slideshow-nav-bar__link');
       navLinks.forEach(function (link) {
-        paintElementText(ctx, link, scaleX, scaleY);
+        targets = targets.concat(collectTargetsFromElement(link, scaleX, scaleY, sampleWidth, sampleHeight, {
+          stage: 0.18,
+          lenMin: 2.1,
+          lenMax: 3.9,
+          widthMin: 0.26,
+          widthMax: 0.5,
+          opacity: 0.7,
+          padX: 10,
+          padY: 8,
+          priorityWeight: 0.95
+        }));
       });
     }
 
@@ -116,29 +203,41 @@
       document.querySelector('.slideshow__slide--divider .slideshow__divider-label');
     var dividerTitle = document.querySelector('.slideshow__slide--divider.is-active .slideshow__divider-title') ||
       document.querySelector('.slideshow__slide--divider .slideshow__divider-title');
-    paintElementText(ctx, dividerLabel, scaleX, scaleY);
-    paintElementText(ctx, dividerTitle, scaleX, scaleY);
+    targets = targets.concat(collectTargetsFromElement(dividerLabel, scaleX, scaleY, sampleWidth, sampleHeight, {
+      stage: 0.34,
+      lenMin: 2.8,
+      lenMax: 5.2,
+      widthMin: 0.3,
+      widthMax: 0.65,
+      opacity: 0.86,
+      padX: 12,
+      padY: 10,
+      priorityWeight: 0.8
+    }));
+    targets = targets.concat(collectTargetsFromElement(dividerTitle, scaleX, scaleY, sampleWidth, sampleHeight, {
+      stage: 0.48,
+      lenMin: 2.6,
+      lenMax: 6.1,
+      widthMin: 0.26,
+      widthMax: 0.72,
+      opacity: 0.98,
+      padX: 18,
+      padY: 14,
+      priorityWeight: 0.72
+    }));
 
     var scrollHint = document.querySelector('#scroll-hint span');
-    paintElementText(ctx, scrollHint, scaleX, scaleY);
-
-    var data = ctx.getImageData(0, 0, sampleWidth, sampleHeight).data;
-    var targets = [];
-    for (var y = 0; y < sampleHeight; y++) {
-      for (var x = 0; x < sampleWidth; x++) {
-        var idx = (y * sampleWidth + x) * 4 + 3;
-        if (data[idx] < 40) continue;
-        targets.push({
-          x: ((x + 0.5) / sampleWidth) * width,
-          y: ((y + 0.5) / sampleHeight) * height,
-          angle: Math.PI * 0.5,
-          opacity: 0.96,
-          len: width < 768 ? 4.6 : 5.4,
-          width: 0.62,
-          priority: Math.abs(x - sampleWidth * 0.5) + Math.abs(y - sampleHeight * 0.5) * 0.75
-        });
-      }
-    }
+    targets = targets.concat(collectTargetsFromElement(scrollHint, scaleX, scaleY, sampleWidth, sampleHeight, {
+      stage: 0.72,
+      lenMin: 1.7,
+      lenMax: 3.1,
+      widthMin: 0.18,
+      widthMax: 0.34,
+      opacity: 0.52,
+      padX: 8,
+      padY: 8,
+      priorityWeight: 1.15
+    }));
 
     return targets;
   }
@@ -169,8 +268,8 @@
     if (typeof window.startVectorFieldAssemble === 'function') {
       window.startVectorFieldAssemble({
         targets: buildAssemblyTargets(),
-        duration: 0.96,
-        maxParticles: window.innerWidth < 768 ? 1000 : 1650
+        duration: 1.08,
+        maxParticles: window.innerWidth < 768 ? 1100 : 1850
       });
     }
 
@@ -199,7 +298,7 @@
         hint.style.transition = 'opacity 0.6s';
         hint.style.opacity = '1';
       }
-    }, 880);
+    }, 960);
   }
 
   window.triggerLandingTransition = triggerTransition;

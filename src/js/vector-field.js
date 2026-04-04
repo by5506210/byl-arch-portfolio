@@ -252,14 +252,14 @@ function initVectorField() {
     var duration = (config && config.duration) ? config.duration : 0.82;
     var maxAssembleParticles = (config && config.maxParticles) ? config.maxParticles : (window.innerWidth < 768 ? 900 : 1400);
     var targetCount = _min(targets.length, particles.length, maxAssembleParticles);
-    var sortedParticles = particles.slice().sort(function (a, b) {
-      var da = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
-      var db = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
-      return da - db;
-    });
-    targets.sort(function (a, b) {
-      return a.priority - b.priority;
-    });
+      var sortedParticles = particles.slice().sort(function (a, b) {
+        var da = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
+        var db = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
+        return da - db;
+      });
+      targets.sort(function (a, b) {
+        return a.priority - b.priority;
+      });
 
     for (var i = 0; i < sortedParticles.length; i++) {
       var p = sortedParticles[i];
@@ -271,10 +271,11 @@ function initVectorField() {
       p.assembleToX = assigned ? target.x : centerX + ((i % 11) - 5) * 4;
       p.assembleToY = assigned ? target.y : centerY + (((i / 11) | 0) % 11 - 5) * 4;
       p.assembleToAngle = assigned ? target.angle : PI * 0.5;
-      p.assembleOpacity = assigned ? target.opacity : 0;
-      p.assembleLen = assigned ? target.len : lineLen * 0.35;
-      p.assembleWidth = assigned ? target.width : 0.2;
-    }
+        p.assembleOpacity = assigned ? target.opacity : 0;
+        p.assembleLen = assigned ? target.len : lineLen * 0.35;
+        p.assembleWidth = assigned ? target.width : 0.2;
+        p.assembleStage = assigned ? target.stage : 0.92;
+      }
 
     assembleState = {
       active: true,
@@ -334,23 +335,28 @@ function initVectorField() {
       for (var ai = 0; ai < assembleState.sortedParticles.length; ai++) {
         var ap = assembleState.sortedParticles[ai];
         var alc = layerConfig[ap.layer];
-        var drawX = ap.assembleFromX + (ap.assembleToX - ap.assembleFromX) * assembleEase;
-        var drawY = ap.assembleFromY + (ap.assembleToY - ap.assembleFromY) * assembleEase;
-        var drawAngle = ap.assembleFromAngle + angleDiff(ap.assembleFromAngle, ap.assembleToAngle) * assembleEase;
-        var drawLenAssemble = (lineLen * alc[3]) * (1 - assembleEase) + ap.assembleLen * assembleEase;
-        var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.45) * (1 - assembleEase) + ap.assembleOpacity * assembleEase;
-        var widthScaleAssemble = (0.55 + alc[1] * 0.4) * (1 - assembleEase) + ap.assembleWidth * assembleEase;
+        var stageStart = ap.assembleStage || 0;
+        var localProgress = assembleProgress <= stageStart ? 0 : _min(1, (assembleProgress - stageStart) / (1 - stageStart));
+        var lp = 1 - localProgress;
+        var localEase = 1 - lp * lp * lp * lp;
+        var drawX = ap.assembleFromX + (ap.assembleToX - ap.assembleFromX) * localEase;
+        var drawY = ap.assembleFromY + (ap.assembleToY - ap.assembleFromY) * localEase;
+        var drawAngle = ap.assembleFromAngle + angleDiff(ap.assembleFromAngle, ap.assembleToAngle) * localEase;
+        var drawLenAssemble = (lineLen * alc[3]) * (1 - localEase) + ap.assembleLen * localEase;
+        var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.45) * (1 - localEase) + ap.assembleOpacity * localEase;
+        var widthScaleAssemble = (0.55 + alc[1] * 0.4) * (1 - localEase) + ap.assembleWidth * localEase;
 
         if (ai >= assembleState.activeCount) {
-          drawOpacityAssemble *= (1 - assembleEase) * 0.85;
-          drawLenAssemble *= 1 - assembleEase * 0.7;
-          widthScaleAssemble *= 1 - assembleEase * 0.55;
+          drawOpacityAssemble *= (1 - localEase) * 0.85;
+          drawLenAssemble *= 1 - localEase * 0.7;
+          widthScaleAssemble *= 1 - localEase * 0.55;
         }
 
-        if (meltProgress > 0) {
-          drawOpacityAssemble *= 1 - meltProgress * 0.72;
-          drawLenAssemble *= 1 - meltProgress * 0.3;
-          widthScaleAssemble *= 1 - meltProgress * 0.24;
+        if (meltProgress > 0 && localProgress > 0.02) {
+          var localMelt = _min(1, meltProgress * (0.8 + localProgress * 0.35));
+          drawOpacityAssemble *= 1 - localMelt * 0.72;
+          drawLenAssemble *= 1 - localMelt * 0.34;
+          widthScaleAssemble *= 1 - localMelt * 0.24;
         }
 
         if (drawOpacityAssemble <= 0.002 || drawLenAssemble <= 0.2 || widthScaleAssemble <= 0.02) continue;
