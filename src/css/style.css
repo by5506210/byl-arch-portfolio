@@ -204,6 +204,21 @@ img {
   transform: translate(-50%, -50%) scale(calc(1 + var(--portal-charge) * 0.08));
 }
 
+.landing__portal--handoff,
+.landing--transitioning .landing__portal {
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.landing__portal--handoff::before,
+.landing__portal--handoff .landing__portal-ring,
+.landing__portal--handoff .landing__portal-dot,
+.landing--transitioning .landing__portal::before,
+.landing--transitioning .landing__portal .landing__portal-ring,
+.landing--transitioning .landing__portal .landing__portal-dot {
+  animation: none !important;
+}
+
 .landing__portal-ring {
   position: absolute;
   top: 0;
@@ -294,6 +309,84 @@ img {
 
 .landing--transitioning {
   pointer-events: none;
+}
+
+.landing--transitioning .landing__vector-field {
+  filter: blur(1px) contrast(1.08);
+  transform: scale(1.02);
+  opacity: 0.45;
+  transition: filter 0.65s ease, transform 0.65s ease, opacity 0.65s ease;
+}
+
+.landing__field-morph {
+  position: fixed;
+  inset: 0;
+  z-index: 101;
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  gap: 0.8vw;
+  padding: 0 2vw;
+  pointer-events: none;
+  opacity: 1;
+}
+
+.landing__field-morph::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(232, 228, 223, 0.26) 0, rgba(232, 228, 223, 0.14) 16%, rgba(232, 228, 223, 0) 48%),
+    linear-gradient(180deg, rgba(232, 228, 223, 0.08), rgba(232, 228, 223, 0.02));
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.landing__field-morph.is-active::before {
+  opacity: 1;
+}
+
+.landing__field-band {
+  height: 100%;
+  background:
+    linear-gradient(180deg,
+      rgba(232, 228, 223, 0.02) 0%,
+      rgba(232, 228, 223, 0.78) 18%,
+      rgba(232, 228, 223, 0.94) 50%,
+      rgba(232, 228, 223, 0.78) 82%,
+      rgba(232, 228, 223, 0.02) 100%);
+  transform: scaleY(0.04) scaleX(0.3);
+  transform-origin: center center;
+  opacity: 0;
+  filter: blur(18px);
+  transition:
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.45s ease,
+    filter 0.7s ease;
+  box-shadow: 0 0 32px rgba(232, 228, 223, 0.18);
+}
+
+.landing__field-morph.is-active .landing__field-band {
+  transform: scaleY(1) scaleX(1);
+  opacity: 1;
+  filter: blur(1px);
+}
+
+.landing__field-morph.is-exit {
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.site--morphing {
+  opacity: 0;
+  transform: scale(1.02);
+  filter: blur(10px);
+}
+
+.site--morphing-active {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+  transition: opacity 0.7s ease, transform 0.7s ease, filter 0.7s ease;
 }
 
 /* ============================================

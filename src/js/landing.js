@@ -48,57 +48,62 @@
     if (portal) {
       portal.style.transition = 'none';
       portal.style.opacity = '1';
+      portal.classList.add('landing__portal--handoff');
     }
 
-    var ring = document.createElement('div');
-    ring.style.cssText = 'position:fixed;top:50%;left:50%;width:0;height:0;' +
-      'border-radius:50%;background:#e8e4df;' +
-      'transform:translate(-50%,-50%);z-index:101;' +
-      'transition:width 1s cubic-bezier(0.76,0,0.24,1),height 1s cubic-bezier(0.76,0,0.24,1);';
-    document.body.appendChild(ring);
-
     document.body.style.background = '#e8e4df';
+    var morph = document.createElement('div');
+    morph.className = 'landing__field-morph';
+    for (var i = 0; i < 15; i++) {
+      var band = document.createElement('div');
+      band.className = 'landing__field-band';
+      band.style.transitionDelay = (Math.abs(i - 7) * 0.035) + 's';
+      morph.appendChild(band);
+    }
+    document.body.appendChild(morph);
 
-    var diag = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight) * 2;
+    var site = document.getElementById('site');
+    site.style.display = 'block';
+    site.classList.add('site--morphing');
+
+    var nav = document.getElementById('nav');
+    if (nav) nav.style.opacity = '0';
 
     requestAnimationFrame(function () {
-      ring.style.width = diag + 'px';
-      ring.style.height = diag + 'px';
+      morph.classList.add('is-active');
+      site.classList.add('site--morphing-active');
     });
 
     setTimeout(function () {
-      var site = document.getElementById('site');
-      site.style.display = 'block';
-      landing.style.display = 'none';
-      document.body.style.overflow = '';
-      document.body.style.background = '#e8e4df';
-
       var cursorEl = document.querySelector('.cursor');
       if (cursorEl) cursorEl.classList.add('cursor--dark');
 
-      var nav = document.getElementById('nav');
       if (nav) {
         nav.style.transition = 'opacity 0.6s';
         nav.style.opacity = '1';
       }
 
-      ring.style.transition = 'opacity 0.5s ease';
-      ring.style.opacity = '0';
+      site.classList.remove('site--morphing');
+      site.classList.remove('site--morphing-active');
+      landing.style.display = 'none';
+      document.body.style.overflow = '';
+      document.body.style.background = '#e8e4df';
 
+      var hint = document.getElementById('scroll-hint');
+      if (hint) {
+        hint.style.transition = 'opacity 0.6s';
+        hint.style.opacity = '1';
+      }
+
+      if (typeof initSlideshow === 'function') {
+        initSlideshow();
+      }
+
+      morph.classList.add('is-exit');
       setTimeout(function () {
-        ring.remove();
-
-        var hint = document.getElementById('scroll-hint');
-        if (hint) {
-          hint.style.transition = 'opacity 0.6s';
-          hint.style.opacity = '1';
-        }
-
-        if (typeof initSlideshow === 'function') {
-          initSlideshow();
-        }
+        morph.remove();
       }, 500);
-    }, 900);
+    }, 980);
   }
 
   window.triggerLandingTransition = triggerTransition;
