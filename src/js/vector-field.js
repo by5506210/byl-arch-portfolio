@@ -250,7 +250,8 @@ function initVectorField() {
     if (!isLandingPage) return;
     var targets = (config && config.targets) ? config.targets.slice() : [];
     var duration = (config && config.duration) ? config.duration : 0.82;
-    var targetCount = _min(targets.length, particles.length);
+    var maxAssembleParticles = (config && config.maxParticles) ? config.maxParticles : (window.innerWidth < 768 ? 900 : 1400);
+    var targetCount = _min(targets.length, particles.length, maxAssembleParticles);
     var sortedParticles = particles.slice().sort(function (a, b) {
       var da = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
       var db = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
@@ -278,7 +279,8 @@ function initVectorField() {
     assembleState = {
       active: true,
       startTime: time,
-      duration: duration
+      duration: duration,
+      activeCount: targetCount
     };
   }
 
@@ -327,7 +329,7 @@ function initVectorField() {
         assembleCounts[ab] = 0;
       }
 
-      for (var ai = 0; ai < particles.length; ai++) {
+      for (var ai = 0; ai < assembleState.activeCount; ai++) {
         var ap = particles[ai];
         var alc = layerConfig[ap.layer];
         var drawX = ap.assembleFromX + (ap.assembleToX - ap.assembleFromX) * assembleEase;
