@@ -303,8 +303,8 @@ img {
 .landing--transitioning .landing__vector-field {
   filter: none;
   transform: scale(1.005);
-  opacity: 0.68;
-  transition: transform 0.45s ease, opacity 0.45s ease;
+  opacity: 0.82;
+  transition: transform 0.4s ease, opacity 0.4s ease;
 }
 
 .landing__field-morph {
@@ -372,10 +372,10 @@ img {
 }
 
 .site--morphing.site--morphing-underlay {
-  opacity: 0.78;
+  opacity: 0.94;
   transform: scale(1.0005);
   filter: blur(0);
-  transition: opacity 0.34s ease, transform 0.34s ease, filter 0.34s ease;
+  transition: opacity 0.28s ease, transform 0.28s ease, filter 0.28s ease;
 }
 
 .site--morphing-active {
@@ -394,12 +394,17 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 body.portfolio-transition-active .site--morphing-underlay .slideshow__divider-label,
 body.portfolio-transition-active .site--morphing-underlay .slideshow__divider-title {
-  opacity: 0.92;
+  opacity: 1;
   filter: blur(0);
 }
 
 body.portfolio-transition-active .site--morphing-underlay .slideshow__divider-title {
   text-shadow: none;
+}
+
+body.portfolio-transition-active .site--morphing-underlay .slideshow-nav-bar,
+body.portfolio-transition-active .site--morphing-underlay .slideshow__scroll-hint {
+  opacity: 0.82;
 }
 
 /* ============================================

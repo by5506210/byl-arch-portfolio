@@ -375,7 +375,7 @@ function initVectorField() {
       var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
       var a1 = 1 - assembleProgress;
       var assembleEase = 1 - a1 * a1 * a1 * a1;
-      var meltProgress = assembleProgress < 0.58 ? 0 : ((assembleProgress - 0.58) / 0.42);
+      var meltProgress = assembleProgress < 0.7 ? 0 : ((assembleProgress - 0.7) / 0.3);
       var ASSEMBLE_BUCKETS = 50;
       var assembleLines = new Array(ASSEMBLE_BUCKETS);
       var assembleWidthSums = new Array(ASSEMBLE_BUCKETS);
@@ -401,7 +401,7 @@ function initVectorField() {
         var drawY = ap.assembleFromY + (ap.assembleToY - ap.assembleFromY) * localEase;
         var drawAngle = ap.assembleFromAngle + angleDiff(ap.assembleFromAngle, ap.assembleToAngle) * localEase;
         var drawLenAssemble = (lineLen * alc[3]) * (1 - localEase) + ap.assembleLen * localEase;
-        var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.45) * (1 - localEase) + ap.assembleOpacity * localEase;
+        var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.52) * (1 - localEase) + ap.assembleOpacity * localEase;
         var widthScaleAssemble = (0.55 + alc[1] * 0.4) * (1 - localEase) + ap.assembleWidth * localEase;
 
         if (ai >= assembleState.activeCount) {
@@ -409,17 +409,17 @@ function initVectorField() {
           drawLenAssemble *= 1 - localEase * 0.7;
           widthScaleAssemble *= 1 - localEase * 0.55;
         } else {
-          var travelBoost = 0.22 + travelPresence * 0.42;
+          var travelBoost = 0.34 + travelPresence * 0.5;
           drawOpacityAssemble = _min(1, drawOpacityAssemble + travelBoost);
-          drawLenAssemble *= 1 + travelPresence * 0.18;
-          widthScaleAssemble *= 1 + travelPresence * 0.3;
+          drawLenAssemble *= 1 + travelPresence * 0.24;
+          widthScaleAssemble *= 1 + travelPresence * 0.38;
         }
 
         if (meltProgress > 0 && localProgress > 0.02) {
           var localMelt = _min(1, meltProgress * (0.8 + localProgress * 0.35));
-          drawOpacityAssemble *= 1 - localMelt * 0.72;
-          drawLenAssemble *= 1 - localMelt * 0.34;
-          widthScaleAssemble *= 1 - localMelt * 0.24;
+          drawOpacityAssemble *= 1 - localMelt * 0.46;
+          drawLenAssemble *= 1 - localMelt * 0.18;
+          widthScaleAssemble *= 1 - localMelt * 0.12;
         }
 
         if (drawOpacityAssemble <= 0.002 || drawLenAssemble <= 0.2 || widthScaleAssemble <= 0.02) continue;
