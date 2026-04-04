@@ -378,15 +378,15 @@ img {
 
 .site--morphing {
   opacity: 0.03;
-  transform: scale(1.008);
-  filter: blur(5px);
+  transform: scale(1.004);
+  filter: blur(1px);
 }
 
 .site--morphing.site--morphing-underlay {
-  opacity: 0.48;
-  transform: scale(1.003);
-  filter: blur(1.35px);
-  transition: opacity 0.48s ease, transform 0.48s ease, filter 0.48s ease;
+  opacity: 0.78;
+  transform: scale(1.0005);
+  filter: blur(0);
+  transition: opacity 0.34s ease, transform 0.34s ease, filter 0.34s ease;
 }
 
 .site--morphing-active {
@@ -394,6 +394,23 @@ img {
   transform: scale(1);
   filter: blur(0);
   transition: opacity 0.95s ease, transform 0.95s ease, filter 0.95s ease;
+}
+
+body.portfolio-transition-active .slideshow__divider-label,
+body.portfolio-transition-active .slideshow__divider-title,
+body.portfolio-transition-active .slideshow-nav-bar,
+body.portfolio-transition-active .slideshow__scroll-hint {
+  transition: opacity 0.38s ease, filter 0.38s ease, color 0.38s ease, text-shadow 0.38s ease;
+}
+
+body.portfolio-transition-active .site--morphing-underlay .slideshow__divider-label,
+body.portfolio-transition-active .site--morphing-underlay .slideshow__divider-title {
+  opacity: 0.92;
+  filter: blur(0);
+}
+
+body.portfolio-transition-active .site--morphing-underlay .slideshow__divider-title {
+  text-shadow: none;
 }
 
 /* ============================================
