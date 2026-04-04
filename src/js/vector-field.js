@@ -85,6 +85,8 @@ function initVectorField() {
 
   var ctx = canvas.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
   var isDarkLines = canvas.getAttribute('data-color') === 'dark';
   var lineColor = isDarkLines ? '26, 26, 26' : '232, 228, 223';

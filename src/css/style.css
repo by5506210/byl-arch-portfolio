@@ -301,10 +301,10 @@ img {
 }
 
 .landing--transitioning .landing__vector-field {
-  filter: blur(1px) contrast(1.08);
-  transform: scale(1.02);
-  opacity: 0.45;
-  transition: filter 0.65s ease, transform 0.65s ease, opacity 0.65s ease;
+  filter: none;
+  transform: scale(1.005);
+  opacity: 0.68;
+  transition: transform 0.45s ease, opacity 0.45s ease;
 }
 
 .landing__field-morph {
