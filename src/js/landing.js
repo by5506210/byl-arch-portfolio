@@ -277,7 +277,7 @@
     if (typeof window.startVectorFieldAssemble === 'function') {
       window.startVectorFieldAssemble({
         targets: buildAssemblyTargets(),
-        duration: 1.14,
+        duration: 1.22,
         maxParticles: window.innerWidth < 768 ? 850 : 1450
       });
     }
@@ -307,7 +307,7 @@
         hint.style.transition = 'opacity 0.6s';
         hint.style.opacity = '1';
       }
-    }, 1020);
+    }, 1100);
   }
 
   window.triggerLandingTransition = triggerTransition;

@@ -252,19 +252,71 @@ function initVectorField() {
     var duration = (config && config.duration) ? config.duration : 0.82;
     var maxAssembleParticles = (config && config.maxParticles) ? config.maxParticles : (window.innerWidth < 768 ? 900 : 1400);
     var targetCount = _min(targets.length, particles.length, maxAssembleParticles);
-      var sortedParticles = particles.slice().sort(function (a, b) {
-        var da = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
-        var db = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
-        return da - db;
-      });
-      targets.sort(function (a, b) {
-        return a.priority - b.priority;
-      });
+    var spatialParticles = particles.slice().sort(function (a, b) {
+      var rowDiff = a.y - b.y;
+      if (_abs(rowDiff) > spacing * 0.35) return rowDiff;
+      return a.x - b.x;
+    });
+    var sortedTargets = targets.sort(function (a, b) {
+      if (a.stage !== b.stage) return a.stage - b.stage;
+      var rowDiff = a.y - b.y;
+      if (_abs(rowDiff) > spacing * 0.2) return rowDiff;
+      return a.x - b.x;
+    });
+    var activeParticles = [];
+    var usedMap = new WeakMap();
+
+    if (targetCount > 0) {
+      var lastSourceIndex = -1;
+      for (var ti = 0; ti < targetCount; ti++) {
+        var preferredIndex = ((ti + 0.5) * spatialParticles.length / targetCount) | 0;
+        var bestIndex = -1;
+        var bestScore = 1e12;
+        var scanRadius = 18;
+        for (var offset = -scanRadius; offset <= scanRadius; offset++) {
+          var candidateIndex = preferredIndex + offset;
+          if (candidateIndex < 0 || candidateIndex >= spatialParticles.length) continue;
+          var candidate = spatialParticles[candidateIndex];
+          if (usedMap.has(candidate)) continue;
+          var target = sortedTargets[ti];
+          var dx = candidate.x - target.x;
+          var dy = candidate.y - target.y;
+          var score = dx * dx + dy * dy + _abs(offset) * 220 + _abs(candidateIndex - lastSourceIndex) * 0.3;
+          if (score < bestScore) {
+            bestScore = score;
+            bestIndex = candidateIndex;
+          }
+        }
+        if (bestIndex === -1) {
+          bestIndex = _min(spatialParticles.length - 1, preferredIndex);
+          while (bestIndex < spatialParticles.length && usedMap.has(spatialParticles[bestIndex])) bestIndex++;
+          if (bestIndex >= spatialParticles.length) {
+            bestIndex = preferredIndex;
+            while (bestIndex >= 0 && usedMap.has(spatialParticles[bestIndex])) bestIndex--;
+          }
+        }
+        if (bestIndex >= 0) {
+          var chosen = spatialParticles[bestIndex];
+          usedMap.set(chosen, true);
+          activeParticles.push(chosen);
+          lastSourceIndex = bestIndex;
+        }
+      }
+    }
+
+    var passiveParticles = particles.slice().filter(function (p) {
+      return !usedMap.has(p);
+    }).sort(function (a, b) {
+      var da = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
+      var db = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
+      return da - db;
+    });
+    var sortedParticles = activeParticles.concat(passiveParticles);
 
     for (var i = 0; i < sortedParticles.length; i++) {
       var p = sortedParticles[i];
-      var assigned = i < targetCount;
-      var target = assigned ? targets[i] : null;
+      var assigned = i < activeParticles.length;
+      var target = assigned ? sortedTargets[i] : null;
       p.assembleFromX = p.x;
       p.assembleFromY = p.y;
       p.assembleFromAngle = p.currentAngle;
@@ -281,8 +333,8 @@ function initVectorField() {
       active: true,
       startTime: time,
       duration: duration,
-      activeCount: targetCount,
-      passiveCount: _min(sortedParticles.length, targetCount + (window.innerWidth < 768 ? 140 : 220)),
+      activeCount: activeParticles.length,
+      passiveCount: _min(sortedParticles.length, activeParticles.length + (window.innerWidth < 768 ? 140 : 220)),
       sortedParticles: sortedParticles
     };
   }
@@ -341,6 +393,8 @@ function initVectorField() {
         var localProgress = assembleProgress <= stageStart ? 0 : _min(1, (assembleProgress - stageStart) / (1 - stageStart));
         var lp = 1 - localProgress;
         var localEase = 1 - lp * lp * lp * lp;
+        var travelPresence = 1 - _abs(localProgress - 0.42) / 0.42;
+        if (travelPresence < 0) travelPresence = 0;
         var drawX = ap.assembleFromX + (ap.assembleToX - ap.assembleFromX) * localEase;
         var drawY = ap.assembleFromY + (ap.assembleToY - ap.assembleFromY) * localEase;
         var drawAngle = ap.assembleFromAngle + angleDiff(ap.assembleFromAngle, ap.assembleToAngle) * localEase;
@@ -352,6 +406,11 @@ function initVectorField() {
           drawOpacityAssemble *= (1 - localEase) * 0.85;
           drawLenAssemble *= 1 - localEase * 0.7;
           widthScaleAssemble *= 1 - localEase * 0.55;
+        } else {
+          var travelBoost = 0.22 + travelPresence * 0.42;
+          drawOpacityAssemble = _min(1, drawOpacityAssemble + travelBoost);
+          drawLenAssemble *= 1 + travelPresence * 0.18;
+          widthScaleAssemble *= 1 + travelPresence * 0.3;
         }
 
         if (meltProgress > 0 && localProgress > 0.02) {
