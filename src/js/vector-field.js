@@ -282,6 +282,7 @@ function initVectorField() {
       startTime: time,
       duration: duration,
       activeCount: targetCount,
+      passiveCount: _min(sortedParticles.length, targetCount + (window.innerWidth < 768 ? 140 : 220)),
       sortedParticles: sortedParticles
     };
   }
@@ -332,7 +333,8 @@ function initVectorField() {
         assembleCounts[ab] = 0;
       }
 
-      for (var ai = 0; ai < assembleState.sortedParticles.length; ai++) {
+      var assembleCount = assembleState.passiveCount || assembleState.sortedParticles.length;
+      for (var ai = 0; ai < assembleCount; ai++) {
         var ap = assembleState.sortedParticles[ai];
         var alc = layerConfig[ap.layer];
         var stageStart = ap.assembleStage || 0;
