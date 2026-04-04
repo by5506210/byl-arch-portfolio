@@ -253,7 +253,6 @@ function initVectorField() {
     if (_abs(_vfScrollVelocity) < 0.001) _vfScrollVelocity = 0;
     if (_vfScrollKick < 0.001) _vfScrollKick = 0;
     var scrollTilt = _max(-1, _min(1, _vfScrollVelocity / 10));
-    var scrollGlow = _min(1, _vfScrollKick * 1.2 + _abs(scrollTilt) * 0.35);
 
     // --- AWAKENING factor: 0 (asleep) → 1 (fully alive) ---
     var awaken = isLandingPage ? _min(1, time / awakenDuration) : 1;
@@ -508,9 +507,6 @@ function initVectorField() {
 
       if (_vfScrollKick > 0) {
         speed = _max(speed, 0.38 + _vfScrollKick * 0.22);
-        drawOpacity += (0.18 + 0.28 * scrollGlow) * opacityScale;
-        drawLen += 5 + 14 * scrollGlow;
-        widthScale += 0.1 + 0.35 * scrollGlow;
       }
 
       // --- AWAKENING: fade opacity in ---
@@ -580,24 +576,18 @@ function initVectorField() {
         var mStrength = (1 - distM / particleMouseRadius);
         mStrength = mStrength * mStrength;
         var mouseEffect = mStrength * (1 - bhResistance * 0.85);
-        var scrollMouseBoost = scrollGlow > 0 ? mouseEffect * scrollGlow : 0;
 
         if (particleNearEE > 0) {
           var dimFactor = particleNearEE * mouseEffect;
           drawOpacity *= _max(0.02, 1 - dimFactor * 3);
         } else {
-          var brightenAmount = mouseEffect * 0.3 * opacityScale
-            + scrollMouseBoost * 0.75 * opacityScale;
+          var brightenAmount = mouseEffect * 0.3 * opacityScale;
           drawOpacity = _max(drawOpacity, p.baseOpacity * lcOpacity + brightenAmount);
         }
 
         var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
         targetAngle += mouseDiff * mouseEffect * 0.9;
-        drawLen = _max(
-          drawLen,
-          lineLen * lcLen + (mouseEffect * 10 + scrollMouseBoost * 18) * (1 - eeSuppression * particleNearEE)
-        );
-        widthScale += scrollMouseBoost * 0.9;
+        drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
         speed = _max(speed, followSpeed + mouseEffect * 0.4);
       }
 
