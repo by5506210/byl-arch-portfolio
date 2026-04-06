@@ -77,41 +77,14 @@ function initNavBar() {
   rememberPageForBackNav();
 
   var hero = document.querySelector('.project-hero');
-  var currentPath = window.location.pathname + window.location.search + window.location.hash;
-  var fallbackBackHref = '../index.html#portfolio';
-  var storedPreviousPage = sessionStorage.getItem('bylPreviousPage');
-  var backHref = fallbackBackHref;
-
-  if (storedPreviousPage && storedPreviousPage !== currentPath) {
-    backHref = storedPreviousPage;
-  } else if (document.referrer) {
-    try {
-      var referrerUrl = new URL(document.referrer, window.location.href);
-      var referrerPath = referrerUrl.pathname + referrerUrl.search + referrerUrl.hash;
-      if (referrerUrl.origin === window.location.origin && referrerPath !== currentPath) {
-        backHref = referrerUrl.href;
-      }
-    } catch (err) {}
-  }
 
   // Build the unified bar
   var bar = document.createElement('div');
   bar.classList.add('project-nav-bar');
 
   // Left: back arrow — goes to previous page
-  var backEl = document.createElement('a');
-  backEl.href = backHref;
-  backEl.classList.add('project-nav-bar__back');
-  backEl.innerHTML = '&larr;';
-  backEl.addEventListener('click', function (e) {
-    e.preventDefault();
-    window.location.href = backHref;
-  });
-  bar.appendChild(backEl);
-
-  // Center: BYL logo (always present, links to homepage)
   var logo = document.createElement('a');
-  logo.href = '../index.html#portfolio';
+  logo.href = '../index.html';
   logo.classList.add('project-nav-bar__logo');
   logo.textContent = 'BYL';
   bar.appendChild(logo);

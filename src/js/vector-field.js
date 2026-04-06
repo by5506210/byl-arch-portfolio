@@ -89,7 +89,9 @@ function initVectorField() {
   ctx.lineJoin = 'round';
 
   var isDarkLines = canvas.getAttribute('data-color') === 'dark';
-  var lineColor = isDarkLines ? '26, 26, 26' : '232, 228, 223';
+  var lightLineColor = '232, 228, 223';
+  var darkLineColor = '26, 26, 26';
+  var lineColor = isDarkLines ? darkLineColor : lightLineColor;
 
   var isContentPage = !isLandingPage;
   var opacityScale = isContentPage ? 0.18 : 1.0;
@@ -112,6 +114,11 @@ function initVectorField() {
   var time = 0;
   var lastFrameTime = 0;
   var assembleState = null;
+  var landingTransition = {
+    active: false,
+    radius: 0,
+    progress: 0
+  };
 
   // --- ENTRY AWAKENING ---
   var awakenDuration = 2.5; // seconds to fully awaken
@@ -309,6 +316,43 @@ function initVectorField() {
 
   window.startVectorFieldAssemble = startAssembleTransition;
 
+  function setTransitionState(config) {
+    if (!isLandingPage) return;
+    var wasActive = landingTransition.active;
+
+    landingTransition.active = !!(config && config.active);
+    landingTransition.radius = config && typeof config.radius === 'number' ? config.radius : 0;
+    landingTransition.progress = config && typeof config.progress === 'number' ? config.progress : 0;
+
+    if (landingTransition.active && !wasActive) {
+      lastRippleTime = -10;
+      spawnRipple();
+    }
+  }
+
+  function strokeBuckets(bucketLines, bucketWidthSums, bucketCounts, color) {
+    var rgbaPrefix = 'rgba(' + color + ', ';
+    for (var bk = 0; bk < bucketLines.length; bk++) {
+      var bLines = bucketLines[bk];
+      var bCount = bucketCounts[bk];
+      if (bCount === 0) continue;
+
+      var bOpacity = bucketLines.length <= 1 ? 1 : bk / (bucketLines.length - 1);
+      ctx.strokeStyle = rgbaPrefix + bOpacity + ')';
+      ctx.lineWidth = bucketWidthSums[bk] / bCount;
+      ctx.beginPath();
+
+      for (var bj = 0; bj < bLines.length; bj += 4) {
+        ctx.moveTo(bLines[bj], bLines[bj + 1]);
+        ctx.lineTo(bLines[bj + 2], bLines[bj + 3]);
+      }
+
+      ctx.stroke();
+    }
+  }
+
+  window.setVectorFieldTransition = setTransitionState;
+
   function animate(timestamp) {
     if (myId !== _vectorFieldInstanceId) return;
 
@@ -334,6 +378,9 @@ function initVectorField() {
     // Smooth ease-out for organic feel
     var t1 = 1 - awaken;
     var awakenEased = 1 - t1 * t1 * t1;
+    var revealActive = isLandingPage && landingTransition.active && landingTransition.radius > 0;
+    var revealRadius = revealActive ? landingTransition.radius : 0;
+    var revealRadiusSq = revealRadius * revealRadius;
 
     ctx.clearRect(0, 0, fieldWidth, fieldHeight);
 
@@ -542,10 +589,18 @@ function initVectorField() {
     var bucketLines = new Array(OPACITY_BUCKETS);
     var bucketWidthSums = new Array(OPACITY_BUCKETS);
     var bucketCounts = new Array(OPACITY_BUCKETS);
+    var bucketLinesDark = revealActive ? new Array(OPACITY_BUCKETS) : null;
+    var bucketWidthSumsDark = revealActive ? new Array(OPACITY_BUCKETS) : null;
+    var bucketCountsDark = revealActive ? new Array(OPACITY_BUCKETS) : null;
     for (var bi = 0; bi < OPACITY_BUCKETS; bi++) {
       bucketLines[bi] = [];
       bucketWidthSums[bi] = 0;
       bucketCounts[bi] = 0;
+      if (revealActive) {
+        bucketLinesDark[bi] = [];
+        bucketWidthSumsDark[bi] = 0;
+        bucketCountsDark[bi] = 0;
+      }
     }
 
     var pLen = particles.length;
@@ -556,6 +611,9 @@ function initVectorField() {
       var lcOpacity = lc[0];
       var lcLen = lc[3];
       var lcWidth = lc[1];
+      var dxCenter = centerX - p.x;
+      var dyCenter = centerY - p.y;
+      var distCenterSq = dxCenter * dxCenter + dyCenter * dyCenter;
 
       // Waves with layer-specific speed
       var waveTime = time * layerSpeedMult;
@@ -672,9 +730,9 @@ function initVectorField() {
       drawOpacity *= awakenEased;
 
       if (isLandingPage) {
-        var dxBH = centerX - p.x;
-        var dyBH = centerY - p.y;
-        var distBHSq = dxBH * dxBH + dyBH * dyBH;
+        var dxBH = dxCenter;
+        var dyBH = dyCenter;
+        var distBHSq = distCenterSq;
 
         if (distBHSq < blackHoleRadiusSq) {
           var distBH = _sqrt(distBHSq);
@@ -756,6 +814,16 @@ function initVectorField() {
       while (p.currentAngle > PI) p.currentAngle -= TWO_PI;
       while (p.currentAngle < -PI) p.currentAngle += TWO_PI;
 
+      if (revealActive) {
+        var distCenter = _sqrt(distCenterSq);
+        var edgeBoost = _max(0, 1 - _abs(distCenter - revealRadius) / 120);
+        if (edgeBoost > 0) {
+          drawOpacity = _min(1, drawOpacity + edgeBoost * 0.16);
+          drawLen += edgeBoost * 6;
+          widthScale *= 1 + edgeBoost * 0.16;
+        }
+      }
+
       var halfLen = drawLen * 0.5;
       var cosA = _cos(p.currentAngle);
       var sinA = _sin(p.currentAngle);
@@ -768,29 +836,22 @@ function initVectorField() {
       // Clamp to [0, 1] and map to bucket index
       var clampedOpacity = drawOpacity < 0 ? 0 : (drawOpacity > 1 ? 1 : drawOpacity);
       var bucketIdx = (clampedOpacity * (OPACITY_BUCKETS - 1) + 0.5) | 0;
-      var bucket = bucketLines[bucketIdx];
+      var useDarkBucket = revealActive && distCenterSq <= revealRadiusSq;
+      var bucket = useDarkBucket ? bucketLinesDark[bucketIdx] : bucketLines[bucketIdx];
       bucket.push(p.x - cosA * halfLen, p.y - sinA * halfLen, p.x + cosA * halfLen, p.y + sinA * halfLen);
-      bucketWidthSums[bucketIdx] += angleWidth;
-      bucketCounts[bucketIdx]++;
+      if (useDarkBucket) {
+        bucketWidthSumsDark[bucketIdx] += angleWidth;
+        bucketCountsDark[bucketIdx]++;
+      } else {
+        bucketWidthSums[bucketIdx] += angleWidth;
+        bucketCounts[bucketIdx]++;
+      }
     }
 
     // --- BATCHED DRAW: one beginPath/stroke per opacity bucket ---
-    var rgbaPrefix = 'rgba(' + lineColor + ', ';
-    for (var bk = 0; bk < OPACITY_BUCKETS; bk++) {
-      var bLines = bucketLines[bk];
-      var bCount = bucketCounts[bk];
-      if (bCount === 0) continue;
-
-      var bOpacity = bk / (OPACITY_BUCKETS - 1);
-      ctx.strokeStyle = rgbaPrefix + bOpacity + ')';
-      ctx.lineWidth = bucketWidthSums[bk] / bCount; // average width for this bucket
-
-      ctx.beginPath();
-      for (var bj = 0; bj < bLines.length; bj += 4) {
-        ctx.moveTo(bLines[bj], bLines[bj + 1]);
-        ctx.lineTo(bLines[bj + 2], bLines[bj + 3]);
-      }
-      ctx.stroke();
+    strokeBuckets(bucketLines, bucketWidthSums, bucketCounts, revealActive ? lightLineColor : lineColor);
+    if (revealActive) {
+      strokeBuckets(bucketLinesDark, bucketWidthSumsDark, bucketCountsDark, darkLineColor);
     }
 
     // --- DRAW RIPPLE RINGS ---
@@ -803,7 +864,7 @@ function initVectorField() {
 
         ctx.beginPath();
         ctx.arc(drip.x, drip.y, drip.radius, 0, TWO_PI);
-        ctx.strokeStyle = 'rgba(' + lineColor + ', ' + ripAlpha + ')';
+        ctx.strokeStyle = 'rgba(' + ((revealActive && drip.radius <= revealRadius) ? darkLineColor : lineColor) + ', ' + ripAlpha + ')';
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
@@ -811,7 +872,7 @@ function initVectorField() {
         if (innerR > 5) {
           ctx.beginPath();
           ctx.arc(drip.x, drip.y, innerR, 0, TWO_PI);
-          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (ripAlpha * 0.5) + ')';
+          ctx.strokeStyle = 'rgba(' + ((revealActive && innerR <= revealRadius) ? darkLineColor : lineColor) + ', ' + (ripAlpha * 0.5) + ')';
           ctx.lineWidth = 1;
           ctx.stroke();
         }
@@ -820,17 +881,34 @@ function initVectorField() {
 
     // --- PORTAL BREATHING GLOW (synced to waves) ---
     if (isLandingPage) {
-      var breathe = 0.5 + 0.5 * _sin(time * 1.6); // synced to main wave speed
-      var breatheRadius = 120 + breathe * 30;
-      var breatheInner = 0.07 + breathe * 0.05;
-      var breatheMid = 0.025 + breathe * 0.02;
+      if (revealActive) {
+        var horizonAlpha = _min(0.34, 0.08 + landingTransition.progress * 0.18);
+        if (revealRadius > 2) {
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
+          ctx.strokeStyle = 'rgba(244, 242, 236, ' + horizonAlpha + ')';
+          ctx.lineWidth = 14 + landingTransition.progress * 10;
+          ctx.stroke();
 
-      var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breatheRadius);
-      glowGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + breatheInner + ')');
-      glowGrad.addColorStop(0.5, 'rgba(' + lineColor + ', ' + breatheMid + ')');
-      glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
-      ctx.fillStyle = glowGrad;
-      ctx.fillRect(centerX - breatheRadius, centerY - breatheRadius, breatheRadius * 2, breatheRadius * 2);
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
+          ctx.strokeStyle = 'rgba(26, 26, 26, ' + (0.05 + landingTransition.progress * 0.08) + ')';
+          ctx.lineWidth = 2.4;
+          ctx.stroke();
+        }
+      } else {
+        var breathe = 0.5 + 0.5 * _sin(time * 1.6); // synced to main wave speed
+        var breatheRadius = 120 + breathe * 30;
+        var breatheInner = 0.07 + breathe * 0.05;
+        var breatheMid = 0.025 + breathe * 0.02;
+
+        var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breatheRadius);
+        glowGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + breatheInner + ')');
+        glowGrad.addColorStop(0.5, 'rgba(' + lineColor + ', ' + breatheMid + ')');
+        glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
+        ctx.fillStyle = glowGrad;
+        ctx.fillRect(centerX - breatheRadius, centerY - breatheRadius, breatheRadius * 2, breatheRadius * 2);
+      }
 
       var dxEEm = mouseX - easterEggX;
       var dyEEm = mouseY - easterEggY;
