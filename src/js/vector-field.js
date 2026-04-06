@@ -126,7 +126,7 @@ function initVectorField() {
 
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
   var portalRevealDist = 178;
-  var portalGlowDist = 340;
+  var portalGlowDist = 390;
   var portalCharge = 0;
   var portalChargeDuration = 1.02;
   var portalHoldRadius = 96;
@@ -406,7 +406,7 @@ function initVectorField() {
         var portalDy = mouseY - centerY;
         portalDist = _sqrt(portalDx * portalDx + portalDy * portalDy);
         portalProximity = _max(0, 1 - portalDist / portalGlowDist);
-        if (portalProximity < 0.035) portalProximity = 0;
+        if (portalProximity < 0.015) portalProximity = 0;
         portalCentered = _max(0, 1 - portalDist / (portalHoldRadius * 1.2));
       }
 
@@ -607,13 +607,13 @@ function initVectorField() {
       }
 
       portalPresence = portalProximity > 0
-        ? _min(1, Math.pow(portalProximity, 1.75) * 1.08 + portalCentered * 0.28 + portalCharge * 0.72)
+        ? _min(1, Math.pow(portalProximity, 1.45) * 1.16 + portalCentered * 0.34 + portalCharge * 0.72)
         : _min(1, portalCharge * 0.72);
 
-      if (portalCentered > 0.02 || portalCharge > 0.01) {
-        var portalPulseRate = 2.2 + portalCentered * 4.2 + portalCharge * 5.8;
+      if (portalProximity > 0.02 || portalCentered > 0.02 || portalCharge > 0.01) {
+        var portalPulseRate = 1.8 + portalProximity * 2.4 + portalCentered * 4.2 + portalCharge * 5.8;
         var portalPulseWave = 0.5 + 0.5 * _sin(time * portalPulseRate);
-        portalPulse = portalPulseWave * (0.12 + portalCentered * 0.38 + portalCharge * 0.54);
+        portalPulse = portalPulseWave * (portalProximity * 0.18 + portalCentered * 0.34 + portalCharge * 0.54);
       } else {
         portalPulse = 0;
       }

@@ -349,10 +349,10 @@ img {
 
 @keyframes portal-bloom-pulse {
   0%, 100% {
-    transform: scale(0.88);
+    transform: translate(-50%, -50%) scale(0.72);
   }
   50% {
-    transform: scale(calc(1.02 + var(--portal-proximity) * 0.08 + var(--portal-charge) * 0.18));
+    transform: translate(-50%, -50%) scale(calc(0.9 + var(--portal-proximity) * 0.12 + var(--portal-pulse) * 0.2 + var(--portal-charge) * 0.18));
   }
 }
 
@@ -2419,27 +2419,27 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --portal-sweep-soft: 0deg;
   --portal-sweep-reverse: 0deg;
   --portal-sweep-ring: 0deg;
-  --portal-size: 68px;
-  opacity: calc(var(--portal-presence) * 0.92 + var(--portal-charge) * 0.12);
+  --portal-size: 46px;
+  opacity: calc(var(--portal-presence) * 0.78 + var(--portal-charge) * 0.14);
   transition: opacity 0.12s linear, transform 0.12s linear;
 }
 
 .landing__portal.is-visible {
-  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.16);
+  opacity: calc(var(--portal-presence) * 0.86 + var(--portal-charge) * 0.18);
 }
 
 .landing__portal:hover,
 .landing__portal.is-near {
-  transform: translate(-50%, -50%) scale(calc(0.98 + var(--portal-presence) * 0.04 + var(--portal-charge) * 0.03));
+  transform: translate(-50%, -50%) scale(calc(0.96 + var(--portal-presence) * 0.04 + var(--portal-charge) * 0.03));
 }
 
 .landing__portal.is-centered {
-  transform: translate(-50%, -50%) scale(calc(1 + var(--portal-centered) * 0.05 + var(--portal-charge) * 0.06));
+  transform: translate(-50%, -50%) scale(calc(0.98 + var(--portal-centered) * 0.06 + var(--portal-charge) * 0.07));
 }
 
 .landing__portal.is-charging {
-  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.26);
-  transform: translate(-50%, -50%) scale(calc(1.01 + var(--portal-centered) * 0.06 + var(--portal-charge) * 0.1));
+  opacity: calc(var(--portal-presence) * 0.94 + var(--portal-charge) * 0.32);
+  transform: translate(-50%, -50%) scale(calc(1 + var(--portal-centered) * 0.07 + var(--portal-charge) * 0.12));
 }
 
 .landing__portal-bloom,
@@ -2451,17 +2451,35 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .landing__portal-bloom {
-  display: none;
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  inset: auto;
+  width: calc(78px + var(--portal-proximity) * 150px + var(--portal-centered) * 54px + var(--portal-charge) * 84px);
+  height: calc(78px + var(--portal-proximity) * 150px + var(--portal-centered) * 54px + var(--portal-charge) * 84px);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: calc(var(--portal-proximity) * 0.34 + var(--portal-centered) * 0.22 + var(--portal-charge) * 0.28 + var(--portal-pulse) * 0.24);
+  transform: translate(-50%, -50%) scale(calc(0.76 + var(--portal-proximity) * 0.1 + var(--portal-pulse) * 0.22 + var(--portal-charge) * 0.16));
+  filter: blur(calc(16px + var(--portal-proximity) * 18px + var(--portal-centered) * 8px + var(--portal-charge) * 12px));
+  background:
+    radial-gradient(circle, rgba(232, 228, 223, calc(0.03 + var(--portal-proximity) * 0.11 + var(--portal-pulse) * 0.12 + var(--portal-charge) * 0.18)) 0%, rgba(232, 228, 223, calc(0.02 + var(--portal-proximity) * 0.06 + var(--portal-charge) * 0.09)) 22%, rgba(232, 228, 223, calc(0.008 + var(--portal-proximity) * 0.028 + var(--portal-charge) * 0.03)) 42%, rgba(232, 228, 223, 0) 72%),
+    radial-gradient(circle, rgba(232, 228, 223, calc(var(--portal-proximity) * 0.05 + var(--portal-charge) * 0.08)) 0%, rgba(232, 228, 223, 0) 68%);
+  mix-blend-mode: screen;
+  transition: opacity 0.12s linear, transform 0.12s linear, width 0.12s linear, height 0.12s linear, filter 0.12s linear;
+  animation: portal-bloom-pulse 2.6s ease-in-out infinite;
 }
 
 .landing__portal-orbit {
-  width: calc(14px + var(--portal-presence) * 18px + var(--portal-centered) * 10px + var(--portal-charge) * 14px);
-  height: calc(14px + var(--portal-presence) * 18px + var(--portal-centered) * 10px + var(--portal-charge) * 14px);
-  border: 1px solid rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18));
-  opacity: calc(var(--portal-presence) * 0.2 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.18);
+  width: calc(8px + var(--portal-presence) * 12px + var(--portal-centered) * 8px + var(--portal-charge) * 10px);
+  height: calc(8px + var(--portal-presence) * 12px + var(--portal-centered) * 8px + var(--portal-charge) * 10px);
+  border: 1px solid rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.18));
+  opacity: calc(var(--portal-presence) * 0.24 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.18);
   box-shadow: none;
-  transform: translate(-50%, -50%) rotate(var(--portal-sweep)) scale(calc(0.88 + var(--portal-presence) * 0.06 + var(--portal-charge) * 0.1));
+  transform: translate(-50%, -50%) rotate(var(--portal-sweep)) scale(calc(0.82 + var(--portal-presence) * 0.08 + var(--portal-charge) * 0.12 + var(--portal-pulse) * 0.06));
   transition: opacity 0.1s linear, transform 0.1s linear, box-shadow 0.1s linear, width 0.1s linear, height 0.1s linear;
+  animation: portal-orbit-pulse 2.7s ease-in-out infinite;
 }
 
 .landing__portal-orbit::before,
@@ -2480,18 +2498,19 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .landing__portal-orbit::after {
-  inset: calc(6px - var(--portal-presence) * 1px - var(--portal-charge) * 1px - var(--portal-pulse) * 1px);
+  inset: calc(4px - var(--portal-presence) * 0.8px - var(--portal-charge) * 1px - var(--portal-pulse) * 1px);
   border-left-color: rgba(232, 228, 223, calc(var(--portal-presence) * 0.1 + var(--portal-centered) * 0.16 + var(--portal-charge) * 0.18));
   border-bottom-color: rgba(232, 228, 223, calc(var(--portal-charge) * 0.08));
   transform: rotate(var(--portal-sweep-reverse));
 }
 
 .landing__portal-ring {
-  width: calc(7px + var(--portal-presence) * 12px + var(--portal-centered) * 10px + var(--portal-charge) * 16px);
-  height: calc(7px + var(--portal-presence) * 12px + var(--portal-centered) * 10px + var(--portal-charge) * 16px);
-  opacity: calc(var(--portal-presence) * 0.12 + var(--portal-centered) * 0.22 + var(--portal-charge) * 0.26);
-  transform: translate(-50%, -50%) rotate(var(--portal-sweep-ring)) scale(calc(0.8 + var(--portal-centered) * 0.08 + var(--portal-charge) * 0.16));
+  width: calc(4px + var(--portal-presence) * 9px + var(--portal-centered) * 8px + var(--portal-charge) * 14px);
+  height: calc(4px + var(--portal-presence) * 9px + var(--portal-centered) * 8px + var(--portal-charge) * 14px);
+  opacity: calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.26 + var(--portal-charge) * 0.34);
+  transform: translate(-50%, -50%) rotate(var(--portal-sweep-ring)) scale(calc(0.76 + var(--portal-centered) * 0.08 + var(--portal-charge) * 0.18 + var(--portal-pulse) * 0.06));
   transition: opacity 0.1s linear, transform 0.1s linear, width 0.1s linear, height 0.1s linear;
+  animation: portal-ring-pulse 2.1s ease-in-out infinite;
   background:
     conic-gradient(
       from -90deg,
@@ -2500,9 +2519,9 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     ),
     conic-gradient(
       from -90deg,
-      rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18)) 0deg,
-      rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18)) calc(24deg + var(--portal-centered) * 42deg + var(--portal-charge) * 180deg),
-      rgba(232, 228, 223, 0) calc(42deg + var(--portal-centered) * 52deg + var(--portal-charge) * 196deg),
+      rgba(232, 228, 223, calc(var(--portal-presence) * 0.22 + var(--portal-centered) * 0.22 + var(--portal-charge) * 0.22)) 0deg,
+      rgba(232, 228, 223, calc(var(--portal-presence) * 0.22 + var(--portal-centered) * 0.22 + var(--portal-charge) * 0.22)) calc(18deg + var(--portal-centered) * 42deg + var(--portal-charge) * 180deg),
+      rgba(232, 228, 223, 0) calc(34deg + var(--portal-centered) * 52deg + var(--portal-charge) * 196deg),
       rgba(232, 228, 223, 0) 360deg
     );
   -webkit-mask: radial-gradient(circle, transparent calc(50% - 0.9px), #000 calc(50% - 0.4px), #000 calc(50% + 0.45px + var(--portal-charge) * 0.35px), transparent calc(50% + 1.15px + var(--portal-charge) * 0.5px));
@@ -2511,17 +2530,18 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .landing__portal-core {
-  width: calc(1px + var(--portal-centered) * 3px + var(--portal-charge) * 6px);
-  height: calc(1px + var(--portal-centered) * 3px + var(--portal-charge) * 6px);
-  opacity: calc(var(--portal-presence) * 0.08 + var(--portal-centered) * 0.3 + var(--portal-charge) * 0.28);
-  background: rgba(232, 228, 223, calc(0.1 + var(--portal-centered) * 0.26 + var(--portal-charge) * 0.24));
+  width: calc(1px + var(--portal-presence) * 2px + var(--portal-centered) * 3px + var(--portal-charge) * 7px);
+  height: calc(1px + var(--portal-presence) * 2px + var(--portal-centered) * 3px + var(--portal-charge) * 7px);
+  opacity: calc(var(--portal-presence) * 0.12 + var(--portal-centered) * 0.34 + var(--portal-charge) * 0.34);
+  background: rgba(232, 228, 223, calc(0.16 + var(--portal-centered) * 0.24 + var(--portal-charge) * 0.24));
   box-shadow: none;
-  transform: translate(-50%, -50%) scale(calc(0.86 + var(--portal-centered) * 0.08 + var(--portal-charge) * 0.14));
+  transform: translate(-50%, -50%) scale(calc(0.76 + var(--portal-centered) * 0.1 + var(--portal-charge) * 0.18 + var(--portal-pulse) * 0.08));
   transition: width 0.1s linear, height 0.1s linear, opacity 0.1s linear, box-shadow 0.1s linear, transform 0.1s linear;
+  animation: portal-core-pulse 1.9s ease-in-out infinite;
 }
 
 @media (max-width: 767px) {
   .landing__portal {
-    --portal-size: 62px;
+    --portal-size: 38px;
   }
 }
