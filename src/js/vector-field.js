@@ -972,32 +972,23 @@ function initVectorField() {
           ctx.lineWidth = 2.4;
           ctx.stroke();
         }
-      } else {
-        if (portalPresence > 0.004 || portalCharge > 0.01) {
-          var glowPresence = _max(portalPresence, portalCharge * 0.92);
-          var breatheRadius = 2 + glowPresence * 30 + portalCentered * 18 + portalCharge * 24 + portalPulse * 24;
-          var breatheInner = 0.000004 + glowPresence * 0.006 + portalCentered * 0.016 + portalCharge * 0.042 + portalPulse * 0.08;
-          var breatheMid = 0.000002 + glowPresence * 0.002 + portalCentered * 0.005 + portalCharge * 0.014 + portalPulse * 0.028;
-          var coreRadius = 0.4 + glowPresence * 5 + portalCentered * 8 + portalCharge * 12 + portalPulse * 12;
+      } else if (portalPresence > 0.012 || portalCharge > 0.01) {
+        var cuePresence = _max(portalPresence, portalCharge * 0.9);
+        var cueRadius = 4 + cuePresence * 10 + portalCentered * 8 + portalCharge * 10 + portalPulse * 4;
 
-          var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breatheRadius);
-          glowGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + breatheInner + ')');
-          glowGrad.addColorStop(0.52, 'rgba(' + lineColor + ', ' + breatheMid + ')');
-          glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
-          ctx.fillStyle = glowGrad;
-          ctx.fillRect(centerX - breatheRadius, centerY - breatheRadius, breatheRadius * 2, breatheRadius * 2);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, cueRadius, 0, TWO_PI);
+        ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.004 + cuePresence * 0.05 + portalCentered * 0.08 + portalCharge * 0.12) + ')';
+        ctx.lineWidth = 0.9 + portalCharge * 0.7;
+        ctx.stroke();
 
-          var coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreRadius);
-          coreGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + (0.00001 + glowPresence * 0.012 + portalCentered * 0.026 + portalCharge * 0.06 + portalPulse * 0.11) + ')');
-          coreGrad.addColorStop(0.45, 'rgba(' + lineColor + ', ' + (0.000004 + glowPresence * 0.003 + portalCentered * 0.008 + portalCharge * 0.02 + portalPulse * 0.038) + ')');
-          coreGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
-          ctx.fillStyle = coreGrad;
-          ctx.fillRect(centerX - coreRadius, centerY - coreRadius, coreRadius * 2, coreRadius * 2);
-
+        if (portalCentered > 0.03 || portalCharge > 0.01) {
+          var seamHalf = 1 + portalCentered * 4 + portalCharge * 6 + portalPulse * 3;
           ctx.beginPath();
-          ctx.arc(centerX, centerY, 4 + glowPresence * 16 + portalCentered * 12 + portalCharge * 16 + portalPulse * 20, 0, TWO_PI);
-          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.00008 + glowPresence * 0.006 + portalCentered * 0.018 + portalCharge * 0.04 + portalPulse * 0.08) + ')';
-          ctx.lineWidth = 0.8 + portalCentered * 0.45 + portalCharge * 0.8;
+          ctx.moveTo(centerX, centerY - seamHalf);
+          ctx.lineTo(centerX, centerY + seamHalf);
+          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.02 + portalCentered * 0.14 + portalCharge * 0.18) + ')';
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
       }

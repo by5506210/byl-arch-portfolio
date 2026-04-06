@@ -2410,7 +2410,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 }
 
-/* Portal cue override: faint at rest, alive on approach */
+/* Portal cue override: crisp geometry, no glow */
 .landing__portal {
   --portal-presence: 0;
   --portal-centered: 0;
@@ -2419,27 +2419,27 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --portal-sweep-soft: 0deg;
   --portal-sweep-reverse: 0deg;
   --portal-sweep-ring: 0deg;
-  --portal-size: 78px;
-  opacity: calc(0.001 + var(--portal-presence) * 0.86 + var(--portal-pulse) * 0.18 + var(--portal-charge) * 0.18);
+  --portal-size: 68px;
+  opacity: calc(var(--portal-presence) * 0.92 + var(--portal-charge) * 0.12);
   transition: opacity 0.12s linear, transform 0.12s linear;
 }
 
 .landing__portal.is-visible {
-  opacity: calc(0.001 + var(--portal-presence) * 0.9 + var(--portal-pulse) * 0.22 + var(--portal-charge) * 0.2);
+  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.16);
 }
 
 .landing__portal:hover,
 .landing__portal.is-near {
-  transform: translate(-50%, -50%) scale(calc(0.96 + var(--portal-presence) * 0.06 + var(--portal-pulse) * 0.1 + var(--portal-charge) * 0.04));
+  transform: translate(-50%, -50%) scale(calc(0.98 + var(--portal-presence) * 0.04 + var(--portal-charge) * 0.03));
 }
 
 .landing__portal.is-centered {
-  transform: translate(-50%, -50%) scale(calc(0.985 + var(--portal-centered) * 0.05 + var(--portal-pulse) * 0.12 + var(--portal-charge) * 0.06));
+  transform: translate(-50%, -50%) scale(calc(1 + var(--portal-centered) * 0.05 + var(--portal-charge) * 0.06));
 }
 
 .landing__portal.is-charging {
-  opacity: calc(0.04 + var(--portal-presence) * 0.92 + var(--portal-pulse) * 0.24 + var(--portal-charge) * 0.24);
-  transform: translate(-50%, -50%) scale(calc(1 + var(--portal-centered) * 0.06 + var(--portal-pulse) * 0.16 + var(--portal-charge) * 0.1));
+  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.26);
+  transform: translate(-50%, -50%) scale(calc(1.01 + var(--portal-centered) * 0.06 + var(--portal-charge) * 0.1));
 }
 
 .landing__portal-bloom,
@@ -2451,26 +2451,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .landing__portal-bloom {
-  inset: calc(43% - var(--portal-presence) * 14% - var(--portal-centered) * 5% - var(--portal-charge) * 6% - var(--portal-pulse) * 5%);
-  background: radial-gradient(
-    circle,
-    rgba(232, 228, 223, calc(0.002 + var(--portal-presence) * 0.05 + var(--portal-centered) * 0.09 + var(--portal-charge) * 0.14 + var(--portal-pulse) * 0.16)) 0%,
-    rgba(232, 228, 223, calc(var(--portal-presence) * 0.01 + var(--portal-charge) * 0.02 + var(--portal-pulse) * 0.03)) 42%,
-    rgba(232, 228, 223, 0) 78%
-  );
-  filter: blur(calc(3px + var(--portal-presence) * 7px + var(--portal-centered) * 8px + var(--portal-pulse) * 10px + var(--portal-charge) * 14px));
-  opacity: calc(var(--portal-presence) * 0.12 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.26 + var(--portal-pulse) * 0.16);
-  transform: scale(calc(0.56 + var(--portal-presence) * 0.2 + var(--portal-pulse) * 0.18 + var(--portal-charge) * 0.15));
-  transition: inset 0.1s linear, opacity 0.1s linear, filter 0.1s linear, transform 0.1s linear;
+  display: none;
 }
 
 .landing__portal-orbit {
-  width: calc(16px + var(--portal-presence) * 22px + var(--portal-centered) * 10px + var(--portal-pulse) * 12px + var(--portal-charge) * 14px);
-  height: calc(16px + var(--portal-presence) * 22px + var(--portal-centered) * 10px + var(--portal-pulse) * 12px + var(--portal-charge) * 14px);
-  border: 1px solid rgba(232, 228, 223, calc(var(--portal-presence) * 0.1 + var(--portal-centered) * 0.12 + var(--portal-charge) * 0.14 + var(--portal-pulse) * 0.12));
-  opacity: calc(var(--portal-presence) * 0.16 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18 + var(--portal-pulse) * 0.16);
-  box-shadow: 0 0 calc(1px + var(--portal-pulse) * 7px + var(--portal-charge) * 10px) rgba(232, 228, 223, calc(var(--portal-pulse) * 0.08 + var(--portal-charge) * 0.08));
-  transform: translate(-50%, -50%) rotate(var(--portal-sweep)) scale(calc(0.84 + var(--portal-presence) * 0.08 + var(--portal-pulse) * 0.14 + var(--portal-charge) * 0.12));
+  width: calc(14px + var(--portal-presence) * 18px + var(--portal-centered) * 10px + var(--portal-charge) * 14px);
+  height: calc(14px + var(--portal-presence) * 18px + var(--portal-centered) * 10px + var(--portal-charge) * 14px);
+  border: 1px solid rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18));
+  opacity: calc(var(--portal-presence) * 0.2 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.18);
+  box-shadow: none;
+  transform: translate(-50%, -50%) rotate(var(--portal-sweep)) scale(calc(0.88 + var(--portal-presence) * 0.06 + var(--portal-charge) * 0.1));
   transition: opacity 0.1s linear, transform 0.1s linear, box-shadow 0.1s linear, width 0.1s linear, height 0.1s linear;
 }
 
@@ -2484,56 +2474,54 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .landing__portal-orbit::before {
   inset: -1px;
-  border-top-color: rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.16 + var(--portal-pulse) * 0.12));
-  border-right-color: rgba(232, 228, 223, calc(var(--portal-pulse) * 0.08 + var(--portal-charge) * 0.06));
+  border-top-color: rgba(232, 228, 223, calc(var(--portal-presence) * 0.24 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.18));
+  border-right-color: rgba(232, 228, 223, calc(var(--portal-charge) * 0.08));
   transform: rotate(var(--portal-sweep-soft));
 }
 
 .landing__portal-orbit::after {
   inset: calc(6px - var(--portal-presence) * 1px - var(--portal-charge) * 1px - var(--portal-pulse) * 1px);
-  border-left-color: rgba(232, 228, 223, calc(var(--portal-presence) * 0.08 + var(--portal-centered) * 0.14 + var(--portal-charge) * 0.16 + var(--portal-pulse) * 0.12));
-  border-bottom-color: rgba(232, 228, 223, calc(var(--portal-pulse) * 0.05 + var(--portal-charge) * 0.07));
+  border-left-color: rgba(232, 228, 223, calc(var(--portal-presence) * 0.1 + var(--portal-centered) * 0.16 + var(--portal-charge) * 0.18));
+  border-bottom-color: rgba(232, 228, 223, calc(var(--portal-charge) * 0.08));
   transform: rotate(var(--portal-sweep-reverse));
 }
 
 .landing__portal-ring {
-  width: calc(8px + var(--portal-presence) * 14px + var(--portal-centered) * 10px + var(--portal-pulse) * 16px + var(--portal-charge) * 18px);
-  height: calc(8px + var(--portal-presence) * 14px + var(--portal-centered) * 10px + var(--portal-pulse) * 16px + var(--portal-charge) * 18px);
-  opacity: calc(var(--portal-presence) * 0.12 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.22 + var(--portal-pulse) * 0.26);
-  transform: translate(-50%, -50%) rotate(var(--portal-sweep-ring)) scale(calc(0.76 + var(--portal-presence) * 0.08 + var(--portal-pulse) * 0.2 + var(--portal-charge) * 0.14));
+  width: calc(7px + var(--portal-presence) * 12px + var(--portal-centered) * 10px + var(--portal-charge) * 16px);
+  height: calc(7px + var(--portal-presence) * 12px + var(--portal-centered) * 10px + var(--portal-charge) * 16px);
+  opacity: calc(var(--portal-presence) * 0.12 + var(--portal-centered) * 0.22 + var(--portal-charge) * 0.26);
+  transform: translate(-50%, -50%) rotate(var(--portal-sweep-ring)) scale(calc(0.8 + var(--portal-centered) * 0.08 + var(--portal-charge) * 0.16));
   transition: opacity 0.1s linear, transform 0.1s linear, width 0.1s linear, height 0.1s linear;
   background:
     conic-gradient(
       from -90deg,
-      rgba(232, 228, 223, calc(var(--portal-centered) * 0.06 + var(--portal-pulse) * 0.08)) 0deg,
-      rgba(232, 228, 223, calc(var(--portal-centered) * 0.06 + var(--portal-pulse) * 0.08)) 360deg
+      rgba(232, 228, 223, 0) 0deg,
+      rgba(232, 228, 223, 0) 360deg
     ),
     conic-gradient(
       from -90deg,
-      rgba(232, 228, 223, calc(var(--portal-presence) * 0.14 + var(--portal-charge) * 0.16 + var(--portal-pulse) * 0.18)) 0deg,
-      rgba(232, 228, 223, calc(var(--portal-presence) * 0.14 + var(--portal-charge) * 0.16 + var(--portal-pulse) * 0.18)) calc(28deg + var(--portal-centered) * 54deg + var(--portal-pulse) * 140deg + var(--portal-charge) * 190deg),
-      rgba(232, 228, 223, 0) calc(48deg + var(--portal-centered) * 62deg + var(--portal-pulse) * 154deg + var(--portal-charge) * 208deg),
+      rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18)) 0deg,
+      rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18)) calc(24deg + var(--portal-centered) * 42deg + var(--portal-charge) * 180deg),
+      rgba(232, 228, 223, 0) calc(42deg + var(--portal-centered) * 52deg + var(--portal-charge) * 196deg),
       rgba(232, 228, 223, 0) 360deg
     );
   -webkit-mask: radial-gradient(circle, transparent calc(50% - 0.9px), #000 calc(50% - 0.4px), #000 calc(50% + 0.45px + var(--portal-charge) * 0.35px), transparent calc(50% + 1.15px + var(--portal-charge) * 0.5px));
   mask: radial-gradient(circle, transparent calc(50% - 0.9px), #000 calc(50% - 0.4px), #000 calc(50% + 0.45px + var(--portal-charge) * 0.35px), transparent calc(50% + 1.15px + var(--portal-charge) * 0.5px));
-  box-shadow: 0 0 calc(1px + var(--portal-pulse) * 8px + var(--portal-charge) * 12px) rgba(232, 228, 223, calc(var(--portal-pulse) * 0.09 + var(--portal-charge) * 0.08));
+  box-shadow: none;
 }
 
 .landing__portal-core {
-  width: calc(1px + var(--portal-presence) * 2px + var(--portal-centered) * 4px + var(--portal-pulse) * 6px + var(--portal-charge) * 8px);
-  height: calc(1px + var(--portal-presence) * 2px + var(--portal-centered) * 4px + var(--portal-pulse) * 6px + var(--portal-charge) * 8px);
-  opacity: calc(0.02 + var(--portal-presence) * 0.2 + var(--portal-centered) * 0.28 + var(--portal-charge) * 0.24 + var(--portal-pulse) * 0.26);
-  background: radial-gradient(circle, rgba(232, 228, 223, calc(0.06 + var(--portal-presence) * 0.2 + var(--portal-centered) * 0.24 + var(--portal-charge) * 0.18 + var(--portal-pulse) * 0.22)) 0%, rgba(232, 228, 223, calc(var(--portal-presence) * 0.03 + var(--portal-charge) * 0.05 + var(--portal-pulse) * 0.06)) 58%, rgba(232, 228, 223, 0) 100%);
-  box-shadow:
-    0 0 calc(1px + var(--portal-pulse) * 8px + var(--portal-charge) * 10px) rgba(232, 228, 223, calc(var(--portal-centered) * 0.12 + var(--portal-charge) * 0.1 + var(--portal-pulse) * 0.12)),
-    0 0 1px rgba(232, 228, 223, calc(0.08 + var(--portal-pulse) * 0.16 + var(--portal-charge) * 0.12));
-  transform: translate(-50%, -50%) scale(calc(0.7 + var(--portal-centered) * 0.08 + var(--portal-pulse) * 0.18 + var(--portal-charge) * 0.16));
+  width: calc(1px + var(--portal-centered) * 3px + var(--portal-charge) * 6px);
+  height: calc(1px + var(--portal-centered) * 3px + var(--portal-charge) * 6px);
+  opacity: calc(var(--portal-presence) * 0.08 + var(--portal-centered) * 0.3 + var(--portal-charge) * 0.28);
+  background: rgba(232, 228, 223, calc(0.1 + var(--portal-centered) * 0.26 + var(--portal-charge) * 0.24));
+  box-shadow: none;
+  transform: translate(-50%, -50%) scale(calc(0.86 + var(--portal-centered) * 0.08 + var(--portal-charge) * 0.14));
   transition: width 0.1s linear, height 0.1s linear, opacity 0.1s linear, box-shadow 0.1s linear, transform 0.1s linear;
 }
 
 @media (max-width: 767px) {
   .landing__portal {
-    --portal-size: 70px;
+    --portal-size: 62px;
   }
 }
