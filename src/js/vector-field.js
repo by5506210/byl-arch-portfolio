@@ -963,13 +963,13 @@ function initVectorField() {
           ctx.beginPath();
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
           ctx.strokeStyle = 'rgba(244, 242, 236, ' + horizonAlpha + ')';
-          ctx.lineWidth = 14 + landingTransition.progress * 10;
+          ctx.lineWidth = 4 + landingTransition.progress * 8;
           ctx.stroke();
 
           ctx.beginPath();
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
           ctx.strokeStyle = 'rgba(26, 26, 26, ' + (0.05 + landingTransition.progress * 0.08) + ')';
-          ctx.lineWidth = 2.4;
+          ctx.lineWidth = 1.1 + landingTransition.progress * 1.3;
           ctx.stroke();
         }
       } else if (portalPresence > 0.012 || portalCharge > 0.01) {

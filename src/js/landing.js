@@ -290,6 +290,10 @@
     return 1 - inv * inv * inv;
   }
 
+  function shapeRevealRadius(t) {
+    return Math.pow(t, 1.38);
+  }
+
   function finalizeTransition() {
     var nav = document.getElementById('nav');
     var hint = document.getElementById('scroll-hint');
@@ -364,7 +368,7 @@
       if (!startTime) startTime = now;
       var rawProgress = Math.min(1, (now - startTime) / revealDuration);
       var eased = easeReveal(rawProgress);
-      var radius = maxRadius * eased;
+      var radius = maxRadius * shapeRevealRadius(eased);
       var handoffProgress = rawProgress <= handoffStart ? 0 : Math.min(1, (rawProgress - handoffStart) / Math.max(0.001, handoffEnd - handoffStart));
       var hintProgress = rawProgress <= 0.82 ? 0 : Math.min(1, (rawProgress - 0.82) / 0.14);
 
