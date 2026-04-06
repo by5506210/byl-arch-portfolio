@@ -171,7 +171,11 @@ function initVectorField() {
     portal.style.setProperty('--portal-charge', '0');
     portal.style.setProperty('--portal-presence', '0');
     portal.style.setProperty('--portal-centered', '0');
-    portal.style.setProperty('--portal-pulse', '0.01');
+    portal.style.setProperty('--portal-pulse', '0');
+    portal.style.setProperty('--portal-sweep', '0deg');
+    portal.style.setProperty('--portal-sweep-soft', '0deg');
+    portal.style.setProperty('--portal-sweep-reverse', '0deg');
+    portal.style.setProperty('--portal-sweep-ring', '0deg');
   }
 
   function resize() {
@@ -394,14 +398,16 @@ function initVectorField() {
       var portalDist = portalGlowDist;
       var portalCentered = 0;
       var portalPresence = 0;
-      var portalPulse = 0.01;
+      var portalPulse = 0;
+      var portalSweep = 0;
 
       if (isLandingPage && mouseX > 0) {
         var portalDx = mouseX - centerX;
         var portalDy = mouseY - centerY;
         portalDist = _sqrt(portalDx * portalDx + portalDy * portalDy);
         portalProximity = _max(0, 1 - portalDist / portalGlowDist);
-        portalCentered = _max(0, 1 - portalDist / (portalHoldRadius * 1.35));
+        if (portalProximity < 0.035) portalProximity = 0;
+        portalCentered = _max(0, 1 - portalDist / (portalHoldRadius * 1.2));
       }
 
     ctx.clearRect(0, 0, fieldWidth, fieldHeight);
@@ -600,17 +606,31 @@ function initVectorField() {
         portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
       }
 
-      portalPresence = _min(1, portalProximity * portalProximity * 0.94 + portalCentered * 0.24 + portalCharge * 0.68);
-      var portalPulseRate = 1.9 + portalCentered * 3.1 + portalCharge * 4.8;
-      var portalPulseWave = 0.5 + 0.5 * _sin(time * portalPulseRate);
-      portalPulse = 0.008 + portalPulseWave * (0.018 + portalProximity * 0.22 + portalCentered * 0.36 + portalCharge * 0.68);
+      portalPresence = portalProximity > 0
+        ? _min(1, Math.pow(portalProximity, 1.75) * 1.08 + portalCentered * 0.28 + portalCharge * 0.72)
+        : _min(1, portalCharge * 0.72);
 
-      portal.classList.toggle('is-near', portalPresence > 0.04 || portalCharge > 0.01);
-      portal.classList.toggle('is-centered', portalCentered > 0.12 || portalCharge > 0.03);
+      if (portalCentered > 0.02 || portalCharge > 0.01) {
+        var portalPulseRate = 2.2 + portalCentered * 4.2 + portalCharge * 5.8;
+        var portalPulseWave = 0.5 + 0.5 * _sin(time * portalPulseRate);
+        portalPulse = portalPulseWave * (0.12 + portalCentered * 0.38 + portalCharge * 0.54);
+      } else {
+        portalPulse = 0;
+      }
+
+      portalSweep = time * (34 + portalCentered * 90 + portalCharge * 140);
+
+      portal.classList.toggle('is-near', portalProximity > 0.06 || portalCharge > 0.01);
+      portal.classList.toggle('is-centered', portalCentered > 0.08 || portalCharge > 0.03);
       portal.style.setProperty('--portal-proximity', portalProximity.toFixed(3));
       portal.style.setProperty('--portal-presence', portalPresence.toFixed(3));
       portal.style.setProperty('--portal-centered', portalCentered.toFixed(3));
       portal.style.setProperty('--portal-pulse', portalPulse.toFixed(3));
+      var portalSweepDeg = portalSweep * 57.2958;
+      portal.style.setProperty('--portal-sweep', portalSweepDeg.toFixed(2) + 'deg');
+      portal.style.setProperty('--portal-sweep-soft', (portalSweepDeg * 0.62).toFixed(2) + 'deg');
+      portal.style.setProperty('--portal-sweep-reverse', (-portalSweepDeg * 0.88).toFixed(2) + 'deg');
+      portal.style.setProperty('--portal-sweep-ring', (portalSweepDeg * 1.12).toFixed(2) + 'deg');
     }
 
     // Update ripples
@@ -953,29 +973,30 @@ function initVectorField() {
           ctx.stroke();
         }
       } else {
-        var breatheRadius = 4 + portalPresence * 26 + portalCentered * 18 + portalCharge * 38 + portalPulse * 52;
-        var breatheInner = 0.00002 + portalPresence * 0.012 + portalCentered * 0.024 + portalCharge * 0.058 + portalPulse * 0.11;
-        var breatheMid = 0.00001 + portalPresence * 0.004 + portalCentered * 0.009 + portalCharge * 0.022 + portalPulse * 0.036;
-        var coreRadius = 0.6 + portalPresence * 8 + portalCentered * 10 + portalCharge * 17 + portalPulse * 20;
+        if (portalPresence > 0.004 || portalCharge > 0.01) {
+          var glowPresence = _max(portalPresence, portalCharge * 0.92);
+          var breatheRadius = 2 + glowPresence * 30 + portalCentered * 18 + portalCharge * 24 + portalPulse * 24;
+          var breatheInner = 0.000004 + glowPresence * 0.006 + portalCentered * 0.016 + portalCharge * 0.042 + portalPulse * 0.08;
+          var breatheMid = 0.000002 + glowPresence * 0.002 + portalCentered * 0.005 + portalCharge * 0.014 + portalPulse * 0.028;
+          var coreRadius = 0.4 + glowPresence * 5 + portalCentered * 8 + portalCharge * 12 + portalPulse * 12;
 
-        var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breatheRadius);
-        glowGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + breatheInner + ')');
-        glowGrad.addColorStop(0.5, 'rgba(' + lineColor + ', ' + breatheMid + ')');
-        glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
-        ctx.fillStyle = glowGrad;
-        ctx.fillRect(centerX - breatheRadius, centerY - breatheRadius, breatheRadius * 2, breatheRadius * 2);
+          var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breatheRadius);
+          glowGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + breatheInner + ')');
+          glowGrad.addColorStop(0.52, 'rgba(' + lineColor + ', ' + breatheMid + ')');
+          glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
+          ctx.fillStyle = glowGrad;
+          ctx.fillRect(centerX - breatheRadius, centerY - breatheRadius, breatheRadius * 2, breatheRadius * 2);
 
-        var coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreRadius);
-        coreGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + (0.00004 + portalPresence * 0.022 + portalCentered * 0.038 + portalCharge * 0.085 + portalPulse * 0.14) + ')');
-        coreGrad.addColorStop(0.45, 'rgba(' + lineColor + ', ' + (0.00002 + portalPresence * 0.007 + portalCentered * 0.012 + portalCharge * 0.03 + portalPulse * 0.05) + ')');
-        coreGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
-        ctx.fillStyle = coreGrad;
-        ctx.fillRect(centerX - coreRadius, centerY - coreRadius, coreRadius * 2, coreRadius * 2);
+          var coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreRadius);
+          coreGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + (0.00001 + glowPresence * 0.012 + portalCentered * 0.026 + portalCharge * 0.06 + portalPulse * 0.11) + ')');
+          coreGrad.addColorStop(0.45, 'rgba(' + lineColor + ', ' + (0.000004 + glowPresence * 0.003 + portalCentered * 0.008 + portalCharge * 0.02 + portalPulse * 0.038) + ')');
+          coreGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
+          ctx.fillStyle = coreGrad;
+          ctx.fillRect(centerX - coreRadius, centerY - coreRadius, coreRadius * 2, coreRadius * 2);
 
-        if (portalPresence > 0.03 || portalCharge > 0.015 || portalPulse > 0.02) {
           ctx.beginPath();
-          ctx.arc(centerX, centerY, 6 + portalPresence * 18 + portalCentered * 12 + portalCharge * 18 + portalPulse * 30, 0, TWO_PI);
-          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.0006 + portalPresence * 0.012 + portalCentered * 0.026 + portalCharge * 0.065 + portalPulse * 0.11) + ')';
+          ctx.arc(centerX, centerY, 4 + glowPresence * 16 + portalCentered * 12 + portalCharge * 16 + portalPulse * 20, 0, TWO_PI);
+          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.00008 + glowPresence * 0.006 + portalCentered * 0.018 + portalCharge * 0.04 + portalPulse * 0.08) + ')';
           ctx.lineWidth = 0.8 + portalCentered * 0.45 + portalCharge * 0.8;
           ctx.stroke();
         }
