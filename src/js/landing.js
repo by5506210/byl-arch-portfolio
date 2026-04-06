@@ -102,7 +102,7 @@
       (rect.left + rect.width * 0.5) * scaleX,
       (rect.top + rect.height * 0.5) * scaleY,
       isNaN(letterSpacing) ? 0 : letterSpacing * textScale,
-      rect.width * scaleX * 0.98
+        rect.width * scaleX
     );
   }
 
@@ -146,7 +146,7 @@
       for (var x = 0; x < regionW; x += stepX) {
         var idx = (y * regionW + x) * 4 + 3;
         var alpha = image[idx] / 255;
-        if (alpha < 0.22) continue;
+        if (alpha < (options.alphaThreshold || 0.14)) continue;
 
         var gx = left + x;
         var gy = top + y;
@@ -174,7 +174,7 @@
   function buildAssemblyTargets() {
     var width = window.innerWidth;
     var height = window.innerHeight;
-    var sampleScale = width < 768 ? 0.18 : 0.2;
+    var sampleScale = width < 768 ? 0.24 : 0.28;
     var sampleCanvas = document.createElement('canvas');
     var sampleWidth = Math.max(120, Math.round(width * sampleScale));
     var sampleHeight = Math.max(90, Math.round(height * sampleScale));
@@ -189,26 +189,28 @@
         lenMax: 4.2,
         widthMin: 0.28,
         widthMax: 0.56,
-        opacity: 0.74,
-        padX: 10,
-        padY: 8,
-        priorityWeight: 0.9,
-        stepX: 2,
-        stepY: 1
-      }));
+          opacity: 0.74,
+          padX: 10,
+          padY: 8,
+          priorityWeight: 0.9,
+          stepX: 1,
+          stepY: 1,
+          alphaThreshold: 0.16
+        }));
       targets = targets.concat(collectTargetsFromElement(nav.querySelector('.slideshow-nav-bar__logo'), scaleX, scaleY, sampleWidth, sampleHeight, {
         stage: 0.12,
         lenMin: 2.4,
         lenMax: 4.8,
         widthMin: 0.32,
         widthMax: 0.6,
-        opacity: 0.82,
-        padX: 10,
-        padY: 8,
-        priorityWeight: 0.9,
-        stepX: 2,
-        stepY: 1
-      }));
+          opacity: 0.82,
+          padX: 10,
+          padY: 8,
+          priorityWeight: 0.9,
+          stepX: 1,
+          stepY: 1,
+          alphaThreshold: 0.16
+        }));
       var navLinks = nav.querySelectorAll('.slideshow-nav-bar__link');
       Array.prototype.forEach.call(navLinks, function (link) {
         targets = targets.concat(collectTargetsFromElement(link, scaleX, scaleY, sampleWidth, sampleHeight, {
@@ -217,13 +219,14 @@
           lenMax: 3.9,
           widthMin: 0.26,
           widthMax: 0.5,
-          opacity: 0.7,
-          padX: 10,
-          padY: 8,
-          priorityWeight: 0.95,
-          stepX: 2,
-          stepY: 1
-        }));
+            opacity: 0.7,
+            padX: 10,
+            padY: 8,
+            priorityWeight: 0.95,
+            stepX: 1,
+            stepY: 1,
+            alphaThreshold: 0.16
+          }));
       });
     }
 
@@ -237,26 +240,28 @@
       lenMax: 5.2,
       widthMin: 0.3,
       widthMax: 0.65,
-      opacity: 0.86,
-      padX: 12,
-      padY: 10,
-      priorityWeight: 0.8,
-      stepX: 2,
-      stepY: 1
-    }));
+        opacity: 0.86,
+        padX: 12,
+        padY: 10,
+        priorityWeight: 0.8,
+        stepX: 1,
+        stepY: 1,
+        alphaThreshold: 0.12
+      }));
     targets = targets.concat(collectTargetsFromElement(dividerTitle, scaleX, scaleY, sampleWidth, sampleHeight, {
       stage: 0.48,
       lenMin: 2.6,
       lenMax: 6.1,
       widthMin: 0.26,
       widthMax: 0.72,
-      opacity: 0.98,
-      padX: 18,
-      padY: 14,
-      priorityWeight: 0.72,
-      stepX: 1,
-      stepY: 1
-    }));
+        opacity: 0.98,
+        padX: 18,
+        padY: 14,
+        priorityWeight: 0.72,
+        stepX: 1,
+        stepY: 1,
+        alphaThreshold: 0.1
+      }));
 
     var scrollHint = document.querySelector('#scroll-hint span');
     targets = targets.concat(collectTargetsFromElement(scrollHint, scaleX, scaleY, sampleWidth, sampleHeight, {
@@ -265,13 +270,14 @@
       lenMax: 3.1,
       widthMin: 0.18,
       widthMax: 0.34,
-      opacity: 0.52,
-      padX: 8,
-      padY: 8,
-      priorityWeight: 1.15,
-      stepX: 2,
-      stepY: 1
-    }));
+        opacity: 0.52,
+        padX: 8,
+        padY: 8,
+        priorityWeight: 1.15,
+        stepX: 1,
+        stepY: 1,
+        alphaThreshold: 0.12
+      }));
 
     return targets;
   }

@@ -118,11 +118,12 @@ function initVectorField() {
   var startAngle = 0; // all vectors start pointing right
 
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
+  var portalStateLabel = portal ? portal.querySelector('.landing__portal-state') : null;
   var portalVisible = false;
-  var portalRevealDist = 160;
+  var portalRevealDist = 178;
   var portalCharge = 0;
-  var portalChargeDuration = 0.9;
-  var portalHoldRadius = 85;
+  var portalChargeDuration = 1.02;
+  var portalHoldRadius = 96;
   var portalHoldTriggered = false;
 
   var easterEggX = 0;
@@ -158,6 +159,25 @@ function initVectorField() {
 
   canvas.style.pointerEvents = 'none';
 
+  function updatePortalStateLabel() {
+    if (!portalStateLabel) return;
+    if (portalHoldTriggered) {
+      portalStateLabel.textContent = 'OPENING';
+      return;
+    }
+    if (isMobile) {
+      if (portalCharge > 0.82) {
+        portalStateLabel.textContent = 'ENTERING';
+      } else if (portalCharge > 0.04) {
+        portalStateLabel.textContent = 'ALIGNING FIELD';
+      } else {
+        portalStateLabel.textContent = 'HOLD TO ENTER';
+      }
+      return;
+    }
+    portalStateLabel.textContent = portalVisible ? 'CLICK TO ENTER' : 'APPROACH CENTER';
+  }
+
   function resize() {
     var parent = canvas.parentElement;
     fieldWidth = window.innerWidth;
@@ -182,6 +202,7 @@ function initVectorField() {
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
     buildGrid();
+    updatePortalStateLabel();
   }
 
   function buildGrid() {
@@ -282,19 +303,19 @@ function initVectorField() {
       var cell = usage % 9;
       var offsetCol = (cell % 3) - 1;
       var offsetRow = ((cell / 3) | 0) - 1;
-      var offsetScale = spacing * (0.12 + ring * 0.075);
-      var offsetX = offsetCol * offsetScale;
-      var offsetY = offsetRow * offsetScale * 0.72;
-      var clusterFade = usage === 0 ? 1 : _max(0.22, 0.78 - ring * 0.1 - (_abs(offsetCol) + _abs(offsetRow)) * 0.08);
+      var offsetScale = spacing * (0.055 + ring * 0.03);
+      var offsetX = offsetCol * offsetScale * 0.82;
+      var offsetY = offsetRow * offsetScale * 0.46;
+      var clusterFade = usage === 0 ? 1 : _max(0.1, 0.32 - ring * 0.04 - (_abs(offsetCol) + _abs(offsetRow)) * 0.035);
       p.assembleFromX = p.x;
       p.assembleFromY = p.y;
       p.assembleFromAngle = p.currentAngle;
       p.assembleToX = target.x + offsetX;
       p.assembleToY = target.y + offsetY;
       p.assembleToAngle = target.angle;
-      p.assembleOpacity = _min(1, _max(0.18, target.opacity * clusterFade));
-      p.assembleLen = target.len * (usage === 0 ? 1 : _max(0.6, 0.9 - ring * 0.06));
-      p.assembleWidth = target.width * (usage === 0 ? 1 : _max(0.55, 0.82 - ring * 0.05));
+      p.assembleOpacity = _min(1, _max(0.08, target.opacity * clusterFade));
+      p.assembleLen = target.len * (usage === 0 ? 1.02 : _max(0.36, 0.52 - ring * 0.035));
+      p.assembleWidth = target.width * (usage === 0 ? 1 : _max(0.22, 0.34 - ring * 0.025));
       p.assembleOrder = i / _max(1, sortedParticles.length - 1);
     }
 
@@ -498,6 +519,7 @@ function initVectorField() {
         portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
         if (portalCharge >= 1 && typeof window.triggerLandingTransition === 'function') {
           portalHoldTriggered = true;
+          updatePortalStateLabel();
           window.triggerLandingTransition();
         }
       } else {
@@ -508,6 +530,8 @@ function initVectorField() {
         }
         portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
       }
+
+      updatePortalStateLabel();
     }
 
     // Update ripples
