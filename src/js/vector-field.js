@@ -125,8 +125,8 @@ function initVectorField() {
   var startAngle = 0; // all vectors start pointing right
 
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
-  var portalVisible = false;
   var portalRevealDist = 178;
+  var portalGlowDist = 260;
   var portalCharge = 0;
   var portalChargeDuration = 1.02;
   var portalHoldRadius = 96;
@@ -164,6 +164,12 @@ function initVectorField() {
   var gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
 
   canvas.style.pointerEvents = 'none';
+
+  if (portal) {
+    portal.classList.add('is-visible');
+    portal.style.setProperty('--portal-proximity', '0');
+    portal.style.setProperty('--portal-charge', '0');
+  }
 
   function resize() {
     var parent = canvas.parentElement;
@@ -381,23 +387,39 @@ function initVectorField() {
     var revealActive = isLandingPage && landingTransition.active && landingTransition.radius > 0;
     var revealRadius = revealActive ? landingTransition.radius : 0;
     var revealRadiusSq = revealRadius * revealRadius;
+    var portalProximity = 0;
+    var portalDist = portalGlowDist;
+
+    if (isLandingPage && mouseX > 0) {
+      var portalDx = mouseX - centerX;
+      var portalDy = mouseY - centerY;
+      portalDist = _sqrt(portalDx * portalDx + portalDy * portalDy);
+      portalProximity = _max(0, 1 - portalDist / portalGlowDist);
+    }
 
     ctx.clearRect(0, 0, fieldWidth, fieldHeight);
 
     if (assembleState && assembleState.active) {
       var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
       var a1 = 1 - assembleProgress;
-      var assembleEase = 1 - a1 * a1 * a1 * a1;
       var meltProgress = assembleProgress < 0.78 ? 0 : ((assembleProgress - 0.78) / 0.22);
       var ASSEMBLE_BUCKETS = 50;
       var assembleLines = new Array(ASSEMBLE_BUCKETS);
       var assembleWidthSums = new Array(ASSEMBLE_BUCKETS);
       var assembleCounts = new Array(ASSEMBLE_BUCKETS);
+      var assembleLinesDark = revealActive ? new Array(ASSEMBLE_BUCKETS) : null;
+      var assembleWidthSumsDark = revealActive ? new Array(ASSEMBLE_BUCKETS) : null;
+      var assembleCountsDark = revealActive ? new Array(ASSEMBLE_BUCKETS) : null;
 
       for (var ab = 0; ab < ASSEMBLE_BUCKETS; ab++) {
         assembleLines[ab] = [];
         assembleWidthSums[ab] = 0;
         assembleCounts[ab] = 0;
+        if (revealActive) {
+          assembleLinesDark[ab] = [];
+          assembleWidthSumsDark[ab] = 0;
+          assembleCountsDark[ab] = 0;
+        }
       }
 
       var assembleCount = assembleState.sortedParticles.length;
@@ -416,11 +438,24 @@ function initVectorField() {
         var drawLenAssemble = (lineLen * alc[3]) * (1 - localEase) + ap.assembleLen * localEase;
         var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.52) * (1 - localEase) + ap.assembleOpacity * localEase;
         var widthScaleAssemble = (0.55 + alc[1] * 0.4) * (1 - localEase) + ap.assembleWidth * localEase;
+        var revealEdgeBoost = 0;
 
         var travelBoost = 0.32 + travelPresence * 0.48;
         drawOpacityAssemble = _min(1, drawOpacityAssemble + travelBoost);
         drawLenAssemble *= 1 + travelPresence * 0.22;
         widthScaleAssemble *= 1 + travelPresence * 0.34;
+
+        if (revealActive) {
+          var assembleDxCenter = centerX - drawX;
+          var assembleDyCenter = centerY - drawY;
+          var assembleDistCenter = _sqrt(assembleDxCenter * assembleDxCenter + assembleDyCenter * assembleDyCenter);
+          revealEdgeBoost = _max(0, 1 - _abs(assembleDistCenter - revealRadius) / 120);
+          if (revealEdgeBoost > 0) {
+            drawOpacityAssemble = _min(1, drawOpacityAssemble + revealEdgeBoost * 0.12);
+            drawLenAssemble *= 1 + revealEdgeBoost * 0.12;
+            widthScaleAssemble *= 1 + revealEdgeBoost * 0.12;
+          }
+        }
 
         if (meltProgress > 0 && localProgress > 0.02) {
           var localMelt = _min(1, meltProgress * (0.55 + localProgress * 0.25));
@@ -438,30 +473,33 @@ function initVectorField() {
         var lineWidthAssemble = (lineWidth * alc[1]) * (0.65 + angleFactorAssemble * 0.55) * widthScaleAssemble;
         var clampedAssembleOpacity = drawOpacityAssemble < 0 ? 0 : (drawOpacityAssemble > 1 ? 1 : drawOpacityAssemble);
         var assembleBucketIdx = (clampedAssembleOpacity * (ASSEMBLE_BUCKETS - 1) + 0.5) | 0;
-        var assembleBucket = assembleLines[assembleBucketIdx];
+        var insideReveal = revealActive && ((centerX - drawX) * (centerX - drawX) + (centerY - drawY) * (centerY - drawY)) <= revealRadiusSq;
+        var assembleBucket = insideReveal ? assembleLinesDark[assembleBucketIdx] : assembleLines[assembleBucketIdx];
         assembleBucket.push(
           drawX - cosAssemble * halfLenAssemble,
           drawY - sinAssemble * halfLenAssemble,
           drawX + cosAssemble * halfLenAssemble,
           drawY + sinAssemble * halfLenAssemble
         );
-        assembleWidthSums[assembleBucketIdx] += lineWidthAssemble;
-        assembleCounts[assembleBucketIdx]++;
+        if (insideReveal) {
+          assembleWidthSumsDark[assembleBucketIdx] += lineWidthAssemble;
+          assembleCountsDark[assembleBucketIdx]++;
+        } else {
+          assembleWidthSums[assembleBucketIdx] += lineWidthAssemble;
+          assembleCounts[assembleBucketIdx]++;
+        }
       }
 
-      var assemblePrefix = 'rgba(' + lineColor + ', ';
-      for (var ak = 0; ak < ASSEMBLE_BUCKETS; ak++) {
-        var aLines = assembleLines[ak];
-        var aCount = assembleCounts[ak];
-        if (aCount === 0) continue;
-        ctx.strokeStyle = assemblePrefix + (ak / (ASSEMBLE_BUCKETS - 1)) + ')';
-        ctx.lineWidth = assembleWidthSums[ak] / aCount;
-        ctx.beginPath();
-        for (var aj = 0; aj < aLines.length; aj += 4) {
-          ctx.moveTo(aLines[aj], aLines[aj + 1]);
-          ctx.lineTo(aLines[aj + 2], aLines[aj + 3]);
+      strokeBuckets(assembleLines, assembleWidthSums, assembleCounts, revealActive ? lightLineColor : lineColor);
+      if (revealActive) {
+        strokeBuckets(assembleLinesDark, assembleWidthSumsDark, assembleCountsDark, darkLineColor);
+        if (revealRadius > 2) {
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
+          ctx.strokeStyle = 'rgba(244, 242, 236, ' + _min(0.34, 0.08 + landingTransition.progress * 0.18) + ')';
+          ctx.lineWidth = 14 + landingTransition.progress * 10;
+          ctx.stroke();
         }
-        ctx.stroke();
       }
 
       requestAnimationFrame(animate);
@@ -524,9 +562,12 @@ function initVectorField() {
       var dyP = mouseY - centerY;
       var distToCenterSq = dxP * dxP + dyP * dyP;
       var fingerInHoldZone = isMobile && mouseX > 0 && distToCenterSq < portalHoldRadius * portalHoldRadius;
+      var portalNear = mouseX > 0 && distToCenterSq < portalRevealDist * portalRevealDist;
 
-      if (distToCenterSq < portalRevealDist * portalRevealDist && mouseX > 0) {
-        if (!portalVisible) { portal.classList.add('is-visible'); portalVisible = true; }
+      portal.classList.toggle('is-near', portalProximity > 0.08 || portalCharge > 0.001);
+      portal.style.setProperty('--portal-proximity', portalProximity.toFixed(3));
+
+      if (portalNear) {
         if (!wasNearPortal) {
           spawnRipple();
           wasNearPortal = true;
@@ -535,7 +576,6 @@ function initVectorField() {
           spawnRipple();
         }
       } else {
-        if (portalVisible) { portal.classList.remove('is-visible'); portalVisible = false; }
         wasNearPortal = false;
       }
 
@@ -897,10 +937,12 @@ function initVectorField() {
           ctx.stroke();
         }
       } else {
-        var breathe = 0.5 + 0.5 * _sin(time * 1.6); // synced to main wave speed
-        var breatheRadius = 120 + breathe * 30;
-        var breatheInner = 0.07 + breathe * 0.05;
-        var breatheMid = 0.025 + breathe * 0.02;
+        var pulseRate = 1.55 + portalProximity * 1.4 + portalCharge * 3.2;
+        var breathe = 0.5 + 0.5 * _sin(time * pulseRate);
+        var breatheRadius = 82 + portalProximity * 36 + portalCharge * 54 + breathe * (10 + portalCharge * 28);
+        var breatheInner = 0.012 + portalProximity * 0.055 + portalCharge * 0.13 + breathe * (0.008 + portalCharge * 0.05);
+        var breatheMid = 0.004 + portalProximity * 0.022 + portalCharge * 0.06 + breathe * (0.004 + portalCharge * 0.02);
+        var coreRadius = 16 + portalProximity * 10 + portalCharge * 22 + breathe * (3 + portalCharge * 10);
 
         var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breatheRadius);
         glowGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + breatheInner + ')');
@@ -908,6 +950,21 @@ function initVectorField() {
         glowGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
         ctx.fillStyle = glowGrad;
         ctx.fillRect(centerX - breatheRadius, centerY - breatheRadius, breatheRadius * 2, breatheRadius * 2);
+
+        var coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreRadius);
+        coreGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + (0.012 + portalProximity * 0.06 + portalCharge * 0.18) + ')');
+        coreGrad.addColorStop(0.45, 'rgba(' + lineColor + ', ' + (0.006 + portalProximity * 0.025 + portalCharge * 0.08) + ')');
+        coreGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
+        ctx.fillStyle = coreGrad;
+        ctx.fillRect(centerX - coreRadius, centerY - coreRadius, coreRadius * 2, coreRadius * 2);
+
+        if (portalProximity > 0.04 || portalCharge > 0.02) {
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, 24 + portalProximity * 10 + portalCharge * 16 + breathe * (4 + portalCharge * 8), 0, TWO_PI);
+          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.015 + portalProximity * 0.05 + portalCharge * 0.12) + ')';
+          ctx.lineWidth = 1.2 + portalCharge * 0.8;
+          ctx.stroke();
+        }
       }
 
       var dxEEm = mouseX - easterEggX;
