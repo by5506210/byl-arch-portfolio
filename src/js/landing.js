@@ -326,7 +326,7 @@
         underlayHint.style.transition = 'opacity 0.38s ease';
         underlayHint.style.opacity = '0.46';
       }
-    }, 180);
+    }, 260);
 
     setTimeout(function () {
       var cursorEl = document.querySelector('.cursor');
@@ -357,7 +357,7 @@
         hint.style.transition = 'opacity 0.7s';
         hint.style.opacity = '1';
       }
-    }, 1280);
+    }, 1160);
   }
 
   window.triggerLandingTransition = triggerTransition;

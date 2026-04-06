@@ -133,10 +133,11 @@ img {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--concrete);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(244, 242, 236, 0.9) 0%, rgba(244, 242, 236, 0.72) 22%, rgba(244, 242, 236, 1) 100%);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.7s ease;
+  transition: opacity 0.82s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .landing__vector-field {
@@ -354,24 +355,24 @@ img {
 }
 
 .landing--transitioning::after {
-  opacity: 0.18;
+  opacity: 0.1;
 }
 
 .landing--completing {
   opacity: 0;
-  transition: opacity 0.58s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.82s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .landing--completing::after {
   opacity: 1;
-  transition: opacity 0.58s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.82s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .landing--transitioning .landing__vector-field {
   filter: none;
   transform: scale(1.005);
-  opacity: 0.7;
-  transition: transform 0.55s ease, opacity 0.55s ease;
+  opacity: 0.5;
+  transition: transform 0.72s ease, opacity 0.72s ease;
 }
 
 .landing__field-morph {
@@ -433,23 +434,23 @@ img {
 }
 
 .site--morphing {
-  opacity: 0.08;
-  transform: scale(1.008);
+  opacity: 0;
+  transform: scale(1.006);
   filter: blur(0);
 }
 
 .site--morphing.site--morphing-underlay {
-  opacity: 1;
+  opacity: 0.96;
   transform: scale(1.001);
   filter: blur(0);
-  transition: opacity 0.65s ease, transform 0.65s ease, filter 0.65s ease;
+  transition: opacity 0.82s cubic-bezier(0.22, 1, 0.36, 1), transform 0.82s cubic-bezier(0.22, 1, 0.36, 1), filter 0.82s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .site--morphing-active {
   opacity: 1;
   transform: scale(1);
   filter: blur(0);
-  transition: opacity 0.72s ease, transform 0.72s ease, filter 0.72s ease;
+  transition: opacity 0.82s cubic-bezier(0.22, 1, 0.36, 1), transform 0.82s cubic-bezier(0.22, 1, 0.36, 1), filter 0.82s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body.portfolio-transition-active .slideshow__divider-label,
