@@ -2410,7 +2410,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 }
 
-/* Portal cue override: crisp geometry, no glow */
+/* Portal hit zone only: keep interaction, remove visible center cue */
 .landing__portal {
   --portal-presence: 0;
   --portal-centered: 0;
@@ -2419,13 +2419,13 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --portal-sweep-soft: 0deg;
   --portal-sweep-reverse: 0deg;
   --portal-sweep-ring: 0deg;
-  --portal-size: 68px;
-  opacity: calc(var(--portal-presence) * 0.92 + var(--portal-charge) * 0.12);
-  transition: opacity 0.12s linear, transform 0.12s linear;
+  --portal-size: 96px;
+  opacity: 0 !important;
+  transition: transform 0.12s linear;
 }
 
 .landing__portal.is-visible {
-  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.16);
+  opacity: 0 !important;
 }
 
 .landing__portal:hover,
@@ -2438,7 +2438,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .landing__portal.is-charging {
-  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.26);
+  opacity: 0 !important;
   transform: translate(-50%, -50%) scale(calc(1.01 + var(--portal-centered) * 0.06 + var(--portal-charge) * 0.1));
 }
 
@@ -2446,12 +2446,9 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .landing__portal-orbit,
 .landing__portal-ring,
 .landing__portal-core {
+  display: none !important;
   animation: none;
   will-change: transform, opacity;
-}
-
-.landing__portal-bloom {
-  display: none;
 }
 
 .landing__portal-orbit {

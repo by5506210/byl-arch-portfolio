@@ -955,7 +955,7 @@ function initVectorField() {
       }
     }
 
-    // --- PORTAL BREATHING GLOW (synced to waves) ---
+    // --- PORTAL REVEAL EDGE ---
     if (isLandingPage) {
       if (revealActive) {
         var horizonAlpha = _min(0.34, 0.08 + landingTransition.progress * 0.18);
@@ -970,25 +970,6 @@ function initVectorField() {
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
           ctx.strokeStyle = 'rgba(26, 26, 26, ' + (0.05 + landingTransition.progress * 0.08) + ')';
           ctx.lineWidth = 2.4;
-          ctx.stroke();
-        }
-      } else if (portalPresence > 0.012 || portalCharge > 0.01) {
-        var cuePresence = _max(portalPresence, portalCharge * 0.9);
-        var cueRadius = 4 + cuePresence * 10 + portalCentered * 8 + portalCharge * 10 + portalPulse * 4;
-
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, cueRadius, 0, TWO_PI);
-        ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.004 + cuePresence * 0.05 + portalCentered * 0.08 + portalCharge * 0.12) + ')';
-        ctx.lineWidth = 0.9 + portalCharge * 0.7;
-        ctx.stroke();
-
-        if (portalCentered > 0.03 || portalCharge > 0.01) {
-          var seamHalf = 1 + portalCentered * 4 + portalCharge * 6 + portalPulse * 3;
-          ctx.beginPath();
-          ctx.moveTo(centerX, centerY - seamHalf);
-          ctx.lineTo(centerX, centerY + seamHalf);
-          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.02 + portalCentered * 0.14 + portalCharge * 0.18) + ')';
-          ctx.lineWidth = 1;
           ctx.stroke();
         }
       }
