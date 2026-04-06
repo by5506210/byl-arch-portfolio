@@ -92,13 +92,13 @@ function initVectorField() {
   var lineColor = isDarkLines ? '26, 26, 26' : '232, 228, 223';
 
   var isContentPage = !isLandingPage;
-  var opacityScale = isContentPage ? 0.5 : 1.0;
+  var opacityScale = isContentPage ? 0.18 : 1.0;
 
   var isMobile = window.innerWidth < 768;
 
   var spacing = isMobile ? 16 : 24;
-  var lineLen = isContentPage ? 12 : (isMobile ? 11 : 16);
-  var lineWidth = isContentPage ? 1 : (isMobile ? 1.2 : 1.7);
+  var lineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
+  var lineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
   var mouseInfluence = 220;
   var returnSpeed = 0.08;
   var followSpeed = 0.25;
@@ -177,8 +177,8 @@ function initVectorField() {
     easterEggY = isLandingPage ? fieldHeight * 0.78 : window.innerHeight * 0.78;
     isMobile = fieldWidth < 768;
     spacing = isMobile ? 16 : 24;
-    lineLen = isContentPage ? 12 : (isMobile ? 11 : 16);
-    lineWidth = isContentPage ? 1 : (isMobile ? 1.2 : 1.7);
+    lineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
+    lineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
     buildGrid();

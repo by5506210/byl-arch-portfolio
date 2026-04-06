@@ -74,8 +74,7 @@ function initSlideshow() {
 
   // Precompute which slides are dark (divider or about)
   var slideDark = slides.map(function (slide) {
-    return slide.classList.contains('slideshow__slide--divider') ||
-           slide.classList.contains('slideshow__slide--about');
+    return false;
   });
 
   // Cache nav element
@@ -92,7 +91,7 @@ function initSlideshow() {
     // Don't override background on divider or about slides (they use CSS black)
     if (!slide.classList.contains('slideshow__slide--divider') &&
         !slide.classList.contains('slideshow__slide--about')) {
-      slide.style.background = '#e8e4df';
+      slide.style.background = '#f4f2ec';
     }
     slide.style.zIndex = String(i + 1);
     slide.style.willChange = 'transform';
