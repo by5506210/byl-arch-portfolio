@@ -26,23 +26,8 @@
       var pullX = mouseX;
       var pullY = mouseY;
 
-      // Black hole pull toward portal center on landing page
       if (isLanding && isLanding.style.display !== 'none') {
-        var cx = window.innerWidth / 2;
-        var cy = window.innerHeight / 2;
-        var dx = cx - mouseX;
-        var dy = cy - mouseY;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        var pullRadius = 250;
-
-        if (dist < pullRadius && dist > 3) {
-          var strength = (1 - dist / pullRadius);
-          strength = strength * strength * 0.45;
-          pullX = mouseX + dx * strength;
-          pullY = mouseY + dy * strength;
-        }
-
-        // Instant follow on landing
+        // Keep the landing cursor neutral so nothing visually locks to center.
         cursorX = pullX;
         cursorY = pullY;
       } else {
