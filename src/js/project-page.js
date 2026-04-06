@@ -13,6 +13,54 @@ function rememberPageForBackNav() {
   sessionStorage.setItem('bylCurrentPage', current);
 }
 
+function initGalleryLayout() {
+  var images = document.querySelectorAll('.project-gallery__image');
+  if (images.length === 0) return;
+
+  images.forEach(function (item, index) {
+    var img = item.querySelector('img');
+    if (!img) return;
+
+    var existingIndex = item.querySelector('.project-gallery__index');
+    var paddedIndex = String(index + 1).padStart(2, '0');
+
+    if (!existingIndex) {
+      var indexEl = document.createElement('div');
+      indexEl.className = 'project-gallery__index';
+      paddedIndex.split('').forEach(function (digit) {
+        var digitEl = document.createElement('span');
+        digitEl.textContent = digit;
+        indexEl.appendChild(digitEl);
+      });
+      item.insertBefore(indexEl, img);
+    }
+
+    function applyOrientation() {
+      if (!img.naturalWidth || !img.naturalHeight) return;
+      var ratio = img.naturalWidth / img.naturalHeight;
+      item.classList.remove(
+        'project-gallery__image--landscape',
+        'project-gallery__image--portrait',
+        'project-gallery__image--square'
+      );
+
+      if (ratio >= 1.1) {
+        item.classList.add('project-gallery__image--landscape');
+      } else if (ratio <= 0.9) {
+        item.classList.add('project-gallery__image--portrait');
+      } else {
+        item.classList.add('project-gallery__image--square');
+      }
+    }
+
+    if (img.complete) {
+      applyOrientation();
+    } else {
+      img.addEventListener('load', applyOrientation, { once: true });
+    }
+  });
+}
+
 // Gallery reveal with stagger
 function initGalleryReveals() {
   var images = document.querySelectorAll('.project-gallery__image');
@@ -400,6 +448,7 @@ function initProjectPage() {
   var oldBar = document.querySelector('.project-nav-bar');
   if (oldBar) oldBar.remove();
 
+  initGalleryLayout();
   initGalleryReveals();
   initParallaxHero();
   initNavBar();

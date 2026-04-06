@@ -19,7 +19,7 @@
   // Skip landing if returning from a project page
   if (window.location.hash === '#portfolio') {
     landing.style.display = 'none';
-    document.body.style.background = '#e8e4df';
+    document.body.style.background = '#f4f2ec';
     var site = document.getElementById('site');
     site.style.display = 'block';
     var nav = document.querySelector('#nav');
@@ -293,7 +293,7 @@
       portal.classList.add('landing__portal--handoff');
     }
 
-    document.body.style.background = '#e8e4df';
+      document.body.style.background = '#f4f2ec';
     var site = document.getElementById('site');
     site.style.display = 'block';
     site.classList.add('site--morphing');
@@ -341,10 +341,10 @@
         setTimeout(function () {
           landing.style.display = 'none';
           document.body.style.overflow = '';
-          document.body.style.background = '#0a0a0a';
+          document.body.style.background = '#f4f2ec';
           document.body.classList.remove('portfolio-transition-active');
           landing.classList.remove('landing--completing');
-        }, 280);
+        }, 640);
       });
 
       if (nav) {
