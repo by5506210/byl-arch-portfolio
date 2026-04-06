@@ -2410,49 +2410,118 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 }
 
-/* Portal cue override: invisible hit zone only */
+/* Portal cue override: crisp geometry, no glow */
 .landing__portal {
-  width: 120px !important;
-  height: 120px !important;
-  opacity: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: translate(-50%, -50%) !important;
-  transition: none !important;
+  --portal-presence: 0;
+  --portal-centered: 0;
+  --portal-pulse: 0;
+  --portal-sweep: 0deg;
+  --portal-sweep-soft: 0deg;
+  --portal-sweep-reverse: 0deg;
+  --portal-sweep-ring: 0deg;
+  --portal-size: 68px;
+  opacity: calc(var(--portal-presence) * 0.92 + var(--portal-charge) * 0.12);
+  transition: opacity 0.12s linear, transform 0.12s linear;
 }
 
 .landing__portal.is-visible {
-  opacity: 0 !important;
+  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.16);
 }
 
 .landing__portal:hover,
 .landing__portal.is-near {
-  opacity: 0 !important;
-  transform: translate(-50%, -50%) !important;
+  transform: translate(-50%, -50%) scale(calc(0.98 + var(--portal-presence) * 0.04 + var(--portal-charge) * 0.03));
 }
 
 .landing__portal.is-centered {
-  opacity: 0 !important;
-  transform: translate(-50%, -50%) !important;
+  transform: translate(-50%, -50%) scale(calc(1 + var(--portal-centered) * 0.05 + var(--portal-charge) * 0.06));
 }
 
 .landing__portal.is-charging {
-  opacity: 0 !important;
-  transform: translate(-50%, -50%) !important;
+  opacity: calc(var(--portal-presence) * 0.96 + var(--portal-charge) * 0.26);
+  transform: translate(-50%, -50%) scale(calc(1.01 + var(--portal-centered) * 0.06 + var(--portal-charge) * 0.1));
 }
 
 .landing__portal-bloom,
 .landing__portal-orbit,
 .landing__portal-ring,
 .landing__portal-core {
-  display: none !important;
+  animation: none;
+  will-change: transform, opacity;
+}
+
+.landing__portal-bloom {
+  display: none;
+}
+
+.landing__portal-orbit {
+  width: calc(14px + var(--portal-presence) * 18px + var(--portal-centered) * 10px + var(--portal-charge) * 14px);
+  height: calc(14px + var(--portal-presence) * 18px + var(--portal-centered) * 10px + var(--portal-charge) * 14px);
+  border: 1px solid rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18));
+  opacity: calc(var(--portal-presence) * 0.2 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.18);
+  box-shadow: none;
+  transform: translate(-50%, -50%) rotate(var(--portal-sweep)) scale(calc(0.88 + var(--portal-presence) * 0.06 + var(--portal-charge) * 0.1));
+  transition: opacity 0.1s linear, transform 0.1s linear, box-shadow 0.1s linear, width 0.1s linear, height 0.1s linear;
+}
+
+.landing__portal-orbit::before,
+.landing__portal-orbit::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid transparent;
+}
+
+.landing__portal-orbit::before {
+  inset: -1px;
+  border-top-color: rgba(232, 228, 223, calc(var(--portal-presence) * 0.24 + var(--portal-centered) * 0.2 + var(--portal-charge) * 0.18));
+  border-right-color: rgba(232, 228, 223, calc(var(--portal-charge) * 0.08));
+  transform: rotate(var(--portal-sweep-soft));
+}
+
+.landing__portal-orbit::after {
+  inset: calc(6px - var(--portal-presence) * 1px - var(--portal-charge) * 1px - var(--portal-pulse) * 1px);
+  border-left-color: rgba(232, 228, 223, calc(var(--portal-presence) * 0.1 + var(--portal-centered) * 0.16 + var(--portal-charge) * 0.18));
+  border-bottom-color: rgba(232, 228, 223, calc(var(--portal-charge) * 0.08));
+  transform: rotate(var(--portal-sweep-reverse));
+}
+
+.landing__portal-ring {
+  width: calc(7px + var(--portal-presence) * 12px + var(--portal-centered) * 10px + var(--portal-charge) * 16px);
+  height: calc(7px + var(--portal-presence) * 12px + var(--portal-centered) * 10px + var(--portal-charge) * 16px);
+  opacity: calc(var(--portal-presence) * 0.12 + var(--portal-centered) * 0.22 + var(--portal-charge) * 0.26);
+  transform: translate(-50%, -50%) rotate(var(--portal-sweep-ring)) scale(calc(0.8 + var(--portal-centered) * 0.08 + var(--portal-charge) * 0.16));
+  transition: opacity 0.1s linear, transform 0.1s linear, width 0.1s linear, height 0.1s linear;
+  background:
+    conic-gradient(
+      from -90deg,
+      rgba(232, 228, 223, 0) 0deg,
+      rgba(232, 228, 223, 0) 360deg
+    ),
+    conic-gradient(
+      from -90deg,
+      rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18)) 0deg,
+      rgba(232, 228, 223, calc(var(--portal-presence) * 0.18 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.18)) calc(24deg + var(--portal-centered) * 42deg + var(--portal-charge) * 180deg),
+      rgba(232, 228, 223, 0) calc(42deg + var(--portal-centered) * 52deg + var(--portal-charge) * 196deg),
+      rgba(232, 228, 223, 0) 360deg
+    );
+  -webkit-mask: radial-gradient(circle, transparent calc(50% - 0.9px), #000 calc(50% - 0.4px), #000 calc(50% + 0.45px + var(--portal-charge) * 0.35px), transparent calc(50% + 1.15px + var(--portal-charge) * 0.5px));
+  mask: radial-gradient(circle, transparent calc(50% - 0.9px), #000 calc(50% - 0.4px), #000 calc(50% + 0.45px + var(--portal-charge) * 0.35px), transparent calc(50% + 1.15px + var(--portal-charge) * 0.5px));
+  box-shadow: none;
+}
+
+.landing__portal-core {
+  width: calc(1px + var(--portal-centered) * 3px + var(--portal-charge) * 6px);
+  height: calc(1px + var(--portal-centered) * 3px + var(--portal-charge) * 6px);
+  opacity: calc(var(--portal-presence) * 0.08 + var(--portal-centered) * 0.3 + var(--portal-charge) * 0.28);
+  background: rgba(232, 228, 223, calc(0.1 + var(--portal-centered) * 0.26 + var(--portal-charge) * 0.24));
+  box-shadow: none;
+  transform: translate(-50%, -50%) scale(calc(0.86 + var(--portal-centered) * 0.08 + var(--portal-charge) * 0.14));
+  transition: width 0.1s linear, height 0.1s linear, opacity 0.1s linear, box-shadow 0.1s linear, transform 0.1s linear;
 }
 
 @media (max-width: 767px) {
   .landing__portal {
-    width: 104px !important;
-    height: 104px !important;
+    --portal-size: 62px;
   }
 }
