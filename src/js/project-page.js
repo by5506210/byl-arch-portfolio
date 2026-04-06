@@ -394,12 +394,134 @@ function initFilmstrip() {
   updateControls();
 }
 
+function initProjectsIndexPreview() {
+  var index = document.querySelector('.projects-index');
+  if (!index) return;
+  if (index.dataset.previewInit === 'true') return;
+  index.dataset.previewInit = 'true';
+
+  var layout = index.querySelector('.projects-index__layout');
+  var preview = index.querySelector('.projects-preview');
+  var screen = preview && preview.querySelector('.projects-preview__screen');
+  var image = preview && preview.querySelector('.projects-preview__image');
+  var title = preview && preview.querySelector('.projects-preview__meta-title');
+  var cards = Array.prototype.slice.call(index.querySelectorAll('.projects-index__card:not(.projects-index__card--coming-soon)'));
+  if (!layout || !preview || !screen || !image || !title || cards.length === 0) return;
+
+  var activeCard = null;
+  var beamTimer = null;
+  var clearTimer = null;
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function setProjectionOrigin(card) {
+    var cardFrame = card.querySelector('.projects-index__card-img') || card;
+    var cardRect = cardFrame.getBoundingClientRect();
+    var screenRect = screen.getBoundingClientRect();
+    var deltaX = (cardRect.left + cardRect.width * 0.5) - (screenRect.left + screenRect.width * 0.5);
+    var deltaY = (cardRect.top + cardRect.height * 0.5) - (screenRect.top + screenRect.height * 0.5);
+
+    screen.style.setProperty('--preview-origin-x', clamp(deltaX * 0.38, -180, 180) + 'px');
+    screen.style.setProperty('--preview-origin-y', clamp(deltaY * 0.28, -120, 120) + 'px');
+  }
+
+  function updateProjectionPan(card, evt) {
+    if (!evt) return;
+    var cardFrame = card.querySelector('.projects-index__card-img') || card;
+    var rect = cardFrame.getBoundingClientRect();
+    var normX = ((evt.clientX - rect.left) / rect.width) - 0.5;
+    var normY = ((evt.clientY - rect.top) / rect.height) - 0.5;
+    screen.style.setProperty('--preview-pan-x', clamp(normX * 28, -24, 24) + 'px');
+    screen.style.setProperty('--preview-pan-y', clamp(normY * 22, -18, 18) + 'px');
+  }
+
+  function triggerProjectionBeam() {
+    preview.classList.remove('is-projecting');
+    void preview.offsetWidth;
+    preview.classList.add('is-projecting');
+    clearTimeout(beamTimer);
+    beamTimer = setTimeout(function () {
+      preview.classList.remove('is-projecting');
+    }, 520);
+  }
+
+  function activatePreview(card, evt) {
+    if (!card) return;
+    clearTimeout(clearTimer);
+    setProjectionOrigin(card);
+    updateProjectionPan(card, evt);
+
+    var imgEl = card.querySelector('.projects-index__card-img img');
+    if (!imgEl) return;
+
+    var nextSrc = imgEl.currentSrc || imgEl.src;
+    var nextTitle = '';
+    var titleEl = card.querySelector('.projects-index__card-name');
+    if (titleEl) nextTitle = titleEl.textContent.trim();
+
+    if (activeCard !== card || image.src !== nextSrc) {
+      activeCard = card;
+      preview.classList.remove('is-active');
+      image.src = nextSrc;
+      image.alt = imgEl.alt || nextTitle;
+      title.textContent = nextTitle;
+      triggerProjectionBeam();
+      requestAnimationFrame(function () {
+        preview.classList.add('is-active');
+      });
+      return;
+    }
+
+    preview.classList.add('is-active');
+  }
+
+  function clearPreview() {
+    activeCard = null;
+    preview.classList.remove('is-active', 'is-projecting');
+    screen.style.setProperty('--preview-pan-x', '0px');
+    screen.style.setProperty('--preview-pan-y', '0px');
+    clearTimeout(clearTimer);
+    clearTimer = setTimeout(function () {
+      if (!activeCard) {
+        title.textContent = '';
+        image.src = '';
+        image.alt = '';
+      }
+    }, 220);
+  }
+
+  cards.forEach(function (card) {
+    card.addEventListener('mouseenter', function (evt) {
+      activatePreview(card, evt);
+    });
+
+    card.addEventListener('mousemove', function (evt) {
+      activatePreview(card, evt);
+    });
+
+    card.addEventListener('focus', function () {
+      activatePreview(card);
+    });
+  });
+
+  layout.addEventListener('mouseleave', function () {
+    clearPreview();
+  });
+
+  window.addEventListener('resize', function () {
+    if (activeCard) setProjectionOrigin(activeCard);
+  });
+}
+
 // Initialize all features
 function initProjectPage() {
   // Clean up previous bar if exists
   var oldBar = document.querySelector('.project-nav-bar');
   if (oldBar) oldBar.remove();
 
+  initProjectsIndexPreview();
   initGalleryReveals();
   initParallaxHero();
   initNavBar();

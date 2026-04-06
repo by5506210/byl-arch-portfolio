@@ -64,6 +64,32 @@
   document.addEventListener('mouseover', function (e) {
     var target = e.target;
 
+    var projectCard = target.closest('.projects-index__card');
+    if (projectCard && !projectCard.classList.contains('projects-index__card--coming-soon')) {
+      var projectSnapTarget = projectCard.querySelector('.projects-index__card-img') || projectCard;
+      var projectRect = projectSnapTarget.getBoundingClientRect();
+      snapping = true;
+
+      if (currentState !== 'snap') {
+        cursor.classList.remove('cursor--hover-image');
+        cursor.classList.add('cursor--snap');
+        var isProjectDark = !isLanding || isLanding.style.display === 'none';
+        cursor.classList.toggle('cursor--dark', isProjectDark);
+        currentState = 'snap';
+      }
+
+      var projectPad = 18;
+      var projectW = projectRect.width + projectPad;
+      var projectH = projectRect.height + projectPad;
+      var projectRadius = Math.min(8, projectH * 0.06);
+
+      cursor.style.width = projectW + 'px';
+      cursor.style.height = projectH + 'px';
+      cursor.style.borderRadius = projectRadius + 'px';
+      cursor.style.transform = 'translate(' + (projectRect.left + projectRect.width / 2 - projectW / 2) + 'px,' + (projectRect.top + projectRect.height / 2 - projectH / 2) + 'px)';
+      return;
+    }
+
     // Snap to links/buttons
     var link = target.closest('a, button, .project-back');
     if (link && !target.closest('.slideshow__slide')) {
