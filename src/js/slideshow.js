@@ -110,10 +110,10 @@ function initSlideshow() {
     slide.style.left = '0';
     slide.style.width = '100%';
     slide.style.height = '100vh';
-    // Don't override background on divider or about slides (they use CSS black)
+    // Keep project slides transparent so stacked cards don't cover each other.
     if (!slide.classList.contains('slideshow__slide--divider') &&
         !slide.classList.contains('slideshow__slide--about')) {
-      slide.style.background = '#f4f2ec';
+      slide.style.background = 'transparent';
     }
     slide.style.zIndex = String(i + 1);
     slide.style.willChange = 'transform';
