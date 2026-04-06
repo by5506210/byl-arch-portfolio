@@ -303,8 +303,7 @@
     if (typeof window.startVectorFieldAssemble === 'function') {
       window.startVectorFieldAssemble({
         targets: buildAssemblyTargets(),
-        duration: 1.22,
-        maxParticles: window.innerWidth < 768 ? 850 : 1450
+        duration: 1.68
       });
     }
 
@@ -321,36 +320,38 @@
         underlayHint.style.transition = 'opacity 0.38s ease';
         underlayHint.style.opacity = '0.46';
       }
-    }, 300);
+    }, 180);
 
     setTimeout(function () {
       var cursorEl = document.querySelector('.cursor');
       if (cursorEl) cursorEl.classList.add('cursor--dark');
+      landing.classList.add('landing--completing');
 
       requestAnimationFrame(function () {
         site.classList.add('site--morphing-active');
         site.classList.remove('site--morphing-underlay');
         site.classList.remove('site--morphing');
 
-        requestAnimationFrame(function () {
+        setTimeout(function () {
           landing.style.display = 'none';
           document.body.style.overflow = '';
           document.body.style.background = '#0a0a0a';
           document.body.classList.remove('portfolio-transition-active');
-        });
+          landing.classList.remove('landing--completing');
+        }, 280);
       });
 
       if (nav) {
-        nav.style.transition = 'opacity 0.6s';
+        nav.style.transition = 'opacity 0.7s';
         nav.style.opacity = '1';
       }
 
       var hint = document.getElementById('scroll-hint');
       if (hint) {
-        hint.style.transition = 'opacity 0.6s';
+        hint.style.transition = 'opacity 0.7s';
         hint.style.opacity = '1';
       }
-    }, 1100);
+    }, 1280);
   }
 
   window.triggerLandingTransition = triggerTransition;

@@ -300,6 +300,11 @@ img {
   pointer-events: none;
 }
 
+.landing--completing {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
 .landing--transitioning .landing__vector-field {
   filter: none;
   transform: scale(1.005);
@@ -375,7 +380,7 @@ img {
   opacity: 0.94;
   transform: scale(1.0005);
   filter: blur(0);
-  transition: opacity 0.28s ease, transform 0.28s ease, filter 0.28s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
 }
 
 .site--morphing-active {

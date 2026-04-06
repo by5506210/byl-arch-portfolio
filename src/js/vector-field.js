@@ -252,91 +252,57 @@ function initVectorField() {
     if (!isLandingPage) return;
     var targets = (config && config.targets) ? config.targets.slice() : [];
     var duration = (config && config.duration) ? config.duration : 0.82;
-    var maxAssembleParticles = (config && config.maxParticles) ? config.maxParticles : (window.innerWidth < 768 ? 900 : 1400);
-    var targetCount = _min(targets.length, particles.length, maxAssembleParticles);
-    var spatialParticles = particles.slice().sort(function (a, b) {
-      var rowDiff = a.y - b.y;
-      if (_abs(rowDiff) > spacing * 0.35) return rowDiff;
-      return a.x - b.x;
-    });
-    var sortedTargets = targets.sort(function (a, b) {
-      if (a.stage !== b.stage) return a.stage - b.stage;
-      var rowDiff = a.y - b.y;
-      if (_abs(rowDiff) > spacing * 0.2) return rowDiff;
-      return a.x - b.x;
-    });
-    var activeParticles = [];
-    var usedMap = new WeakMap();
-
-    if (targetCount > 0) {
-      var lastSourceIndex = -1;
-      for (var ti = 0; ti < targetCount; ti++) {
-        var preferredIndex = ((ti + 0.5) * spatialParticles.length / targetCount) | 0;
-        var bestIndex = -1;
-        var bestScore = 1e12;
-        var scanRadius = 18;
-        for (var offset = -scanRadius; offset <= scanRadius; offset++) {
-          var candidateIndex = preferredIndex + offset;
-          if (candidateIndex < 0 || candidateIndex >= spatialParticles.length) continue;
-          var candidate = spatialParticles[candidateIndex];
-          if (usedMap.has(candidate)) continue;
-          var target = sortedTargets[ti];
-          var dx = candidate.x - target.x;
-          var dy = candidate.y - target.y;
-          var score = dx * dx + dy * dy + _abs(offset) * 220 + _abs(candidateIndex - lastSourceIndex) * 0.3;
-          if (score < bestScore) {
-            bestScore = score;
-            bestIndex = candidateIndex;
-          }
-        }
-        if (bestIndex === -1) {
-          bestIndex = _min(spatialParticles.length - 1, preferredIndex);
-          while (bestIndex < spatialParticles.length && usedMap.has(spatialParticles[bestIndex])) bestIndex++;
-          if (bestIndex >= spatialParticles.length) {
-            bestIndex = preferredIndex;
-            while (bestIndex >= 0 && usedMap.has(spatialParticles[bestIndex])) bestIndex--;
-          }
-        }
-        if (bestIndex >= 0) {
-          var chosen = spatialParticles[bestIndex];
-          usedMap.set(chosen, true);
-          activeParticles.push(chosen);
-          lastSourceIndex = bestIndex;
-        }
-      }
+    var maxAssembleParticles = (config && config.maxParticles) ? config.maxParticles : particles.length;
+    var targetCount = _min(particles.length, maxAssembleParticles);
+    function serpentineSort(a, b) {
+      var rowA = (a.y / spacing) | 0;
+      var rowB = (b.y / spacing) | 0;
+      if (rowA !== rowB) return rowA - rowB;
+      return rowA % 2 === 0 ? (a.x - b.x) : (b.x - a.x);
     }
 
-    var passiveParticles = particles.slice().filter(function (p) {
-      return !usedMap.has(p);
-    }).sort(function (a, b) {
-      var da = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
-      var db = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
-      return da - db;
+    var spatialParticles = particles.slice().sort(serpentineSort);
+    var sortedTargets = targets.sort(function (a, b) {
+      var rowA = (a.y / spacing) | 0;
+      var rowB = (b.y / spacing) | 0;
+      if (rowA !== rowB) return rowA - rowB;
+      return rowA % 2 === 0 ? (a.x - b.x) : (b.x - a.x);
     });
-    var sortedParticles = activeParticles.concat(passiveParticles);
+    var sortedParticles = spatialParticles.slice(0, targetCount);
+    if (sortedParticles.length === 0 || sortedTargets.length === 0) return;
+    var targetUsage = new Array(sortedTargets.length);
+    for (var tu = 0; tu < sortedTargets.length; tu++) targetUsage[tu] = 0;
 
     for (var i = 0; i < sortedParticles.length; i++) {
       var p = sortedParticles[i];
-      var assigned = i < activeParticles.length;
-      var target = assigned ? sortedTargets[i] : null;
+      var targetIndex = _min(sortedTargets.length - 1, ((i + 0.5) * sortedTargets.length / sortedParticles.length) | 0);
+      var target = sortedTargets[targetIndex];
+      var usage = targetUsage[targetIndex]++;
+      var ring = (usage / 9) | 0;
+      var cell = usage % 9;
+      var offsetCol = (cell % 3) - 1;
+      var offsetRow = ((cell / 3) | 0) - 1;
+      var offsetScale = spacing * (0.12 + ring * 0.075);
+      var offsetX = offsetCol * offsetScale;
+      var offsetY = offsetRow * offsetScale * 0.72;
+      var clusterFade = usage === 0 ? 1 : _max(0.22, 0.78 - ring * 0.1 - (_abs(offsetCol) + _abs(offsetRow)) * 0.08);
       p.assembleFromX = p.x;
       p.assembleFromY = p.y;
       p.assembleFromAngle = p.currentAngle;
-      p.assembleToX = assigned ? target.x : centerX + ((i % 11) - 5) * 4;
-      p.assembleToY = assigned ? target.y : centerY + (((i / 11) | 0) % 11 - 5) * 4;
-      p.assembleToAngle = assigned ? target.angle : PI * 0.5;
-        p.assembleOpacity = assigned ? target.opacity : 0;
-        p.assembleLen = assigned ? target.len : lineLen * 0.35;
-        p.assembleWidth = assigned ? target.width : 0.2;
-        p.assembleStage = assigned ? target.stage : 0.92;
-      }
+      p.assembleToX = target.x + offsetX;
+      p.assembleToY = target.y + offsetY;
+      p.assembleToAngle = target.angle;
+      p.assembleOpacity = _min(1, _max(0.18, target.opacity * clusterFade));
+      p.assembleLen = target.len * (usage === 0 ? 1 : _max(0.6, 0.9 - ring * 0.06));
+      p.assembleWidth = target.width * (usage === 0 ? 1 : _max(0.55, 0.82 - ring * 0.05));
+      p.assembleOrder = i / _max(1, sortedParticles.length - 1);
+    }
 
     assembleState = {
       active: true,
       startTime: time,
       duration: duration,
-      activeCount: activeParticles.length,
-      passiveCount: _min(sortedParticles.length, activeParticles.length + (window.innerWidth < 768 ? 140 : 220)),
+      staggerSpan: window.innerWidth < 768 ? 0.22 : 0.28,
       sortedParticles: sortedParticles
     };
   }
@@ -375,7 +341,7 @@ function initVectorField() {
       var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
       var a1 = 1 - assembleProgress;
       var assembleEase = 1 - a1 * a1 * a1 * a1;
-      var meltProgress = assembleProgress < 0.7 ? 0 : ((assembleProgress - 0.7) / 0.3);
+      var meltProgress = assembleProgress < 0.78 ? 0 : ((assembleProgress - 0.78) / 0.22);
       var ASSEMBLE_BUCKETS = 50;
       var assembleLines = new Array(ASSEMBLE_BUCKETS);
       var assembleWidthSums = new Array(ASSEMBLE_BUCKETS);
@@ -387,12 +353,12 @@ function initVectorField() {
         assembleCounts[ab] = 0;
       }
 
-      var assembleCount = assembleState.passiveCount || assembleState.sortedParticles.length;
+      var assembleCount = assembleState.sortedParticles.length;
       for (var ai = 0; ai < assembleCount; ai++) {
         var ap = assembleState.sortedParticles[ai];
         var alc = layerConfig[ap.layer];
-        var stageStart = ap.assembleStage || 0;
-        var localProgress = assembleProgress <= stageStart ? 0 : _min(1, (assembleProgress - stageStart) / (1 - stageStart));
+        var startOffset = (ap.assembleOrder || 0) * (assembleState.staggerSpan || 0.25);
+        var localProgress = assembleProgress <= startOffset ? 0 : _min(1, (assembleProgress - startOffset) / _max(0.0001, 1 - startOffset));
         var lp = 1 - localProgress;
         var localEase = 1 - lp * lp * lp * lp;
         var travelPresence = 1 - _abs(localProgress - 0.42) / 0.42;
@@ -404,22 +370,16 @@ function initVectorField() {
         var drawOpacityAssemble = (ap.baseOpacity * alc[0] * 0.52) * (1 - localEase) + ap.assembleOpacity * localEase;
         var widthScaleAssemble = (0.55 + alc[1] * 0.4) * (1 - localEase) + ap.assembleWidth * localEase;
 
-        if (ai >= assembleState.activeCount) {
-          drawOpacityAssemble *= (1 - localEase) * 0.85;
-          drawLenAssemble *= 1 - localEase * 0.7;
-          widthScaleAssemble *= 1 - localEase * 0.55;
-        } else {
-          var travelBoost = 0.34 + travelPresence * 0.5;
-          drawOpacityAssemble = _min(1, drawOpacityAssemble + travelBoost);
-          drawLenAssemble *= 1 + travelPresence * 0.24;
-          widthScaleAssemble *= 1 + travelPresence * 0.38;
-        }
+        var travelBoost = 0.32 + travelPresence * 0.48;
+        drawOpacityAssemble = _min(1, drawOpacityAssemble + travelBoost);
+        drawLenAssemble *= 1 + travelPresence * 0.22;
+        widthScaleAssemble *= 1 + travelPresence * 0.34;
 
         if (meltProgress > 0 && localProgress > 0.02) {
-          var localMelt = _min(1, meltProgress * (0.8 + localProgress * 0.35));
-          drawOpacityAssemble *= 1 - localMelt * 0.46;
-          drawLenAssemble *= 1 - localMelt * 0.18;
-          widthScaleAssemble *= 1 - localMelt * 0.12;
+          var localMelt = _min(1, meltProgress * (0.55 + localProgress * 0.25));
+          drawOpacityAssemble *= 1 - localMelt * 0.34;
+          drawLenAssemble *= 1 - localMelt * 0.12;
+          widthScaleAssemble *= 1 - localMelt * 0.08;
         }
 
         if (drawOpacityAssemble <= 0.002 || drawLenAssemble <= 0.2 || widthScaleAssemble <= 0.02) continue;
