@@ -118,7 +118,6 @@ function initVectorField() {
   var startAngle = 0; // all vectors start pointing right
 
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
-  var portalStateLabel = portal ? portal.querySelector('.landing__portal-state') : null;
   var portalVisible = false;
   var portalRevealDist = 178;
   var portalCharge = 0;
@@ -159,25 +158,6 @@ function initVectorField() {
 
   canvas.style.pointerEvents = 'none';
 
-  function updatePortalStateLabel() {
-    if (!portalStateLabel) return;
-    if (portalHoldTriggered) {
-      portalStateLabel.textContent = 'OPENING';
-      return;
-    }
-    if (isMobile) {
-      if (portalCharge > 0.82) {
-        portalStateLabel.textContent = 'ENTERING';
-      } else if (portalCharge > 0.04) {
-        portalStateLabel.textContent = 'ALIGNING FIELD';
-      } else {
-        portalStateLabel.textContent = 'HOLD TO ENTER';
-      }
-      return;
-    }
-    portalStateLabel.textContent = portalVisible ? 'CLICK TO ENTER' : 'APPROACH CENTER';
-  }
-
   function resize() {
     var parent = canvas.parentElement;
     fieldWidth = window.innerWidth;
@@ -202,7 +182,6 @@ function initVectorField() {
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
     buildGrid();
-    updatePortalStateLabel();
   }
 
   function buildGrid() {
@@ -519,7 +498,6 @@ function initVectorField() {
         portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
         if (portalCharge >= 1 && typeof window.triggerLandingTransition === 'function') {
           portalHoldTriggered = true;
-          updatePortalStateLabel();
           window.triggerLandingTransition();
         }
       } else {
@@ -530,8 +508,6 @@ function initVectorField() {
         }
         portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
       }
-
-      updatePortalStateLabel();
     }
 
     // Update ripples

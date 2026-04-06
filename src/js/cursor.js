@@ -65,7 +65,7 @@
     var target = e.target;
 
     // Snap to links/buttons
-    var link = target.closest('a, button, .project-back, .landing__portal');
+    var link = target.closest('a, button, .project-back');
     if (link && !target.closest('.slideshow__slide')) {
       var rect = link.getBoundingClientRect();
       snapping = true;
