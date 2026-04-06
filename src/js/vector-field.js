@@ -126,7 +126,7 @@ function initVectorField() {
 
   var portal = isLandingPage ? document.getElementById('landing-portal') : null;
   var portalRevealDist = 178;
-  var portalGlowDist = 260;
+  var portalGlowDist = 340;
   var portalCharge = 0;
   var portalChargeDuration = 1.02;
   var portalHoldRadius = 96;
@@ -939,10 +939,10 @@ function initVectorField() {
       } else {
         var pulseRate = 1.55 + portalProximity * 1.4 + portalCharge * 3.2;
         var breathe = 0.5 + 0.5 * _sin(time * pulseRate);
-        var breatheRadius = 82 + portalProximity * 36 + portalCharge * 54 + breathe * (10 + portalCharge * 28);
-        var breatheInner = 0.012 + portalProximity * 0.055 + portalCharge * 0.13 + breathe * (0.008 + portalCharge * 0.05);
-        var breatheMid = 0.004 + portalProximity * 0.022 + portalCharge * 0.06 + breathe * (0.004 + portalCharge * 0.02);
-        var coreRadius = 16 + portalProximity * 10 + portalCharge * 22 + breathe * (3 + portalCharge * 10);
+        var breatheRadius = 8 + portalProximity * 58 + portalCharge * 76 + breathe * (1 + portalProximity * 10 + portalCharge * 32);
+        var breatheInner = 0.0002 + portalProximity * 0.055 + portalCharge * 0.145 + breathe * (0.0004 + portalProximity * 0.012 + portalCharge * 0.062);
+        var breatheMid = 0.00008 + portalProximity * 0.02 + portalCharge * 0.068 + breathe * (0.0003 + portalProximity * 0.005 + portalCharge * 0.024);
+        var coreRadius = 1 + portalProximity * 16 + portalCharge * 30 + breathe * (0.4 + portalProximity * 3.5 + portalCharge * 15);
 
         var glowGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, breatheRadius);
         glowGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + breatheInner + ')');
@@ -952,16 +952,16 @@ function initVectorField() {
         ctx.fillRect(centerX - breatheRadius, centerY - breatheRadius, breatheRadius * 2, breatheRadius * 2);
 
         var coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreRadius);
-        coreGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + (0.012 + portalProximity * 0.06 + portalCharge * 0.18) + ')');
-        coreGrad.addColorStop(0.45, 'rgba(' + lineColor + ', ' + (0.006 + portalProximity * 0.025 + portalCharge * 0.08) + ')');
+        coreGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + (0.0004 + portalProximity * 0.072 + portalCharge * 0.19) + ')');
+        coreGrad.addColorStop(0.45, 'rgba(' + lineColor + ', ' + (0.00014 + portalProximity * 0.028 + portalCharge * 0.085) + ')');
         coreGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
         ctx.fillStyle = coreGrad;
         ctx.fillRect(centerX - coreRadius, centerY - coreRadius, coreRadius * 2, coreRadius * 2);
 
-        if (portalProximity > 0.04 || portalCharge > 0.02) {
+        if (portalProximity > 0.06 || portalCharge > 0.02) {
           ctx.beginPath();
-          ctx.arc(centerX, centerY, 24 + portalProximity * 10 + portalCharge * 16 + breathe * (4 + portalCharge * 8), 0, TWO_PI);
-          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.015 + portalProximity * 0.05 + portalCharge * 0.12) + ')';
+          ctx.arc(centerX, centerY, 9 + portalProximity * 22 + portalCharge * 22 + breathe * (2 + portalProximity * 5 + portalCharge * 10), 0, TWO_PI);
+          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.002 + portalProximity * 0.048 + portalCharge * 0.13) + ')';
           ctx.lineWidth = 1.2 + portalCharge * 0.8;
           ctx.stroke();
         }

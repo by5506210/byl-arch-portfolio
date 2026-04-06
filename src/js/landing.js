@@ -250,6 +250,7 @@
     if (!site) return;
     site.style.display = 'block';
     site.classList.add('site--revealing');
+    site.style.setProperty('--site-handoff', '0');
 
     if (typeof initSlideshow === 'function') {
       initSlideshow();
@@ -300,6 +301,7 @@
 
     if (site) {
       site.classList.remove('site--revealing');
+      site.style.removeProperty('--site-handoff');
     }
 
     if (typeof window.setVectorFieldTransition === 'function') {
@@ -327,6 +329,8 @@
     var hint = document.getElementById('scroll-hint');
     var maxRadius = getMaxRevealRadius();
     var startTime = 0;
+    var handoffStart = 0.7;
+    var handoffEnd = 0.96;
 
     document.body.style.overflow = 'hidden';
     document.body.classList.add('portfolio-transition-active');
@@ -361,15 +365,21 @@
       var rawProgress = Math.min(1, (now - startTime) / revealDuration);
       var eased = easeReveal(rawProgress);
       var radius = maxRadius * eased;
+      var handoffProgress = rawProgress <= handoffStart ? 0 : Math.min(1, (rawProgress - handoffStart) / Math.max(0.001, handoffEnd - handoffStart));
+      var hintProgress = rawProgress <= 0.82 ? 0 : Math.min(1, (rawProgress - 0.82) / 0.14);
 
       setRevealState(radius, eased);
 
+      if (site) {
+        site.style.setProperty('--site-handoff', handoffProgress.toFixed(4));
+      }
+
       if (nav) {
-        nav.style.opacity = String(Math.max(0.08, Math.min(1, (eased - 0.18) / 0.46)));
+        nav.style.opacity = String(handoffProgress);
       }
 
       if (hint) {
-        hint.style.opacity = String(Math.max(0, Math.min(1, (eased - 0.46) / 0.26)));
+        hint.style.opacity = String(hintProgress);
       }
 
       if (rawProgress < 1) {
