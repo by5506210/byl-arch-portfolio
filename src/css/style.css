@@ -166,11 +166,11 @@ img {
   background: radial-gradient(
     circle at var(--landing-reveal-x) var(--landing-reveal-y),
     rgba(255, 255, 255, 0) calc(var(--landing-reveal-radius) - 14px),
-    rgba(244, 242, 236, calc(0.03 + var(--landing-reveal-progress) * 0.1)) calc(var(--landing-reveal-radius) + 3px),
-    rgba(255, 255, 255, calc(0.04 + var(--landing-reveal-progress) * 0.18)) calc(var(--landing-reveal-radius) + 18px),
-    rgba(255, 255, 255, 0) calc(var(--landing-reveal-radius) + 78px)
+    rgba(244, 242, 236, calc(0.012 + var(--landing-reveal-progress) * 0.05)) calc(var(--landing-reveal-radius) + 2px),
+    rgba(255, 255, 255, calc(0.018 + var(--landing-reveal-progress) * 0.08)) calc(var(--landing-reveal-radius) + 12px),
+    rgba(255, 255, 255, 0) calc(var(--landing-reveal-radius) + 50px)
   );
-  opacity: min(1, calc(var(--landing-reveal-progress) * 1.15));
+  opacity: min(1, calc(var(--landing-reveal-progress) * 0.82));
   mix-blend-mode: screen;
 }
 
@@ -2446,7 +2446,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .landing__portal-orbit,
 .landing__portal-ring,
 .landing__portal-core {
-  animation: none;
   will-change: transform, opacity;
 }
 
@@ -2456,16 +2455,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   top: 50%;
   left: 50%;
   inset: auto;
-  width: calc(78px + var(--portal-proximity) * 150px + var(--portal-centered) * 54px + var(--portal-charge) * 84px);
-  height: calc(78px + var(--portal-proximity) * 150px + var(--portal-centered) * 54px + var(--portal-charge) * 84px);
+  width: calc(74px + var(--portal-proximity) * 126px + var(--portal-centered) * 42px + var(--portal-charge) * 72px + var(--portal-pulse) * 74px);
+  height: calc(74px + var(--portal-proximity) * 126px + var(--portal-centered) * 42px + var(--portal-charge) * 72px + var(--portal-pulse) * 74px);
   border-radius: 50%;
   pointer-events: none;
-  opacity: calc(var(--portal-proximity) * 0.34 + var(--portal-centered) * 0.22 + var(--portal-charge) * 0.28 + var(--portal-pulse) * 0.24);
-  transform: translate(-50%, -50%) scale(calc(0.76 + var(--portal-proximity) * 0.1 + var(--portal-pulse) * 0.22 + var(--portal-charge) * 0.16));
-  filter: blur(calc(16px + var(--portal-proximity) * 18px + var(--portal-centered) * 8px + var(--portal-charge) * 12px));
+  opacity: calc(var(--portal-proximity) * 0.2 + var(--portal-centered) * 0.18 + var(--portal-charge) * 0.24 + var(--portal-pulse) * 0.42);
+  transform: translate(-50%, -50%) scale(calc(0.66 + var(--portal-proximity) * 0.08 + var(--portal-pulse) * 0.34 + var(--portal-charge) * 0.14));
+  filter: blur(calc(18px + var(--portal-proximity) * 14px + var(--portal-centered) * 6px + var(--portal-charge) * 10px + var(--portal-pulse) * 8px));
   background:
-    radial-gradient(circle, rgba(232, 228, 223, calc(0.03 + var(--portal-proximity) * 0.11 + var(--portal-pulse) * 0.12 + var(--portal-charge) * 0.18)) 0%, rgba(232, 228, 223, calc(0.02 + var(--portal-proximity) * 0.06 + var(--portal-charge) * 0.09)) 22%, rgba(232, 228, 223, calc(0.008 + var(--portal-proximity) * 0.028 + var(--portal-charge) * 0.03)) 42%, rgba(232, 228, 223, 0) 72%),
-    radial-gradient(circle, rgba(232, 228, 223, calc(var(--portal-proximity) * 0.05 + var(--portal-charge) * 0.08)) 0%, rgba(232, 228, 223, 0) 68%);
+    radial-gradient(circle, rgba(232, 228, 223, calc(0.012 + var(--portal-proximity) * 0.06 + var(--portal-pulse) * 0.16 + var(--portal-charge) * 0.14)) 0%, rgba(232, 228, 223, calc(0.012 + var(--portal-proximity) * 0.04 + var(--portal-charge) * 0.06)) 24%, rgba(232, 228, 223, calc(0.004 + var(--portal-proximity) * 0.016 + var(--portal-charge) * 0.018)) 46%, rgba(232, 228, 223, 0) 74%),
+    radial-gradient(circle, rgba(232, 228, 223, calc(var(--portal-proximity) * 0.03 + var(--portal-pulse) * 0.08 + var(--portal-charge) * 0.05)) 0%, rgba(232, 228, 223, 0) 70%);
   mix-blend-mode: screen;
   transition: opacity 0.12s linear, transform 0.12s linear, width 0.12s linear, height 0.12s linear, filter 0.12s linear;
   animation: portal-bloom-pulse 2.6s ease-in-out infinite;
