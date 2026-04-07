@@ -147,17 +147,17 @@ img {
   background: var(--black);
   -webkit-mask-image: radial-gradient(
     circle at var(--landing-reveal-x) var(--landing-reveal-y),
-    transparent calc(var(--landing-reveal-radius) - 2px),
-    rgba(0, 0, 0, 0.08) calc(var(--landing-reveal-radius) + 6px),
-    rgba(0, 0, 0, 0.76) calc(var(--landing-reveal-radius) + 30px),
-    rgba(0, 0, 0, 1) calc(var(--landing-reveal-radius) + 70px)
+    transparent calc(var(--landing-reveal-radius) - 0.5px),
+    rgba(0, 0, 0, 0.04) calc(var(--landing-reveal-radius) + 1px),
+    rgba(0, 0, 0, 0.72) calc(var(--landing-reveal-radius) + 12px),
+    rgba(0, 0, 0, 1) calc(var(--landing-reveal-radius) + 28px)
   );
   mask-image: radial-gradient(
     circle at var(--landing-reveal-x) var(--landing-reveal-y),
-    transparent calc(var(--landing-reveal-radius) - 2px),
-    rgba(0, 0, 0, 0.08) calc(var(--landing-reveal-radius) + 6px),
-    rgba(0, 0, 0, 0.76) calc(var(--landing-reveal-radius) + 30px),
-    rgba(0, 0, 0, 1) calc(var(--landing-reveal-radius) + 70px)
+    transparent calc(var(--landing-reveal-radius) - 0.5px),
+    rgba(0, 0, 0, 0.04) calc(var(--landing-reveal-radius) + 1px),
+    rgba(0, 0, 0, 0.72) calc(var(--landing-reveal-radius) + 12px),
+    rgba(0, 0, 0, 1) calc(var(--landing-reveal-radius) + 28px)
   );
 }
 
@@ -165,12 +165,12 @@ img {
   z-index: 2;
   background: radial-gradient(
     circle at var(--landing-reveal-x) var(--landing-reveal-y),
-    rgba(255, 255, 255, 0) calc(var(--landing-reveal-radius) - 14px),
-    rgba(244, 242, 236, calc(0.012 + var(--landing-reveal-progress) * 0.05)) calc(var(--landing-reveal-radius) + 2px),
-    rgba(255, 255, 255, calc(0.018 + var(--landing-reveal-progress) * 0.08)) calc(var(--landing-reveal-radius) + 12px),
-    rgba(255, 255, 255, 0) calc(var(--landing-reveal-radius) + 50px)
+    rgba(255, 255, 255, 0) calc(var(--landing-reveal-radius) - 4px),
+    rgba(244, 242, 236, calc(0.006 + var(--landing-reveal-progress) * 0.03)) calc(var(--landing-reveal-radius) + 0.5px),
+    rgba(255, 255, 255, calc(0.012 + var(--landing-reveal-progress) * 0.045)) calc(var(--landing-reveal-radius) + 5px),
+    rgba(255, 255, 255, 0) calc(var(--landing-reveal-radius) + 20px)
   );
-  opacity: min(1, calc(var(--landing-reveal-progress) * 0.82));
+  opacity: min(1, calc(var(--landing-reveal-progress) * 0.66));
   mix-blend-mode: screen;
 }
 
@@ -349,10 +349,10 @@ img {
 
 @keyframes portal-bloom-pulse {
   0%, 100% {
-    transform: translate(-50%, -50%) scale(0.72);
+    transform: translate(-50%, -50%) scale(calc(0.44 + var(--portal-idle) * 0.04 + var(--portal-idle-glow) * 0.18 + var(--portal-presence) * 0.04));
   }
   50% {
-    transform: translate(-50%, -50%) scale(calc(0.9 + var(--portal-proximity) * 0.12 + var(--portal-pulse) * 0.2 + var(--portal-charge) * 0.18));
+    transform: translate(-50%, -50%) scale(calc(0.54 + var(--portal-idle) * 0.06 + var(--portal-breath) * 0.08 + var(--portal-idle-glow) * 0.22 + var(--portal-proximity) * 0.08 + var(--portal-pulse) * 0.22 + var(--portal-charge) * 0.18));
   }
 }
 
@@ -983,10 +983,11 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   top: 50%;
   transform: translateY(-50%);
   z-index: 40;
-  width: 30px;
-  padding: 0.55rem 0.45rem 0.55rem 0.55rem;
-  border: 1px solid rgba(26, 26, 26, 0.1);
-  background: rgba(244, 242, 236, 0.16);
+  width: 22px;
+  padding: 0.35rem 0.2rem 0.35rem 0.4rem;
+  border: 1px solid rgba(26, 26, 26, 0.04);
+  background: rgba(244, 242, 236, 0.04);
+  opacity: 0.72;
   pointer-events: none;
   transition: border-color 0.3s ease, background 0.3s ease, opacity 0.3s ease;
 }
@@ -1000,7 +1001,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 9px;
+  gap: 8px;
 }
 
 .slideshow__progress-track::after {
@@ -1010,57 +1011,57 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   bottom: 0;
   right: 0;
   width: 1px;
-  background: rgba(26, 26, 26, 0.16);
+  background: rgba(26, 26, 26, 0.08);
 }
 
 .slideshow__tick {
-  width: 8px;
+  width: 5px;
   height: 1px;
-  background: rgba(26, 26, 26, 0.24);
+  background: rgba(26, 26, 26, 0.12);
   transition: width 0.24s ease, background 0.24s ease, opacity 0.24s ease;
 }
 
 .slideshow__tick--major {
-  width: 15px;
-  background: rgba(26, 26, 26, 0.34);
+  width: 9px;
+  background: rgba(26, 26, 26, 0.18);
 }
 
 .slideshow__tick.is-active {
-  width: 18px;
-  background: var(--text-primary);
+  width: 11px;
+  background: rgba(26, 26, 26, 0.36);
 }
 
 .slideshow__progress-marker {
   position: absolute;
   top: 0;
   right: -1px;
-  width: 20px;
-  height: 2px;
-  background: var(--text-primary);
+  width: 12px;
+  height: 1px;
+  background: rgba(26, 26, 26, 0.42);
   transform: translateY(calc(var(--slideshow-progress, 0) * var(--slideshow-progress-range, 0px)));
   transition: transform 0.18s linear, background 0.24s ease, opacity 0.24s ease;
 }
 
 .slideshow__progress--light {
-  border-color: rgba(244, 242, 236, 0.18);
-  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(244, 242, 236, 0.08);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .slideshow__progress--light .slideshow__progress-track::after {
-  background: rgba(244, 242, 236, 0.2);
+  background: rgba(244, 242, 236, 0.1);
 }
 
 .slideshow__progress--light .slideshow__tick {
-  background: rgba(244, 242, 236, 0.22);
+  background: rgba(244, 242, 236, 0.12);
 }
 
 .slideshow__progress--light .slideshow__tick--major {
-  background: rgba(244, 242, 236, 0.34);
+  background: rgba(244, 242, 236, 0.18);
 }
 
 .slideshow__progress--light .slideshow__tick.is-active,
 .slideshow__progress--light .slideshow__progress-marker {
-  background: var(--concrete);
+  background: rgba(244, 242, 236, 0.38);
 }
 
 /* ============================================
@@ -2315,8 +2316,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
   .slideshow__progress {
     right: 0.9rem;
-    width: 24px;
-    padding: 0.45rem 0.35rem 0.45rem 0.45rem;
+    width: 18px;
+    padding: 0.32rem 0.14rem 0.32rem 0.28rem;
   }
 
   .project-gallery__image {
@@ -2470,22 +2471,25 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 }
 
-/* Portal cue override: crisp geometry, no glow */
+/* Portal cue override: minimal geometry with breathing halo */
 .landing__portal {
   --portal-presence: 0;
   --portal-centered: 0;
   --portal-pulse: 0;
+  --portal-idle: 1;
+  --portal-breath: 0.5;
+  --portal-idle-glow: 0.08;
   --portal-sweep: 0deg;
   --portal-sweep-soft: 0deg;
   --portal-sweep-reverse: 0deg;
   --portal-sweep-ring: 0deg;
   --portal-size: 24px;
-  opacity: calc(var(--portal-presence) * 0.42 + var(--portal-charge) * 0.14);
+  opacity: calc(var(--portal-idle-glow) * 0.86 + var(--portal-presence) * 0.42 + var(--portal-charge) * 0.14);
   transition: opacity 0.12s linear, transform 0.12s linear;
 }
 
 .landing__portal.is-visible {
-  opacity: calc(var(--portal-presence) * 0.48 + var(--portal-charge) * 0.18);
+  opacity: calc(var(--portal-idle-glow) * 0.94 + var(--portal-presence) * 0.48 + var(--portal-charge) * 0.18);
 }
 
 .landing__portal:hover,
@@ -2515,16 +2519,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   top: 50%;
   left: 50%;
   inset: auto;
-  width: calc(8px + var(--portal-presence) * 118px + var(--portal-centered) * 38px + var(--portal-charge) * 72px + var(--portal-pulse) * 82px);
-  height: calc(8px + var(--portal-presence) * 118px + var(--portal-centered) * 38px + var(--portal-charge) * 72px + var(--portal-pulse) * 82px);
+  width: calc(10px + var(--portal-idle) * 30px + var(--portal-idle-glow) * 52px + var(--portal-presence) * 118px + var(--portal-centered) * 38px + var(--portal-charge) * 72px + var(--portal-pulse) * 82px);
+  height: calc(10px + var(--portal-idle) * 30px + var(--portal-idle-glow) * 52px + var(--portal-presence) * 118px + var(--portal-centered) * 38px + var(--portal-charge) * 72px + var(--portal-pulse) * 82px);
   border-radius: 50%;
   pointer-events: none;
-  opacity: calc(var(--portal-presence) * 0.04 + var(--portal-centered) * 0.14 + var(--portal-charge) * 0.2 + var(--portal-pulse) * 0.48);
-  transform: translate(-50%, -50%) scale(calc(0.52 + var(--portal-presence) * 0.06 + var(--portal-pulse) * 0.38 + var(--portal-charge) * 0.14));
-  filter: blur(calc(18px + var(--portal-presence) * 10px + var(--portal-centered) * 6px + var(--portal-charge) * 10px + var(--portal-pulse) * 10px));
+  opacity: calc(var(--portal-idle-glow) * 0.42 + var(--portal-presence) * 0.04 + var(--portal-centered) * 0.14 + var(--portal-charge) * 0.2 + var(--portal-pulse) * 0.48);
+  transform: translate(-50%, -50%) scale(calc(0.48 + var(--portal-idle) * 0.04 + var(--portal-breath) * 0.08 + var(--portal-presence) * 0.06 + var(--portal-pulse) * 0.38 + var(--portal-charge) * 0.14));
+  filter: blur(calc(14px + var(--portal-idle) * 8px + var(--portal-breath) * 4px + var(--portal-presence) * 10px + var(--portal-centered) * 6px + var(--portal-charge) * 10px + var(--portal-pulse) * 10px));
   background:
-    radial-gradient(circle, rgba(232, 228, 223, calc(0.004 + var(--portal-presence) * 0.03 + var(--portal-pulse) * 0.18 + var(--portal-charge) * 0.14)) 0%, rgba(232, 228, 223, calc(0.004 + var(--portal-presence) * 0.02 + var(--portal-charge) * 0.05)) 24%, rgba(232, 228, 223, calc(0.002 + var(--portal-presence) * 0.008 + var(--portal-charge) * 0.016)) 46%, rgba(232, 228, 223, 0) 74%),
-    radial-gradient(circle, rgba(232, 228, 223, calc(var(--portal-presence) * 0.01 + var(--portal-pulse) * 0.08 + var(--portal-charge) * 0.05)) 0%, rgba(232, 228, 223, 0) 70%);
+    radial-gradient(circle, rgba(232, 228, 223, calc(0.006 + var(--portal-idle-glow) * 0.24 + var(--portal-presence) * 0.03 + var(--portal-pulse) * 0.18 + var(--portal-charge) * 0.14)) 0%, rgba(232, 228, 223, calc(0.003 + var(--portal-idle-glow) * 0.1 + var(--portal-presence) * 0.02 + var(--portal-charge) * 0.05)) 24%, rgba(232, 228, 223, calc(0.001 + var(--portal-idle-glow) * 0.05 + var(--portal-presence) * 0.008 + var(--portal-charge) * 0.016)) 46%, rgba(232, 228, 223, 0) 74%),
+    radial-gradient(circle, rgba(232, 228, 223, calc(var(--portal-idle-glow) * 0.1 + var(--portal-presence) * 0.01 + var(--portal-pulse) * 0.08 + var(--portal-charge) * 0.05)) 0%, rgba(232, 228, 223, 0) 70%);
   mix-blend-mode: screen;
   transition: opacity 0.12s linear, transform 0.12s linear, width 0.12s linear, height 0.12s linear, filter 0.12s linear;
   animation: portal-bloom-pulse 2.6s ease-in-out infinite;

@@ -172,6 +172,9 @@ function initVectorField() {
     portal.style.setProperty('--portal-presence', '0');
     portal.style.setProperty('--portal-centered', '0');
     portal.style.setProperty('--portal-pulse', '0');
+    portal.style.setProperty('--portal-idle', '1');
+    portal.style.setProperty('--portal-breath', '0.5');
+    portal.style.setProperty('--portal-idle-glow', '0.08');
     portal.style.setProperty('--portal-sweep', '0deg');
     portal.style.setProperty('--portal-sweep-soft', '0deg');
     portal.style.setProperty('--portal-sweep-reverse', '0deg');
@@ -399,6 +402,9 @@ function initVectorField() {
       var portalCentered = 0;
       var portalPresence = 0;
       var portalPulse = 0;
+      var portalBreath = 0.5 + 0.5 * _sin(time * 1.18);
+      var portalIdle = 1;
+      var portalIdleGlow = 0.08;
       var portalSweep = 0;
 
       if (isLandingPage && mouseX > 0) {
@@ -462,11 +468,11 @@ function initVectorField() {
           var assembleDxCenter = centerX - drawX;
           var assembleDyCenter = centerY - drawY;
           var assembleDistCenter = _sqrt(assembleDxCenter * assembleDxCenter + assembleDyCenter * assembleDyCenter);
-          revealEdgeBoost = _max(0, 1 - _abs(assembleDistCenter - revealRadius) / 120);
+          revealEdgeBoost = _max(0, 1 - _abs(assembleDistCenter - revealRadius) / 56);
           if (revealEdgeBoost > 0) {
-            drawOpacityAssemble = _min(1, drawOpacityAssemble + revealEdgeBoost * 0.12);
-            drawLenAssemble *= 1 + revealEdgeBoost * 0.12;
-            widthScaleAssemble *= 1 + revealEdgeBoost * 0.12;
+            drawOpacityAssemble = _min(1, drawOpacityAssemble + revealEdgeBoost * 0.08);
+            drawLenAssemble *= 1 + revealEdgeBoost * 0.08;
+            widthScaleAssemble *= 1 + revealEdgeBoost * 0.08;
           }
         }
 
@@ -506,11 +512,11 @@ function initVectorField() {
       strokeBuckets(assembleLines, assembleWidthSums, assembleCounts, revealActive ? lightLineColor : lineColor);
       if (revealActive) {
         strokeBuckets(assembleLinesDark, assembleWidthSumsDark, assembleCountsDark, darkLineColor);
-        if (revealRadius > 2) {
+        if (revealRadius > 8) {
           ctx.beginPath();
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
-          ctx.strokeStyle = 'rgba(244, 242, 236, ' + _min(0.34, 0.08 + landingTransition.progress * 0.18) + ')';
-          ctx.lineWidth = 14 + landingTransition.progress * 10;
+          ctx.strokeStyle = 'rgba(244, 242, 236, ' + _min(0.18, 0.025 + landingTransition.progress * 0.09) + ')';
+          ctx.lineWidth = 3 + landingTransition.progress * 3.5;
           ctx.stroke();
         }
       }
@@ -610,6 +616,9 @@ function initVectorField() {
         ? _min(1, Math.pow(portalProximity, 2.35) * 1.2 + portalCentered * 0.32 + portalCharge * 0.72)
         : _min(1, portalCharge * 0.72);
 
+      portalIdle = _max(0, 1 - portalPresence * 1.9 - portalCentered * 1.4 - portalCharge * 1.8);
+      portalIdleGlow = portalIdle * (0.045 + portalBreath * 0.085);
+
       if (portalProximity > 0.08 || portalCentered > 0.02 || portalCharge > 0.01) {
         var portalPulseRate = 1.8 + portalProximity * 2.4 + portalCentered * 4.2 + portalCharge * 5.8;
         var portalPulseWave = 0.5 + 0.5 * _sin(time * portalPulseRate);
@@ -626,6 +635,9 @@ function initVectorField() {
       portal.style.setProperty('--portal-presence', portalPresence.toFixed(3));
       portal.style.setProperty('--portal-centered', portalCentered.toFixed(3));
       portal.style.setProperty('--portal-pulse', portalPulse.toFixed(3));
+      portal.style.setProperty('--portal-idle', portalIdle.toFixed(3));
+      portal.style.setProperty('--portal-breath', portalBreath.toFixed(3));
+      portal.style.setProperty('--portal-idle-glow', portalIdleGlow.toFixed(3));
       var portalSweepDeg = portalSweep * 57.2958;
       portal.style.setProperty('--portal-sweep', portalSweepDeg.toFixed(2) + 'deg');
       portal.style.setProperty('--portal-sweep-soft', (portalSweepDeg * 0.62).toFixed(2) + 'deg');
@@ -892,11 +904,11 @@ function initVectorField() {
 
       if (revealActive) {
         var distCenter = _sqrt(distCenterSq);
-        var edgeBoost = _max(0, 1 - _abs(distCenter - revealRadius) / 120);
+        var edgeBoost = _max(0, 1 - _abs(distCenter - revealRadius) / 56);
         if (edgeBoost > 0) {
-          drawOpacity = _min(1, drawOpacity + edgeBoost * 0.16);
-          drawLen += edgeBoost * 6;
-          widthScale *= 1 + edgeBoost * 0.16;
+          drawOpacity = _min(1, drawOpacity + edgeBoost * 0.1);
+          drawLen += edgeBoost * 2.8;
+          widthScale *= 1 + edgeBoost * 0.1;
         }
       }
 
@@ -958,18 +970,18 @@ function initVectorField() {
     // --- PORTAL REVEAL EDGE + FIELD-DRIVEN CENTER CUE ---
     if (isLandingPage) {
       if (revealActive) {
-        var horizonAlpha = _min(0.16, 0.025 + landingTransition.progress * 0.08);
-        if (revealRadius > 2) {
+        var horizonAlpha = _min(0.08, 0.008 + landingTransition.progress * 0.04);
+        if (revealRadius > 8) {
           ctx.beginPath();
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
           ctx.strokeStyle = 'rgba(244, 242, 236, ' + horizonAlpha + ')';
-          ctx.lineWidth = 2 + landingTransition.progress * 4.5;
+          ctx.lineWidth = 0.7 + landingTransition.progress * 1.8;
           ctx.stroke();
 
           ctx.beginPath();
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
-          ctx.strokeStyle = 'rgba(26, 26, 26, ' + (0.025 + landingTransition.progress * 0.04) + ')';
-          ctx.lineWidth = 0.9 + landingTransition.progress * 0.8;
+          ctx.strokeStyle = 'rgba(26, 26, 26, ' + (0.012 + landingTransition.progress * 0.022) + ')';
+          ctx.lineWidth = 0.45 + landingTransition.progress * 0.45;
           ctx.stroke();
         }
       } else if (portalPresence > 0.012 || portalCharge > 0.01) {

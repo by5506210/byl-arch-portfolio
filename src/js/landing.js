@@ -291,7 +291,8 @@
   }
 
   function shapeRevealRadius(t) {
-    return Math.pow(t, 1.38);
+    if (t <= 0.055) return 0;
+    return Math.pow((t - 0.055) / 0.945, 2.75);
   }
 
   function finalizeTransition() {
