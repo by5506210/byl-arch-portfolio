@@ -45,18 +45,38 @@ function initSlideshow() {
   var targetProgress = 0;
   var hasScrolled = false;
 
-  // Create progress dots
+  // Create ruler-style progress indicator
   var progressContainer = document.createElement('div');
   progressContainer.classList.add('slideshow__progress');
-  slides.forEach(function (_, i) {
-    var dot = document.createElement('div');
-    dot.classList.add('slideshow__dot');
-    if (i === 0) dot.classList.add('is-active');
-    progressContainer.appendChild(dot);
+
+  var progressFrame = document.createElement('div');
+  progressFrame.classList.add('slideshow__progress-frame');
+
+  var progressTrack = document.createElement('div');
+  progressTrack.classList.add('slideshow__progress-track');
+
+  var progressMarker = document.createElement('div');
+  progressMarker.classList.add('slideshow__progress-marker');
+
+  slides.forEach(function (slide, i) {
+    var tick = document.createElement('div');
+    tick.classList.add('slideshow__tick');
+    if (slide.classList.contains('slideshow__slide--divider')) {
+      tick.classList.add('slideshow__tick--major');
+    }
+    if (i === 0) tick.classList.add('is-active');
+    progressTrack.appendChild(tick);
   });
+
+  progressFrame.appendChild(progressTrack);
+  progressFrame.appendChild(progressMarker);
+  progressContainer.appendChild(progressFrame);
   document.body.appendChild(progressContainer);
 
-  var dots = Array.from(progressContainer.querySelectorAll('.slideshow__dot'));
+  var dots = Array.from(progressTrack.querySelectorAll('.slideshow__tick'));
+  var rulerStep = 10;
+  progressContainer.style.setProperty('--slideshow-progress', '0');
+  progressContainer.style.setProperty('--slideshow-progress-range', (Math.max(0, totalSlides - 1) * rulerStep) + 'px');
 
   // Create fixed title label
   var titleLabel = document.createElement('div');
@@ -131,6 +151,9 @@ function initSlideshow() {
   function applyScroll(progress) {
     var currentIndex = Math.floor(progress);
     var fraction = progress - currentIndex;
+    var progressRatio = totalSlides <= 1 ? 0 : (progress / (totalSlides - 1));
+
+    progressContainer.style.setProperty('--slideshow-progress', progressRatio.toFixed(4));
 
     // Only update transforms for the visible window of slides
     // Slides before currentIndex are at 0%, slides after currentIndex+1 are at 100%
@@ -162,10 +185,7 @@ function initSlideshow() {
       var isDark = slideDark[activeIndex];
       if (nav) {
         nav.classList.toggle('slideshow-nav-bar--on-dark', isDark);
-        // Switch progress dots to light on dark slides
-        dots.forEach(function (dot) {
-          dot.classList.toggle('slideshow__dot--light', isDark);
-        });
+        progressContainer.classList.toggle('slideshow__progress--light', isDark);
         // Switch scroll hint color
         if (scrollHint) {
           scrollHint.classList.toggle('slideshow__scroll-hint--on-dark', isDark);

@@ -406,7 +406,7 @@ function initVectorField() {
         var portalDy = mouseY - centerY;
         portalDist = _sqrt(portalDx * portalDx + portalDy * portalDy);
         portalProximity = _max(0, 1 - portalDist / portalGlowDist);
-        if (portalProximity < 0.015) portalProximity = 0;
+        if (portalProximity < 0.08) portalProximity = 0;
         portalCentered = _max(0, 1 - portalDist / (portalHoldRadius * 1.2));
       }
 
@@ -607,10 +607,10 @@ function initVectorField() {
       }
 
       portalPresence = portalProximity > 0
-        ? _min(1, Math.pow(portalProximity, 1.42) * 1.12 + portalCentered * 0.32 + portalCharge * 0.72)
+        ? _min(1, Math.pow(portalProximity, 2.35) * 1.2 + portalCentered * 0.32 + portalCharge * 0.72)
         : _min(1, portalCharge * 0.72);
 
-      if (portalProximity > 0.02 || portalCentered > 0.02 || portalCharge > 0.01) {
+      if (portalProximity > 0.08 || portalCentered > 0.02 || portalCharge > 0.01) {
         var portalPulseRate = 1.8 + portalProximity * 2.4 + portalCentered * 4.2 + portalCharge * 5.8;
         var portalPulseWave = 0.5 + 0.5 * _sin(time * portalPulseRate);
         portalPulse = portalPulseWave * (portalProximity * 0.34 + portalCentered * 0.46 + portalCharge * 0.62);
