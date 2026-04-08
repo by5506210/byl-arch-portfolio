@@ -367,6 +367,145 @@ function initFilmstrip() {
   updateControls();
 }
 
+function initProjectsAtlas() {
+  var atlas = document.querySelector('.projects-atlas');
+  if (!atlas) return;
+  if (atlas.dataset.atlasInit === 'true') return;
+  atlas.dataset.atlasInit = 'true';
+
+  var stage = atlas.querySelector('.projects-atlas__stage');
+  var nodes = Array.prototype.slice.call(atlas.querySelectorAll('.projects-atlas__node'));
+  var detailFrame = atlas.querySelector('.projects-atlas__detail-frame');
+  var detailMedia = atlas.querySelector('.projects-atlas__detail-media');
+  var detailImage = atlas.querySelector('.projects-atlas__detail-image');
+  var placeholderLabel = atlas.querySelector('.projects-atlas__detail-placeholder-label');
+  var placeholderCopy = atlas.querySelector('.projects-atlas__detail-placeholder-copy');
+  var detailCategory = atlas.querySelector('.projects-atlas__detail-category');
+  var detailYear = atlas.querySelector('.projects-atlas__detail-year');
+  var detailTitle = atlas.querySelector('.projects-atlas__detail-title');
+  var detailDescription = atlas.querySelector('.projects-atlas__detail-description');
+  var detailType = atlas.querySelector('[data-detail="type"]');
+  var detailLocation = atlas.querySelector('[data-detail="location"]');
+  var detailStatus = atlas.querySelector('[data-detail="status"]');
+  var detailTags = atlas.querySelector('.projects-atlas__detail-tags');
+  var detailLink = atlas.querySelector('.projects-atlas__detail-link');
+  var activeNode = null;
+
+  if (!stage || !detailFrame || !detailMedia || !detailImage || !placeholderLabel || !placeholderCopy ||
+      !detailCategory || !detailYear || !detailTitle || !detailDescription || !detailType ||
+      !detailLocation || !detailStatus || !detailTags || !detailLink || nodes.length === 0) {
+    return;
+  }
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function isCoarsePointer() {
+    return window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function buildTags(tagsString) {
+    detailTags.innerHTML = '';
+
+    if (!tagsString) return;
+
+    tagsString.split('|').forEach(function (tag) {
+      var clean = tag.trim();
+      if (!clean) return;
+
+      var chip = document.createElement('span');
+      chip.textContent = clean;
+      detailTags.appendChild(chip);
+    });
+  }
+
+  function activateNode(node) {
+    if (!node) return;
+
+    activeNode = node;
+    nodes.forEach(function (item) {
+      item.classList.toggle('is-active', item === node);
+    });
+
+    atlas.style.setProperty('--atlas-accent', node.dataset.accent || '#8e342a');
+    stage.setAttribute('data-active-orbit', node.dataset.orbit || 'architecture');
+
+    detailCategory.textContent = node.dataset.category || '';
+    detailYear.textContent = node.dataset.year || '';
+    detailTitle.textContent = node.dataset.title || '';
+    detailDescription.textContent = node.dataset.description || '';
+    detailType.textContent = node.dataset.type || '';
+    detailLocation.textContent = node.dataset.location || '';
+    detailStatus.textContent = node.dataset.status || '';
+    buildTags(node.dataset.tags || '');
+
+    if (node.dataset.image) {
+      detailMedia.classList.remove('is-empty');
+      detailImage.setAttribute('src', node.dataset.image);
+      detailImage.setAttribute('alt', node.dataset.title || 'Selected project image');
+    } else {
+      detailMedia.classList.add('is-empty');
+      detailImage.removeAttribute('src');
+      detailImage.setAttribute('alt', '');
+      placeholderLabel.textContent = node.dataset.placeholderLabel || 'Incoming project';
+      placeholderCopy.textContent = node.dataset.placeholderCopy || 'Documentation is still being assembled.';
+    }
+
+    detailLink.href = node.getAttribute('href') || '#';
+    detailLink.textContent = node.dataset.linkLabel || 'Open project';
+    detailLink.setAttribute('aria-label', detailLink.textContent + ': ' + (node.dataset.title || 'project'));
+  }
+
+  function updateStageMotion(evt) {
+    if (!evt) return;
+
+    var rect = stage.getBoundingClientRect();
+    var relativeX = (evt.clientX - rect.left) / rect.width;
+    var relativeY = (evt.clientY - rect.top) / rect.height;
+
+    stage.style.setProperty('--atlas-glow-x', clamp(relativeX * 100, 0, 100) + '%');
+    stage.style.setProperty('--atlas-glow-y', clamp(relativeY * 100, 0, 100) + '%');
+    stage.style.setProperty('--atlas-drift-x', clamp((relativeX - 0.5) * 18, -18, 18) + 'px');
+    stage.style.setProperty('--atlas-drift-y', clamp((relativeY - 0.5) * 16, -16, 16) + 'px');
+  }
+
+  function resetStageMotion() {
+    stage.style.setProperty('--atlas-glow-x', '50%');
+    stage.style.setProperty('--atlas-glow-y', '50%');
+    stage.style.setProperty('--atlas-drift-x', '0px');
+    stage.style.setProperty('--atlas-drift-y', '0px');
+  }
+
+  nodes.forEach(function (node) {
+    node.addEventListener('mouseenter', function () {
+      activateNode(node);
+    });
+
+    node.addEventListener('focus', function () {
+      activateNode(node);
+    });
+
+    node.addEventListener('click', function (evt) {
+      if (isCoarsePointer() && activeNode !== node) {
+        evt.preventDefault();
+        activateNode(node);
+      }
+    });
+  });
+
+  stage.addEventListener('mousemove', function (evt) {
+    updateStageMotion(evt);
+  });
+
+  stage.addEventListener('mouseleave', function () {
+    resetStageMotion();
+  });
+
+  activateNode(nodes[0]);
+  resetStageMotion();
+}
+
 function initProjectsIndexPreview() {
   var index = document.querySelector('.projects-index');
   if (!index) return;
@@ -494,6 +633,7 @@ function initProjectPage() {
   var oldBar = document.querySelector('.project-nav-bar');
   if (oldBar) oldBar.remove();
 
+  initProjectsAtlas();
   initProjectsIndexPreview();
   initGalleryReveals();
   initParallaxHero();

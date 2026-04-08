@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projects — Bryan Youn</title>
+  <title>Projects Atlas - Bryan Youn</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,102 +14,474 @@
 <body>
   <div class="grain"></div>
   <div data-barba="wrapper">
-  <main data-barba="container" data-barba-namespace="projects">
-  <div class="projects-index">
-    <canvas id="vector-field" class="vector-field-bg" data-color="dark"></canvas>
+    <main data-barba="container" data-barba-namespace="projects">
+      <div class="projects-index projects-atlas">
+        <canvas id="vector-field" class="vector-field-bg" data-color="dark"></canvas>
 
-    <div class="projects-index__layout">
-      <div class="projects-index__list">
-        <div class="projects-index__category">
-          <h2 class="projects-index__category-title">Architecture</h2>
-          <div class="projects-index__grid">
-            <a href="eden-museum.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/eden-museum/hero.jpg" alt="Eden Art Museum"></div>
-              <span class="projects-index__card-name">Eden Art Museum</span>
-            </a>
-            <a href="the-triad.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/the-triad/hero.jpg" alt="The Triad"></div>
-              <span class="projects-index__card-name">The Triad</span>
-            </a>
-            <a href="arboretum-shed.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/arboretum-shed/exterior-3.png" alt="Arboretum Garden Shed"></div>
-              <span class="projects-index__card-name">UW-Madison Arboretum Garden Shed</span>
-            </a>
-            <div class="projects-index__card projects-index__card--coming-soon">
-              <div class="projects-index__card-img projects-index__card-img--empty"></div>
-              <span class="projects-index__card-name">Osterio Novo <span class="projects-index__soon-tag">Soon</span></span>
+        <section class="projects-atlas__intro">
+          <div class="projects-atlas__intro-copy">
+            <span class="projects-atlas__eyebrow">Projects Atlas</span>
+            <h1 class="projects-atlas__title">An orbital index of architecture, interiors, objects, and graphic studies.</h1>
+            <p class="projects-atlas__lede">
+              Instead of a flat list, the work is arranged as a field of fragments. Each node marks a project, a material attitude,
+              and a scale of design thinking.
+            </p>
+          </div>
+          <div class="projects-atlas__intro-note">
+            <span class="projects-atlas__intro-label">Read the field</span>
+            <p>Hover to retune the active project on desktop. On touch screens, swipe sideways across the atlas, tap once to inspect, and tap again to enter.</p>
+          </div>
+        </section>
+
+        <div class="projects-atlas__layout">
+          <aside class="projects-atlas__legend">
+            <div class="projects-atlas__legend-card">
+              <span class="projects-atlas__legend-label">Archive status</span>
+              <div class="projects-atlas__legend-stat">
+                <strong>11</strong>
+                <span>tracked fragments</span>
+              </div>
+              <div class="projects-atlas__legend-stat projects-atlas__legend-stat--split">
+                <div>
+                  <strong>9</strong>
+                  <span>documented</span>
+                </div>
+                <div>
+                  <strong>2</strong>
+                  <span>incoming</span>
+                </div>
+              </div>
+
+              <div class="projects-atlas__legend-groups">
+                <div class="projects-atlas__legend-group">
+                  <span class="projects-atlas__legend-swatch projects-atlas__legend-swatch--architecture"></span>
+                  <div>
+                    <strong>Architecture orbit</strong>
+                    <p>Cultural, residential, and utility studies.</p>
+                  </div>
+                </div>
+                <div class="projects-atlas__legend-group">
+                  <span class="projects-atlas__legend-swatch projects-atlas__legend-swatch--interior"></span>
+                  <div>
+                    <strong>Interior orbit</strong>
+                    <p>Spatial atmosphere, furniture, and object work.</p>
+                  </div>
+                </div>
+                <div class="projects-atlas__legend-group">
+                  <span class="projects-atlas__legend-swatch projects-atlas__legend-swatch--design"></span>
+                  <div>
+                    <strong>Graphic orbit</strong>
+                    <p>Posters, covers, and visual systems.</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </aside>
 
-        <div class="projects-index__category">
-          <h2 class="projects-index__category-title">Interior & Furniture</h2>
-          <div class="projects-index__grid">
-            <a href="tolman.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/tolman/hero.png" alt="Tolman"></div>
-              <span class="projects-index__card-name">Tolman Apartment Living Space</span>
-            </a>
-            <a href="maple-xi.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/maple-xi/hero.png" alt="Maple Xi"></div>
-              <span class="projects-index__card-name">Maple Xi Apartment Interior</span>
-            </a>
-            <a href="aphelion.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/aphelion/hero.jpg" alt="Aphelion Lamp"></div>
-              <span class="projects-index__card-name">Aphelion Lamp</span>
-            </a>
-            <div class="projects-index__card projects-index__card--coming-soon">
-              <div class="projects-index__card-img projects-index__card-img--empty"></div>
-              <span class="projects-index__card-name">Morphic Vector System <span class="projects-index__soon-tag">Soon</span></span>
+          <section class="projects-atlas__field">
+            <div class="projects-atlas__stage-shell">
+              <div class="projects-atlas__stage" id="projects-atlas-stage" data-active-orbit="architecture">
+                <svg class="projects-atlas__diagram" viewBox="0 0 1000 900" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="atlasArchitecture" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#a53c30" stop-opacity="0.25"></stop>
+                      <stop offset="100%" stop-color="#6f221a" stop-opacity="0.9"></stop>
+                    </linearGradient>
+                    <linearGradient id="atlasInterior" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#577d92" stop-opacity="0.2"></stop>
+                      <stop offset="100%" stop-color="#30566d" stop-opacity="0.92"></stop>
+                    </linearGradient>
+                    <linearGradient id="atlasDesign" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#1c1b18" stop-opacity="0.12"></stop>
+                      <stop offset="100%" stop-color="#1c1b18" stop-opacity="0.82"></stop>
+                    </linearGradient>
+                  </defs>
+
+                  <path class="projects-atlas__orbit projects-atlas__orbit--architecture" d="M124 380C146 219 330 116 542 132C761 148 912 311 899 494C884 695 684 814 458 790C237 766 98 600 124 380Z"></path>
+                  <path class="projects-atlas__orbit projects-atlas__orbit--interior" d="M236 404C266 283 413 222 551 250C709 282 793 412 760 544C724 690 554 749 407 703C283 664 203 538 236 404Z"></path>
+                  <path class="projects-atlas__orbit projects-atlas__orbit--design" d="M442 714C503 650 640 627 753 652C858 676 912 744 892 801C867 872 736 889 620 860C497 830 405 754 442 714Z"></path>
+                  <path class="projects-atlas__trace" d="M127 380C175 406 204 439 225 486"></path>
+                  <path class="projects-atlas__trace" d="M554 252C604 266 655 291 698 328"></path>
+                  <path class="projects-atlas__trace" d="M621 860C648 818 688 783 740 764"></path>
+                </svg>
+
+                <span class="projects-atlas__annotation" style="--x: 11%; --y: 20%; --rotation: -88deg;">Architecture orbit</span>
+                <span class="projects-atlas__annotation" style="--x: 47%; --y: 18%; --rotation: -7deg;">Interior / furniture orbit</span>
+                <span class="projects-atlas__annotation" style="--x: 76%; --y: 88%; --rotation: 8deg;">Graphic orbit</span>
+                <span class="projects-atlas__annotation projects-atlas__annotation--note" style="--x: 58%; --y: 13%; --rotation: 0deg;">Projects are arranged by discipline, atmosphere, and scale rather than chronology.</span>
+
+                <div class="projects-atlas__pulse projects-atlas__pulse--one"></div>
+                <div class="projects-atlas__pulse projects-atlas__pulse--two"></div>
+                <div class="projects-atlas__pulse projects-atlas__pulse--three"></div>
+
+                <a
+                  href="eden-museum.html"
+                  class="projects-atlas__node projects-atlas__node--architecture projects-atlas__node--label-right is-active"
+                  style="--x: 18.5%; --y: 28%; --thumb-y: -68px; --thumb-w: 86px; --thumb-h: 62px; --stem-top: -40px; --stem-h: 40px; --label-x: 58px; --label-y: -66px; --delay: 0.2s;"
+                  data-orbit="architecture"
+                  data-accent="#8e342a"
+                  data-category="Architecture"
+                  data-year="2025"
+                  data-title="Eden Art Museum"
+                  data-type="Cultural / speculative"
+                  data-location="Waterfall site study"
+                  data-status="Documented"
+                  data-description="A museum staged as a procession through terrain, water, and framed interior thresholds."
+                  data-tags="terrain|waterfall|procession"
+                  data-image="../assets/images/eden-museum/hero.jpg"
+                  data-link-label="Open project"
+                  aria-label="Open Eden Art Museum project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/eden-museum/aerial-plan.png" alt="Eden Art Museum">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">01 / cultural study</span>
+                    <span class="projects-atlas__node-name">Eden Art Museum</span>
+                  </span>
+                </a>
+
+                <a
+                  href="the-triad.html"
+                  class="projects-atlas__node projects-atlas__node--architecture projects-atlas__node--label-right"
+                  style="--x: 31%; --y: 19.5%; --thumb-y: 72px; --thumb-w: 84px; --thumb-h: 62px; --stem-top: 0px; --stem-h: 44px; --label-x: 58px; --label-y: 74px; --delay: 0.9s;"
+                  data-orbit="architecture"
+                  data-accent="#8e342a"
+                  data-category="Architecture"
+                  data-year="2025"
+                  data-title="The Triad"
+                  data-type="Residential / private house"
+                  data-location="Domestic prototype"
+                  data-status="Documented"
+                  data-description="A family house translating three-ring resonance into balance, tension, and spatial calm."
+                  data-tags="resonance|house|symmetry"
+                  data-image="../assets/images/the-triad/hero.jpg"
+                  data-link-label="Open project"
+                  aria-label="Open The Triad project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/the-triad/axonometric.jpg" alt="The Triad">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">02 / residential</span>
+                    <span class="projects-atlas__node-name">The Triad</span>
+                  </span>
+                </a>
+
+                <a
+                  href="arboretum-shed.html"
+                  class="projects-atlas__node projects-atlas__node--architecture projects-atlas__node--label-right"
+                  style="--x: 12.5%; --y: 52%; --thumb-y: -64px; --thumb-w: 82px; --thumb-h: 60px; --stem-top: -36px; --stem-h: 36px; --label-x: 54px; --label-y: -62px; --delay: 1.5s;"
+                  data-orbit="architecture"
+                  data-accent="#8e342a"
+                  data-category="Architecture"
+                  data-year="2025"
+                  data-title="UW-Madison Arboretum Garden Shed"
+                  data-type="Institutional / utility"
+                  data-location="UW-Madison Arboretum"
+                  data-status="Documented"
+                  data-description="A compact service structure tuned to seasonal planting, storage, and the rhythms of the garden."
+                  data-tags="seasonal|utility|garden"
+                  data-image="../assets/images/arboretum-shed/hero.png"
+                  data-link-label="Open project"
+                  aria-label="Open UW-Madison Arboretum Garden Shed project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/arboretum-shed/summer-plan.jpg" alt="UW-Madison Arboretum Garden Shed">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">03 / seasonal utility</span>
+                    <span class="projects-atlas__node-name">Arboretum Garden Shed</span>
+                  </span>
+                </a>
+
+                <a
+                  href="osterio-novo.html"
+                  class="projects-atlas__node projects-atlas__node--architecture projects-atlas__node--label-right projects-atlas__node--soon"
+                  style="--x: 22%; --y: 73%; --thumb-y: 72px; --thumb-w: 78px; --thumb-h: 56px; --stem-top: 0px; --stem-h: 42px; --label-x: 56px; --label-y: 72px; --delay: 2.1s;"
+                  data-orbit="architecture"
+                  data-accent="#8e342a"
+                  data-category="Architecture"
+                  data-year="2026"
+                  data-title="Osterio Novo"
+                  data-type="Hospitality / archive incoming"
+                  data-location="Documentation in progress"
+                  data-status="Incoming"
+                  data-description="An upcoming restaurant study organized around hospitality, procession, and material atmosphere."
+                  data-tags="hospitality|dining|material"
+                  data-image=""
+                  data-link-label="Open teaser"
+                  data-placeholder-label="Incoming project"
+                  data-placeholder-copy="Documentation for this hospitality study is still being assembled."
+                  aria-label="Open Osterio Novo teaser page">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb projects-atlas__node-thumb--ghost">
+                    <span class="projects-atlas__node-soon">Soon</span>
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">04 / hospitality</span>
+                    <span class="projects-atlas__node-name">Osterio Novo</span>
+                  </span>
+                </a>
+
+                <a
+                  href="tolman.html"
+                  class="projects-atlas__node projects-atlas__node--interior projects-atlas__node--label-left"
+                  style="--x: 52%; --y: 31%; --thumb-y: -70px; --thumb-w: 82px; --thumb-h: 60px; --stem-top: -42px; --stem-h: 42px; --label-x: -54px; --label-y: -68px; --delay: 0.4s;"
+                  data-orbit="interior"
+                  data-accent="#355f76"
+                  data-category="Interior &amp; Furniture"
+                  data-year="2025"
+                  data-title="Tolman Apartment Living Space"
+                  data-type="Apartment interior"
+                  data-location="Living room renovation"
+                  data-status="Documented"
+                  data-description="An interior study using warm contrast, custom storage, and soft transitions between living zones."
+                  data-tags="apartment|joinery|warmth"
+                  data-image="../assets/images/tolman/hero.png"
+                  data-link-label="Open project"
+                  aria-label="Open Tolman Apartment Living Space project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/tolman/hero.png" alt="Tolman Apartment Living Space">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">05 / apartment interior</span>
+                    <span class="projects-atlas__node-name">Tolman</span>
+                  </span>
+                </a>
+
+                <a
+                  href="maple-xi.html"
+                  class="projects-atlas__node projects-atlas__node--interior projects-atlas__node--label-right"
+                  style="--x: 68%; --y: 42%; --thumb-y: -68px; --thumb-w: 80px; --thumb-h: 60px; --stem-top: -40px; --stem-h: 40px; --label-x: 54px; --label-y: -66px; --delay: 1.3s;"
+                  data-orbit="interior"
+                  data-accent="#355f76"
+                  data-category="Interior &amp; Furniture"
+                  data-year="2025"
+                  data-title="Maple Xi Apartment Interior"
+                  data-type="Residential interior"
+                  data-location="Apartment prototype"
+                  data-status="Documented"
+                  data-description="A calm apartment interior shaped by circulation, storage clarity, and tactile contrast."
+                  data-tags="apartment|flow|tactility"
+                  data-image="../assets/images/maple-xi/hero.png"
+                  data-link-label="Open project"
+                  aria-label="Open Maple Xi Apartment Interior project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/maple-xi/hero.png" alt="Maple Xi Apartment Interior">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">06 / residential interior</span>
+                    <span class="projects-atlas__node-name">Maple Xi</span>
+                  </span>
+                </a>
+
+                <a
+                  href="aphelion.html"
+                  class="projects-atlas__node projects-atlas__node--interior projects-atlas__node--label-left"
+                  style="--x: 57%; --y: 58%; --thumb-y: 72px; --thumb-w: 78px; --thumb-h: 58px; --stem-top: 0px; --stem-h: 42px; --label-x: -56px; --label-y: 74px; --delay: 2s;"
+                  data-orbit="interior"
+                  data-accent="#355f76"
+                  data-category="Interior &amp; Furniture"
+                  data-year="2025"
+                  data-title="Aphelion Lamp"
+                  data-type="Lighting object"
+                  data-location="Furniture / object study"
+                  data-status="Documented"
+                  data-description="A luminous object study orbiting around silhouette, glow, and the drama of distance."
+                  data-tags="object|light|orbit"
+                  data-image="../assets/images/aphelion/hero.jpg"
+                  data-link-label="Open project"
+                  aria-label="Open Aphelion Lamp project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/aphelion/lit-below.jpg" alt="Aphelion Lamp">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">07 / object study</span>
+                    <span class="projects-atlas__node-name">Aphelion Lamp</span>
+                  </span>
+                </a>
+
+                <a
+                  href="morphic-vector.html"
+                  class="projects-atlas__node projects-atlas__node--interior projects-atlas__node--label-right projects-atlas__node--soon"
+                  style="--x: 73%; --y: 63%; --thumb-y: -68px; --thumb-w: 76px; --thumb-h: 56px; --stem-top: -38px; --stem-h: 38px; --label-x: 52px; --label-y: -66px; --delay: 2.5s;"
+                  data-orbit="interior"
+                  data-accent="#355f76"
+                  data-category="Interior &amp; Furniture"
+                  data-year="2026"
+                  data-title="Morphic Vector System"
+                  data-type="System / archive incoming"
+                  data-location="Design research"
+                  data-status="Incoming"
+                  data-description="An incoming generative system exploring morphing vector identities and flexible visual logic."
+                  data-tags="system|generative|vector"
+                  data-image=""
+                  data-link-label="Open teaser"
+                  data-placeholder-label="Incoming system"
+                  data-placeholder-copy="Visual documentation for this morphic design study is still being prepared."
+                  aria-label="Open Morphic Vector System teaser page">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb projects-atlas__node-thumb--ghost">
+                    <span class="projects-atlas__node-soon">Soon</span>
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">08 / system research</span>
+                    <span class="projects-atlas__node-name">Morphic Vector</span>
+                  </span>
+                </a>
+
+                <a
+                  href="modulor.html"
+                  class="projects-atlas__node projects-atlas__node--design projects-atlas__node--label-left"
+                  style="--x: 60.5%; --y: 80%; --thumb-y: -70px; --thumb-w: 64px; --thumb-h: 86px; --stem-top: -26px; --stem-h: 26px; --label-x: -50px; --label-y: -64px; --delay: 0.8s;"
+                  data-orbit="design"
+                  data-accent="#1f1e1a"
+                  data-category="Design"
+                  data-year="2025"
+                  data-title="Modulor Book Cover"
+                  data-type="Editorial design"
+                  data-location="Book cover"
+                  data-status="Documented"
+                  data-description="A graphic reinterpretation of proportion, measure, and architectural order through print composition."
+                  data-tags="editorial|proportion|layout"
+                  data-image="../assets/images/modulor/hero.png"
+                  data-link-label="Open project"
+                  aria-label="Open Modulor Book Cover project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/modulor/alt.png" alt="Modulor Book Cover">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">09 / editorial</span>
+                    <span class="projects-atlas__node-name">Modulor</span>
+                  </span>
+                </a>
+
+                <a
+                  href="act-before-it-burns.html"
+                  class="projects-atlas__node projects-atlas__node--design projects-atlas__node--label-right"
+                  style="--x: 76.5%; --y: 82.5%; --thumb-y: -72px; --thumb-w: 64px; --thumb-h: 88px; --stem-top: -28px; --stem-h: 28px; --label-x: 48px; --label-y: -66px; --delay: 1.7s;"
+                  data-orbit="design"
+                  data-accent="#1f1e1a"
+                  data-category="Design"
+                  data-year="2025"
+                  data-title="ACT BEFORE IT BURNS"
+                  data-type="Advocacy poster"
+                  data-location="Graphic design"
+                  data-status="Documented"
+                  data-description="Poster work built from urgency, contrast, and compressed visual hierarchy."
+                  data-tags="poster|advocacy|contrast"
+                  data-image="../assets/images/act-before-it-burns/hero.png"
+                  data-link-label="Open project"
+                  aria-label="Open ACT BEFORE IT BURNS project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/act-before-it-burns/hero.png" alt="ACT BEFORE IT BURNS">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">10 / poster</span>
+                    <span class="projects-atlas__node-name">ACT BEFORE IT BURNS</span>
+                  </span>
+                </a>
+
+                <a
+                  href="marty-supreme.html"
+                  class="projects-atlas__node projects-atlas__node--design projects-atlas__node--label-left"
+                  style="--x: 87%; --y: 74%; --thumb-y: -70px; --thumb-w: 64px; --thumb-h: 86px; --stem-top: -28px; --stem-h: 28px; --label-x: -48px; --label-y: -64px; --delay: 2.3s;"
+                  data-orbit="design"
+                  data-accent="#1f1e1a"
+                  data-category="Design"
+                  data-year="2025"
+                  data-title="MARTY SUPREME"
+                  data-type="Film poster"
+                  data-location="Graphic design"
+                  data-status="Documented"
+                  data-description="A cinematic poster exploring pace, attitude, and image-text collision."
+                  data-tags="cinema|poster|impact"
+                  data-image="../assets/images/marty-supreme/hero.jpg"
+                  data-link-label="Open project"
+                  aria-label="Open MARTY SUPREME project">
+                  <span class="projects-atlas__node-core"></span>
+                  <span class="projects-atlas__node-thumb">
+                    <img src="../assets/images/marty-supreme/hero.jpg" alt="MARTY SUPREME">
+                  </span>
+                  <span class="projects-atlas__node-label">
+                    <span class="projects-atlas__node-code">11 / film poster</span>
+                    <span class="projects-atlas__node-name">MARTY SUPREME</span>
+                  </span>
+                </a>
+
+                <div class="projects-atlas__note">
+                  <span class="projects-atlas__note-label">Signal</span>
+                  <p>Each fragment opens a full project page. The active panel on the right retunes as you move through the field.</p>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+
+          <aside class="projects-atlas__detail" aria-live="polite">
+            <div class="projects-atlas__detail-frame">
+              <span class="projects-atlas__detail-eyebrow">Active fragment</span>
+
+              <div class="projects-atlas__detail-media">
+                <img class="projects-atlas__detail-image" src="../assets/images/eden-museum/hero.jpg" alt="Eden Art Museum">
+                <div class="projects-atlas__detail-placeholder">
+                  <span class="projects-atlas__detail-placeholder-label">Incoming project</span>
+                  <span class="projects-atlas__detail-placeholder-copy">Documentation is still being assembled.</span>
+                </div>
+              </div>
+
+              <div class="projects-atlas__detail-head">
+                <span class="projects-atlas__detail-category">Architecture</span>
+                <span class="projects-atlas__detail-year">2025</span>
+              </div>
+
+              <h2 class="projects-atlas__detail-title">Eden Art Museum</h2>
+              <p class="projects-atlas__detail-description">
+                A museum staged as a procession through terrain, water, and framed interior thresholds.
+              </p>
+
+              <dl class="projects-atlas__detail-facts">
+                <div>
+                  <dt>Type</dt>
+                  <dd data-detail="type">Cultural / speculative</dd>
+                </div>
+                <div>
+                  <dt>Location</dt>
+                  <dd data-detail="location">Waterfall site study</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd data-detail="status">Documented</dd>
+                </div>
+              </dl>
+
+              <div class="projects-atlas__detail-tags">
+                <span>terrain</span>
+                <span>waterfall</span>
+                <span>procession</span>
+              </div>
+
+              <a href="eden-museum.html" class="projects-atlas__detail-link">Open project</a>
+            </div>
+          </aside>
         </div>
 
-        <div class="projects-index__category">
-          <h2 class="projects-index__category-title">Design</h2>
-          <div class="projects-index__grid">
-            <a href="modulor.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/modulor/hero.png" alt="Modulor Book Cover"></div>
-              <span class="projects-index__card-name">Modulor Book Cover</span>
-            </a>
-            <a href="act-before-it-burns.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/act-before-it-burns/hero.png" alt="ACT BEFORE IT BURNS"></div>
-              <span class="projects-index__card-name">ACT BEFORE IT BURNS</span>
-            </a>
-            <a href="marty-supreme.html" class="projects-index__card">
-              <div class="projects-index__card-img"><img src="../assets/images/marty-supreme/hero.jpg" alt="MARTY SUPREME"></div>
-              <span class="projects-index__card-name">MARTY SUPREME</span>
-            </a>
-          </div>
+        <div class="projects-atlas__footer-wrap">
+          <footer class="site-footer">
+            <span class="site-footer__copy">Bryan Youn &mdash; 2025</span>
+            <div class="site-footer__links">
+              <a href="https://www.instagram.com/byl_architecture" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+              <a href="https://www.linkedin.com/in/bryan-youn-7048152b5/" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+            </div>
+          </footer>
         </div>
-
-        <footer class="site-footer">
-          <span class="site-footer__copy">Bryan Youn &mdash; 2025</span>
-          <div class="site-footer__links">
-            <a href="https://www.instagram.com/byl_architecture" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
-            <a href="https://www.linkedin.com/in/bryan-youn-7048152b5/" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
-          </div>
-        </footer>
       </div>
-
-      <aside class="projects-preview" aria-live="polite">
-        <div class="projects-preview__screen">
-          <div class="projects-preview__placeholder">
-            <span class="projects-preview__eyebrow">"PROJECT IMAGE"</span>
-            <span class="projects-preview__placeholder-copy">HOVER LEFT / PREVIEW LANDS HERE</span>
-          </div>
-          <div class="projects-preview__media-shell">
-            <div class="projects-preview__beam"></div>
-            <img class="projects-preview__image" src="" alt="">
-          </div>
-          <div class="projects-preview__meta">
-            <span class="projects-preview__meta-label">"ACTIVE PREVIEW"</span>
-            <span class="projects-preview__meta-title"></span>
-          </div>
-        </div>
-      </aside>
-    </div>
-  </div>
-  </main>
+    </main>
   </div>
   <script src="../src/js/cursor.js"></script>
   <script src="../src/js/vector-field.js"></script>
