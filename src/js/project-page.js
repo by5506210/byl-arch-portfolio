@@ -605,7 +605,9 @@ function initProjectsAtlas() {
 
   function applyNodeProximity(node, value) {
     var clamped = clamp(value, 0, 1);
+    var facePull = clamp((clamped - 0.4) / 0.6, 0, 1);
     node.style.setProperty('--proximity', clamped.toFixed(3));
+    node.style.setProperty('--face-pull', facePull.toFixed(3));
     node.classList.toggle('is-active', clamped > 0.22);
     setNodeLayer(node, clamped);
   }
@@ -951,7 +953,7 @@ function initProjectsAtlas() {
         var facing = clamp(tempOutward.dot(tempToCamera), 0, 1);
         var facingVisibility = clamp((facing - 0.42) / 0.5, 0, 1);
         var side = connectorDx >= 0 ? 1 : -1;
-        var yawBase = width <= 820 ? 26 : 34;
+        var yawBase = width <= 820 ? 30 : 44;
 
         node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
         node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
@@ -1149,7 +1151,7 @@ function initProjectsAtlas() {
       var connectorDy = y - anchorY;
       var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
       var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
-      var panelYawBase = isMobile ? 26 : 34;
+      var panelYawBase = isMobile ? 30 : 44;
       var panelYaw = side > 0 ? -panelYawBase : panelYawBase;
 
       node.style.setProperty('--x', anchorX.toFixed(2) + 'px');

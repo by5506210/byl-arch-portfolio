@@ -2144,8 +2144,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   width: 100%;
   height: 100%;
   counter-reset: helix-node;
-  perspective: 1400px;
-  perspective-origin: 50% 46%;
+  perspective: 960px;
+  perspective-origin: 50% 44%;
 }
 
 .projects-helix__webgl {
@@ -2315,6 +2315,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__node {
   --proximity: 0;
+  --face-pull: 0;
   --depth: 0.5;
   --fog: 0;
   --facing: 0.5;
@@ -2384,7 +2385,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__thumb {
   width: var(--thumb-w, 72px);
   height: var(--thumb-h, 52px);
-  transform: translate(-50%, -50%) rotateY(calc(var(--panel-yaw) * (1 - var(--proximity) * 0.96) * 1deg)) scale(calc(1 + var(--depth) * 0.26 + var(--proximity) * 1.08));
+  transform: translate(-50%, -50%) rotateY(calc(var(--panel-yaw) * (1 - var(--face-pull) * 0.92) * 1deg)) rotateX(calc(-3deg + var(--face-pull) * 3deg)) scale(calc(1 + var(--depth) * 0.26 + var(--proximity) * 1.08));
   transform-origin: center center;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
