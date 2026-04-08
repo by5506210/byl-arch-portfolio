@@ -2144,6 +2144,19 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 100%;
 }
 
+.projects-helix__webgl {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.projects-helix__webgl canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .projects-helix__guides,
 .projects-helix__floor-ring {
   pointer-events: none;
@@ -2155,6 +2168,11 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   width: 100%;
   height: 100%;
   overflow: visible;
+  z-index: 1;
+}
+
+.projects-helix--webgl-enabled .projects-helix__guides {
+  opacity: 0;
 }
 
 .projects-helix__axis,
@@ -2346,6 +2364,11 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   box-shadow:
     0 4px 10px rgba(44, 36, 30, 0.16),
     0 12px 24px rgba(44, 36, 30, 0.22);
+}
+
+.projects-helix--webgl-enabled .projects-helix__stem,
+.projects-helix--webgl-enabled .projects-helix__core {
+  display: none;
 }
 
 @media (max-width: 900px) {

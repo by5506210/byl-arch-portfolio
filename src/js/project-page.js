@@ -375,6 +375,7 @@ function initProjectsAtlas() {
 
   var stage = helix.querySelector('.projects-helix__stage');
   var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
+  var webglMount = helix.querySelector('.projects-helix__webgl');
   var axisPath = helix.querySelector('.projects-helix__axis');
   var threadPath = helix.querySelector('.projects-helix__thread');
   var orbitTop = helix.querySelector('.projects-helix__orbit--top');
@@ -382,8 +383,13 @@ function initProjectsAtlas() {
   var orbitBottom = helix.querySelector('.projects-helix__orbit--bottom');
   var selectedNode = null;
   var resizeFrame = null;
+  var webglHelix = null;
 
   if (!stage || nodes.length === 0) return;
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
 
   function isCoarsePointer() {
     return window.matchMedia('(pointer: coarse)').matches;
@@ -414,6 +420,223 @@ function initProjectsAtlas() {
       setNodeLayer(item, isActive ? 1 : 0);
     });
     stage.setAttribute('data-active-series', node ? node.dataset.series : '');
+  }
+
+  function createWebglHelix() {
+    if (!window.THREE || !webglMount) return null;
+    var THREE = window.THREE;
+    var renderer;
+
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch (err) {
+      return null;
+    }
+
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    while (webglMount.firstChild) {
+      webglMount.removeChild(webglMount.firstChild);
+    }
+    webglMount.appendChild(renderer.domElement);
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+    camera.position.set(9.2, 2.4, 8.4);
+    camera.lookAt(0, 0, 0);
+
+    var group = new THREE.Group();
+    scene.add(group);
+
+    var dotGeometry = new THREE.SphereGeometry(0.08, 14, 14);
+    var nodeData = [];
+
+    function disposeMaterial(material) {
+      if (material && material.dispose) material.dispose();
+    }
+
+    function clearGroup() {
+      while (group.children.length) {
+        var child = group.children[0];
+        group.remove(child);
+        if (child.geometry && child.geometry.dispose) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(disposeMaterial);
+          } else {
+            disposeMaterial(child.material);
+          }
+        }
+      }
+    }
+
+    function addLine(points, material, dashed) {
+      var geometry = new THREE.BufferGeometry().setFromPoints(points);
+      var line = new THREE.Line(geometry, material);
+      if (dashed && line.computeLineDistances) line.computeLineDistances();
+      group.add(line);
+      return line;
+    }
+
+    function ringPoints(radius, y, segments) {
+      var points = [];
+      for (var i = 0; i <= segments; i++) {
+        var angle = (i / segments) * Math.PI * 2;
+        points.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius));
+      }
+      return points;
+    }
+
+    function worldToScreen(vector, width, height) {
+      var projected = vector.clone().project(camera);
+      return {
+        x: (projected.x * 0.5 + 0.5) * width,
+        y: (-projected.y * 0.5 + 0.5) * height,
+        z: projected.z
+      };
+    }
+
+    function buildWorld(width) {
+      clearGroup();
+      nodeData = [];
+
+      var total = nodes.length;
+      var startAngle = -Math.PI * 0.5;
+      var helixRadius = Math.max(3.7, Math.min(5.4, 4 + (width - 920) / 520));
+      var helixHeight = 8.8;
+      var threadSegments = Math.max(220, total * 36);
+      var threadPoints = [];
+      var axisTop = helixHeight * 0.61;
+      var axisBottom = -helixHeight * 0.61;
+
+      addLine(
+        [new THREE.Vector3(0, axisTop, 0), new THREE.Vector3(0, axisBottom, 0)],
+        new THREE.LineDashedMaterial({
+          color: 0x11110f,
+          transparent: true,
+          opacity: 0.2,
+          dashSize: 0.18,
+          gapSize: 0.16
+        }),
+        true
+      );
+
+      addLine(
+        ringPoints(helixRadius, helixHeight * 0.5, 108),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.2 }),
+        false
+      );
+      addLine(
+        ringPoints(helixRadius, 0, 108),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.1 }),
+        false
+      );
+      addLine(
+        ringPoints(helixRadius, -helixHeight * 0.5, 108),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.2 }),
+        false
+      );
+
+      for (var i = 0; i <= threadSegments; i++) {
+        var t = i / threadSegments;
+        var theta = startAngle + t * Math.PI * 2;
+        threadPoints.push(new THREE.Vector3(
+          Math.sin(theta) * helixRadius,
+          (0.5 - t) * helixHeight,
+          Math.cos(theta) * helixRadius
+        ));
+      }
+
+      addLine(
+        threadPoints,
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.33 }),
+        false
+      );
+
+      for (var index = 0; index < total; index++) {
+        var progress = total === 1 ? 0.5 : index / (total - 1);
+        var angle = startAngle + progress * Math.PI * 2;
+        var point = new THREE.Vector3(
+          Math.sin(angle) * helixRadius,
+          (0.5 - progress) * helixHeight,
+          Math.cos(angle) * helixRadius
+        );
+        var radial = new THREE.Vector3(point.x, 0, point.z).normalize();
+        var cardOffset = 1.65 + Math.max(0, radial.z) * 0.36;
+        var anchor = point.clone().add(radial.multiplyScalar(cardOffset));
+
+        addLine(
+          [point, anchor],
+          new THREE.LineDashedMaterial({
+            color: 0x11110f,
+            transparent: true,
+            opacity: 0.22,
+            dashSize: 0.11,
+            gapSize: 0.11
+          }),
+          true
+        );
+
+        var dot = new THREE.Mesh(dotGeometry, new THREE.MeshBasicMaterial({
+          color: 0xf9f8f5,
+          transparent: true,
+          opacity: 0.95
+        }));
+        dot.position.copy(point);
+        group.add(dot);
+
+        nodeData.push({ point: point, anchor: anchor });
+      }
+    }
+
+    function syncNodes(width, height) {
+      nodes.forEach(function (node, index) {
+        var data = nodeData[index];
+        if (!data) return;
+
+        var anchorScreen = worldToScreen(data.anchor, width, height);
+        var pointScreen = worldToScreen(data.point, width, height);
+        var depth = clamp(1 - (anchorScreen.z + 1) * 0.5, 0, 1);
+        var armLength = Math.max(Math.abs(anchorScreen.x - pointScreen.x), 0);
+        var side = anchorScreen.x >= pointScreen.x ? 1 : -1;
+        var currentProximity = parseFloat(node.style.getPropertyValue('--proximity'));
+
+        node.style.setProperty('--x', anchorScreen.x.toFixed(2) + 'px');
+        node.style.setProperty('--y', anchorScreen.y.toFixed(2) + 'px');
+        node.style.setProperty('--depth', depth.toFixed(3));
+        node.style.setProperty('--arm-length', armLength.toFixed(2) + 'px');
+        node.style.setProperty('--arm-shift', (side > 0 ? -armLength : 0).toFixed(2) + 'px');
+        node.style.setProperty('--helix-shift', (side > 0 ? -armLength : armLength).toFixed(2) + 'px');
+        node.style.setProperty('--panel-yaw', (side > 0 ? -24 : 24).toFixed(2));
+        node.dataset.depth = depth.toFixed(3);
+
+        setNodeLayer(node, isNaN(currentProximity) ? 0 : currentProximity);
+      });
+    }
+
+    function layout() {
+      var rect = stage.getBoundingClientRect();
+      var width = Math.max(1, Math.round(rect.width));
+      var height = Math.max(1, Math.round(rect.height));
+      var aspect = width / height;
+      var frustumSize = 12.4;
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height, false);
+
+      camera.left = (-frustumSize * aspect) * 0.5;
+      camera.right = (frustumSize * aspect) * 0.5;
+      camera.top = frustumSize * 0.5;
+      camera.bottom = -frustumSize * 0.5;
+      camera.updateProjectionMatrix();
+
+      buildWorld(width);
+      renderer.render(scene, camera);
+      syncNodes(width, height);
+    }
+
+    return { layout: layout };
   }
 
   function projectOffset(theta, radius, viewAngle) {
@@ -451,7 +674,7 @@ function initProjectsAtlas() {
     orbit.setAttribute('ry', ry.toFixed(2));
   }
 
-  function layoutHelix() {
+  function layoutHelixFallback() {
     var rect = stage.getBoundingClientRect();
     var width = rect.width;
     var height = rect.height;
@@ -513,6 +736,14 @@ function initProjectsAtlas() {
     });
   }
 
+  function layoutHelix() {
+    if (webglHelix) {
+      webglHelix.layout();
+      return;
+    }
+    layoutHelixFallback();
+  }
+
   function updateProximity(clientX, clientY) {
     var bestNode = null;
     var bestValue = 0;
@@ -547,6 +778,13 @@ function initProjectsAtlas() {
         node.classList.remove('is-active');
         setNodeLayer(node, 0);
       });
+    }
+  }
+
+  if (window.THREE && webglMount) {
+    webglHelix = createWebglHelix();
+    if (webglHelix) {
+      helix.classList.add('projects-helix--webgl-enabled');
     }
   }
 
