@@ -562,21 +562,7 @@ function initProjectsAtlas() {
           (0.5 - progress) * helixHeight,
           Math.cos(angle) * helixRadius
         );
-        var radial = new THREE.Vector3(point.x, 0, point.z).normalize();
-        var cardOffset = 1.65 + Math.max(0, radial.z) * 0.36;
-        var anchor = point.clone().add(radial.multiplyScalar(cardOffset));
-
-        addLine(
-          [point, anchor],
-          new THREE.LineDashedMaterial({
-            color: 0x11110f,
-            transparent: true,
-            opacity: 0.22,
-            dashSize: 0.11,
-            gapSize: 0.11
-          }),
-          true
-        );
+        var anchor = point.clone();
 
         var dot = new THREE.Mesh(dotGeometry, new THREE.MeshBasicMaterial({
           color: 0xf9f8f5,
@@ -595,19 +581,17 @@ function initProjectsAtlas() {
         var data = nodeData[index];
         if (!data) return;
 
-        var anchorScreen = worldToScreen(data.anchor, width, height);
         var pointScreen = worldToScreen(data.point, width, height);
-        var depth = clamp(1 - (anchorScreen.z + 1) * 0.5, 0, 1);
-        var armLength = Math.max(Math.abs(anchorScreen.x - pointScreen.x), 0);
-        var side = anchorScreen.x >= pointScreen.x ? 1 : -1;
+        var depth = clamp(1 - (pointScreen.z + 1) * 0.5, 0, 1);
+        var side = data.point.x >= 0 ? 1 : -1;
         var currentProximity = parseFloat(node.style.getPropertyValue('--proximity'));
 
-        node.style.setProperty('--x', anchorScreen.x.toFixed(2) + 'px');
-        node.style.setProperty('--y', anchorScreen.y.toFixed(2) + 'px');
+        node.style.setProperty('--x', pointScreen.x.toFixed(2) + 'px');
+        node.style.setProperty('--y', pointScreen.y.toFixed(2) + 'px');
         node.style.setProperty('--depth', depth.toFixed(3));
-        node.style.setProperty('--arm-length', armLength.toFixed(2) + 'px');
-        node.style.setProperty('--arm-shift', (side > 0 ? -armLength : 0).toFixed(2) + 'px');
-        node.style.setProperty('--helix-shift', (side > 0 ? -armLength : armLength).toFixed(2) + 'px');
+        node.style.setProperty('--arm-length', '0px');
+        node.style.setProperty('--arm-shift', '0px');
+        node.style.setProperty('--helix-shift', '0px');
         node.style.setProperty('--panel-yaw', (side > 0 ? -24 : 24).toFixed(2));
         node.dataset.depth = depth.toFixed(3);
 
@@ -684,7 +668,6 @@ function initProjectsAtlas() {
     var radiusX = Math.min(width * 0.42, 460);
     var orbitRadiusY = Math.max(14, Math.min(height * 0.07, 34));
     var viewAngle = Math.PI * 0.24;
-    var shelfOffsetBase = Math.max(56, Math.min(width * 0.085, 108));
     var startAngle = -Math.PI * 0.5;
     var total = nodes.length;
 
@@ -712,23 +695,15 @@ function initProjectsAtlas() {
       var y = topY + progress * loopHeight;
       var depth = Math.max(0, Math.min(1, (projected.depth / radiusX + 1) * 0.5));
       var side = projected.x >= 0 ? 1 : -1;
-      if (Math.abs(projected.x) < 2) {
-        side = Math.cos(theta) >= 0 ? 1 : -1;
-      }
-      var shelfOffset = shelfOffsetBase + depth * 26;
-      var projectX = helixX + side * shelfOffset;
-      var armLength = Math.max(Math.abs(projectX - helixX), 0);
-      var linkShift = side > 0 ? -armLength : 0;
-      var helixShift = side > 0 ? -armLength : armLength;
       var panelYaw = side > 0 ? -28 : 28;
       var currentProximity = parseFloat(node.style.getPropertyValue('--proximity'));
 
-      node.style.setProperty('--x', projectX.toFixed(2) + 'px');
+      node.style.setProperty('--x', helixX.toFixed(2) + 'px');
       node.style.setProperty('--y', y.toFixed(2) + 'px');
       node.style.setProperty('--depth', depth.toFixed(3));
-      node.style.setProperty('--arm-length', armLength.toFixed(2) + 'px');
-      node.style.setProperty('--arm-shift', linkShift.toFixed(2) + 'px');
-      node.style.setProperty('--helix-shift', helixShift.toFixed(2) + 'px');
+      node.style.setProperty('--arm-length', '0px');
+      node.style.setProperty('--arm-shift', '0px');
+      node.style.setProperty('--helix-shift', '0px');
       node.style.setProperty('--panel-yaw', panelYaw.toFixed(2));
       node.dataset.depth = depth.toFixed(3);
 
