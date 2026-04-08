@@ -2113,8 +2113,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix::before {
   top: 5rem;
   left: 50%;
-  width: min(72vw, 900px);
-  height: min(44vw, 520px);
+  width: min(76vw, 980px);
+  height: min(34vw, 420px);
   transform: translateX(-50%);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.6) 36%, rgba(255, 255, 255, 0) 72%);
   opacity: 0.94;
@@ -2123,8 +2123,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix::after {
   left: 50%;
   bottom: -2rem;
-  width: min(70vw, 860px);
-  height: 8rem;
+  width: min(76vw, 980px);
+  height: 7rem;
   transform: translateX(-50%);
   background: radial-gradient(ellipse at center, rgba(207, 200, 190, 0.24) 0%, rgba(207, 200, 190, 0.08) 34%, rgba(207, 200, 190, 0) 72%);
   filter: blur(20px);
@@ -2134,7 +2134,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   position: relative;
   z-index: 1;
   width: min(96vw, 1120px);
-  height: clamp(520px, 64vh, 620px);
+  height: clamp(430px, 54vh, 500px);
   margin: 0 auto;
 }
 
@@ -2158,8 +2158,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__axis,
-.projects-helix__coil,
-.projects-helix__connector {
+.projects-helix__orbit,
+.projects-helix__thread {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -2172,35 +2172,32 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   stroke-dasharray: 2 18;
 }
 
-.projects-helix__coil {
-  stroke: rgba(17, 17, 15, 0.32);
-  stroke-width: 1.15;
+.projects-helix__orbit {
+  stroke: rgba(17, 17, 15, 0.18);
+  stroke-width: 0.82;
+  opacity: 0.42;
 }
 
-.projects-helix__connector {
-  stroke: rgba(17, 17, 15, 0.26);
-  stroke-width: 0.96;
+.projects-helix__thread {
+  stroke: rgba(17, 17, 15, 0.34);
+  stroke-width: 1.6;
 }
 
-.projects-helix__coil--1,
-.projects-helix__coil--2,
-.projects-helix__coil--3,
-.projects-helix__coil--4,
-.projects-helix__coil--5 {
-  opacity: 0.86;
+.projects-helix__orbit--mid {
+  opacity: 0.52;
 }
 
-[data-active-series] .projects-helix__coil,
-[data-active-series] .projects-helix__connector {
+[data-active-series] .projects-helix__orbit,
+[data-active-series] .projects-helix__thread {
   transition: opacity 0.22s ease, stroke-width 0.22s ease;
 }
 
-[data-active-series='architecture'] .projects-helix__coil,
-[data-active-series='interior'] .projects-helix__coil,
-[data-active-series='design'] .projects-helix__coil,
-[data-active-series='architecture'] .projects-helix__connector,
-[data-active-series='interior'] .projects-helix__connector,
-[data-active-series='design'] .projects-helix__connector {
+[data-active-series='architecture'] .projects-helix__orbit,
+[data-active-series='interior'] .projects-helix__orbit,
+[data-active-series='design'] .projects-helix__orbit,
+[data-active-series='architecture'] .projects-helix__thread,
+[data-active-series='interior'] .projects-helix__thread,
+[data-active-series='design'] .projects-helix__thread {
   opacity: 1;
 }
 
@@ -2226,7 +2223,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__node {
   --proximity: 0;
   --node-opacity: 0.76;
-  --lift: 48px;
+  --lift: 28px;
   position: absolute;
   left: var(--x);
   top: var(--y);
@@ -2258,7 +2255,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: var(--lift);
   transform: translate(-50%, calc(-1 * var(--lift)));
   background: linear-gradient(180deg, rgba(17, 17, 15, 0.02) 0%, rgba(17, 17, 15, 0.24) 100%);
-  opacity: calc(0.22 + var(--proximity) * 0.54);
+  opacity: calc(0.18 + var(--proximity) * 0.56);
 }
 
 .projects-helix__core {
@@ -2275,12 +2272,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   width: var(--thumb-w);
   height: var(--thumb-h);
   top: calc(-1 * (var(--lift) + 6px));
-  transform: translate(-50%, -100%) scale(calc(0.82 + var(--proximity) * 1.14));
+  transform: translate(-50%, -100%) scale(calc(0.82 + var(--proximity) * 1.42));
   transform-origin: center bottom;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.16));
   background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 8px 18px rgba(44, 36, 30, calc(0.04 + var(--proximity) * 0.18));
+  box-shadow: 0 8px 18px rgba(44, 36, 30, calc(0.04 + var(--proximity) * 0.22));
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   will-change: transform;
 }
@@ -2295,8 +2292,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__label {
   min-width: max-content;
-  top: calc(-1 * (var(--lift) + 12px));
-  transform: translate(-50%, calc(10px + (1 - var(--proximity)) * 10px));
+  top: calc(-1 * (var(--lift) + 11px));
+  transform: translate(-50%, calc(8px + (1 - var(--proximity)) * 8px));
   font-family: var(--font-primary);
   font-size: 0.48rem;
   line-height: 1.35;
@@ -2329,7 +2326,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
   .projects-helix__viewport {
     width: min(98vw, 860px);
-    height: 560px;
+    height: 470px;
   }
 }
 
@@ -2341,7 +2338,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
   .projects-helix__viewport {
     width: 100%;
-    height: 560px;
+    height: 500px;
   }
 
   .projects-helix__thumb {
