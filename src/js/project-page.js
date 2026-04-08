@@ -385,7 +385,11 @@ function initProjectsAtlas() {
   var selectedNode = null;
   var resizeFrame = null;
   var webglHelix = null;
-  var fallbackCenterBias = 0.48;
+  var fallbackCenterBias = 0.5;
+  var baseViewAngle = Math.PI * 0.24;
+  var fallbackRotation = 0;
+  var fallbackFrame = null;
+  var fallbackLast = 0;
   var primaryNode = null;
   var proximityTarget = new WeakMap();
   var proximityCurrent = new WeakMap();
@@ -479,7 +483,7 @@ function initProjectsAtlas() {
   }
 
   function ensureProximityAnimation() {
-    if (webglHelix) return;
+    if (webglHelix || fallbackFrame) return;
     if (proximityFrame) return;
     proximityLast = 0;
     proximityFrame = requestAnimationFrame(runProximityAnimation);
@@ -563,7 +567,7 @@ function initProjectsAtlas() {
     var group = new THREE.Group();
     scene.add(group);
     group.rotation.x = -0.08;
-    group.position.x = -0.42;
+    group.position.x = 0;
 
     var dotGeometry = new THREE.SphereGeometry(0.08, 14, 14);
     var nodeData = [];
@@ -673,7 +677,13 @@ function initProjectsAtlas() {
           (0.5 - progress) * helixHeight,
           Math.cos(angle) * helixRadius
         );
-        var anchor = point.clone();
+        var radial = new THREE.Vector3(point.x, 0, point.z);
+        if (radial.lengthSq() < 0.0001) {
+          radial.set(1, 0, 0);
+        } else {
+          radial.normalize();
+        }
+        var anchor = point.clone().add(radial.multiplyScalar(1.58));
 
         var dot = new THREE.Mesh(dotGeometry, new THREE.MeshBasicMaterial({
           color: 0x0f0f0d,
@@ -694,12 +704,23 @@ function initProjectsAtlas() {
         if (!data) return;
 
         var worldPoint = data.point.clone().applyMatrix4(group.matrixWorld);
+        var worldAnchor = data.anchor.clone().applyMatrix4(group.matrixWorld);
         var projected = worldPoint.clone().project(camera);
+        var projectedAnchor = worldAnchor.clone().project(camera);
         var pointScreen = {
           x: (projected.x * 0.5 + 0.5) * width,
           y: (-projected.y * 0.5 + 0.5) * height,
           z: projected.z
         };
+        var anchorScreen = {
+          x: (projectedAnchor.x * 0.5 + 0.5) * width,
+          y: (-projectedAnchor.y * 0.5 + 0.5) * height,
+          z: projectedAnchor.z
+        };
+        var connectorDx = pointScreen.x - anchorScreen.x;
+        var connectorDy = pointScreen.y - anchorScreen.y;
+        var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
+        var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
         var depth = clamp(1 - (pointScreen.z + 1) * 0.5, 0, 1);
         var fog = clamp(1 - depth, 0, 1);
         var outward = new THREE.Vector3(worldPoint.x - group.position.x, 0, worldPoint.z - group.position.z);
@@ -710,16 +731,17 @@ function initProjectsAtlas() {
         }
         var toCamera = camera.position.clone().sub(worldPoint).normalize();
         var facing = clamp(outward.dot(toCamera), 0, 1);
-        var side = data.point.x >= 0 ? 1 : -1;
+        var side = connectorDx >= 0 ? 1 : -1;
 
-        node.style.setProperty('--x', pointScreen.x.toFixed(2) + 'px');
-        node.style.setProperty('--y', pointScreen.y.toFixed(2) + 'px');
+        node.style.setProperty('--x', anchorScreen.x.toFixed(2) + 'px');
+        node.style.setProperty('--y', anchorScreen.y.toFixed(2) + 'px');
         node.style.setProperty('--depth', depth.toFixed(3));
         node.style.setProperty('--fog', fog.toFixed(3));
         node.style.setProperty('--facing', facing.toFixed(3));
-        node.style.setProperty('--arm-length', '0px');
-        node.style.setProperty('--arm-shift', '0px');
-        node.style.setProperty('--helix-shift', '0px');
+        node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
+        node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
+        node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
+        node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
         node.style.setProperty('--panel-yaw', (side > 0 ? -24 : 24).toFixed(2));
         node.dataset.depth = depth.toFixed(3);
       });
@@ -858,7 +880,7 @@ function initProjectsAtlas() {
     var loopHeight = height * 0.72;
     var radiusX = Math.min(width * 0.47, 560);
     var orbitRadiusY = Math.max(14, Math.min(height * 0.07, 34));
-    var viewAngle = Math.PI * 0.24;
+    var viewAngle = baseViewAngle + fallbackRotation;
     var startAngle = -Math.PI * 0.5;
     var total = nodes.length;
 
@@ -888,16 +910,24 @@ function initProjectsAtlas() {
       var fog = clamp(1 - depth, 0, 1);
       var facing = clamp(0.15 + depth * 1.05, 0, 1);
       var side = projected.x >= 0 ? 1 : -1;
+      var offset = 62 + depth * 22;
+      var anchorX = helixX + side * offset;
+      var anchorY = y - (1 - depth) * 5;
+      var connectorDx = helixX - anchorX;
+      var connectorDy = y - anchorY;
+      var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
+      var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
       var panelYaw = side > 0 ? -28 : 28;
 
-      node.style.setProperty('--x', helixX.toFixed(2) + 'px');
-      node.style.setProperty('--y', y.toFixed(2) + 'px');
+      node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
+      node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
       node.style.setProperty('--depth', depth.toFixed(3));
       node.style.setProperty('--fog', fog.toFixed(3));
       node.style.setProperty('--facing', facing.toFixed(3));
-      node.style.setProperty('--arm-length', '0px');
-      node.style.setProperty('--arm-shift', '0px');
-      node.style.setProperty('--helix-shift', '0px');
+      node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
+      node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
+      node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
+      node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
       node.style.setProperty('--panel-yaw', panelYaw.toFixed(2));
       node.dataset.depth = depth.toFixed(3);
     });
@@ -909,6 +939,29 @@ function initProjectsAtlas() {
       return;
     }
     layoutHelixFallback();
+  }
+
+  function runFallbackFrame(now) {
+    if (webglHelix) {
+      fallbackFrame = null;
+      return;
+    }
+    if (!fallbackLast) fallbackLast = now;
+    var delta = Math.min(80, now - fallbackLast);
+    fallbackLast = now;
+
+    fallbackRotation += delta * 0.00006;
+    layoutHelixFallback();
+    stepProximity(delta || 16);
+
+    fallbackFrame = requestAnimationFrame(runFallbackFrame);
+  }
+
+  function ensureFallbackAnimation() {
+    if (webglHelix) return;
+    if (fallbackFrame) return;
+    fallbackLast = 0;
+    fallbackFrame = requestAnimationFrame(runFallbackFrame);
   }
 
   function updateProximity(clientX, clientY) {
@@ -953,6 +1006,10 @@ function initProjectsAtlas() {
     webglHelix = createWebglHelix();
     if (!webglHelix) return false;
 
+    if (fallbackFrame) {
+      cancelAnimationFrame(fallbackFrame);
+      fallbackFrame = null;
+    }
     helix.classList.add('projects-helix--webgl-enabled');
     if (guides) {
       guides.remove();
@@ -973,10 +1030,12 @@ function initProjectsAtlas() {
         if (!loaded || !enableWebglIfPossible()) {
           ensureSvgFallbackGuides();
           layoutHelix();
+          ensureFallbackAnimation();
         }
       });
     } else {
       ensureSvgFallbackGuides();
+      ensureFallbackAnimation();
     }
   }
 
@@ -1023,6 +1082,7 @@ function initProjectsAtlas() {
 
   layoutHelix();
   clearVisualState(true);
+  ensureFallbackAnimation();
 }
 
 function initProjectsIndexPreview() {
