@@ -410,11 +410,15 @@ function initProjectsAtlas() {
   });
 
   function collectRibbonSources() {
+    var seen = Object.create(null);
     return nodes
       .map(function (node) {
         var img = node.querySelector('.projects-helix__thumb img');
         if (!img) return null;
-        return img;
+        var src = img.currentSrc || img.src || '';
+        if (!src || seen[src]) return null;
+        seen[src] = true;
+        return src;
       })
       .filter(function (item) {
         return !!item;
@@ -867,47 +871,41 @@ function initProjectsAtlas() {
     }
 
     function createRibbonTexture() {
-      var sourceImages = collectRibbonSources();
-      if (sourceImages.length === 0) return null;
+      var sourceUrls = collectRibbonSources();
+      if (sourceUrls.length === 0) return null;
 
-      var frameCount = Math.max(18, Math.min(30, sourceImages.length * 3));
-      var frameW = 30;
-      var frameH = 20;
-      var edgeBand = 4;
+      var frameCount = Math.max(24, Math.min(42, sourceUrls.length * 5));
+      var frameW = 24;
+      var frameH = 15;
       var canvas = document.createElement('canvas');
       var ctx = canvas.getContext('2d');
       if (!ctx) return null;
+      var texture;
+      var imageCache = Object.create(null);
+      var frameSources = [];
 
+      for (var i = 0; i < frameCount; i++) {
+        var offset = Math.floor(Math.random() * sourceUrls.length);
+        frameSources.push(sourceUrls[(i + offset) % sourceUrls.length]);
+      }
       canvas.width = frameW * frameCount;
-      canvas.height = frameH + edgeBand * 2;
+      canvas.height = frameH;
 
-      ctx.fillStyle = 'rgba(22, 20, 18, 0.58)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (var index = 0; index < frameCount; index++) {
-        var offsetX = index * frameW;
-        var pick = sourceImages[Math.floor(Math.random() * sourceImages.length)];
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
-        ctx.fillRect(offsetX + 1, edgeBand + 1, frameW - 2, frameH - 2);
-
-        if (!drawCoverImage(ctx, pick, offsetX + 1, edgeBand + 1, frameW - 2, frameH - 2)) {
-          ctx.fillStyle = 'rgba(216, 210, 201, 0.8)';
-          ctx.fillRect(offsetX + 1, edgeBand + 1, frameW - 2, frameH - 2);
+      function redrawStrip() {
+        for (var index = 0; index < frameCount; index++) {
+          var offsetX = index * frameW;
+          var src = frameSources[index];
+          var loaded = imageCache[src];
+          var drawn = drawCoverImage(ctx, loaded, offsetX, 0, frameW, frameH);
+          if (!drawn) {
+            ctx.fillStyle = 'rgba(214, 208, 198, 0.7)';
+            ctx.fillRect(offsetX, 0, frameW, frameH);
+          }
         }
-
-        ctx.fillStyle = 'rgba(17, 17, 15, 0.34)';
-        ctx.fillRect(offsetX, edgeBand, 1, frameH);
+        if (texture) texture.needsUpdate = true;
       }
 
-      var perforationStep = 5;
-      for (var px = 2; px < canvas.width; px += perforationStep) {
-        ctx.fillStyle = 'rgba(244, 241, 235, 0.42)';
-        ctx.fillRect(px, 1, 2, 2);
-        ctx.fillRect(px, canvas.height - 3, 2, 2);
-      }
-
-      var texture = new THREE.CanvasTexture(canvas);
+      texture = new THREE.CanvasTexture(canvas);
       texture.generateMipmaps = false;
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
@@ -916,6 +914,17 @@ function initProjectsAtlas() {
       if ('colorSpace' in texture && THREE.SRGBColorSpace) {
         texture.colorSpace = THREE.SRGBColorSpace;
       }
+
+      sourceUrls.forEach(function (src) {
+        var image = new Image();
+        image.decoding = 'async';
+        image.onload = redrawStrip;
+        image.onerror = redrawStrip;
+        image.src = src;
+        imageCache[src] = image;
+      });
+
+      redrawStrip();
       return texture;
     }
 
@@ -1003,7 +1012,8 @@ function initProjectsAtlas() {
       var threadPoints = [];
       var axisTop = helixHeight * 0.61;
       var axisBottom = -helixHeight * 0.61;
-      var ribbonPhaseShift = Math.PI * 0.24;
+      var ribbonPhaseShift = 0;
+      var ribbonEndT = Math.min(0.7, 0.4 + total * 0.035);
 
       addLine(
         [new THREE.Vector3(0, axisTop, 0), new THREE.Vector3(0, axisBottom, 0)],
@@ -1054,9 +1064,9 @@ function initProjectsAtlas() {
         height: helixHeight,
         startAngle: startAngle,
         phaseShift: ribbonPhaseShift,
-        startT: 0.97,
-        endT: 0.44,
-        width: isMobile ? 0.36 : 0.48,
+        startT: 0,
+        endT: ribbonEndT,
+        width: isMobile ? 0.34 : 0.46,
         segments: isMobile ? 48 : 64
       });
       if (ribbonMesh) {
