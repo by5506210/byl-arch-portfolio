@@ -376,6 +376,7 @@ function initProjectsAtlas() {
   var stage = helix.querySelector('.projects-helix__stage');
   var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
   var webglMount = helix.querySelector('.projects-helix__webgl');
+  var guides = helix.querySelector('.projects-helix__guides');
   var axisPath = helix.querySelector('.projects-helix__axis');
   var threadPath = helix.querySelector('.projects-helix__thread');
   var orbitTop = helix.querySelector('.projects-helix__orbit--top');
@@ -652,6 +653,45 @@ function initProjectsAtlas() {
     return { layout: layout };
   }
 
+  function loadThreeFromCdn(onReady) {
+    var urls = [
+      'https://unpkg.com/three@0.164.1/build/three.min.js',
+      'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.min.js'
+    ];
+    var i = 0;
+
+    function loadNext() {
+      if (window.THREE) {
+        onReady();
+        return;
+      }
+      if (i >= urls.length) return;
+
+      var existing = document.querySelector('script[data-three-loader="' + i + '"]');
+      if (existing) {
+        i++;
+        loadNext();
+        return;
+      }
+
+      var script = document.createElement('script');
+      script.src = urls[i];
+      script.async = true;
+      script.defer = true;
+      script.dataset.threeLoader = String(i);
+      script.onload = function () {
+        onReady();
+      };
+      script.onerror = function () {
+        i++;
+        loadNext();
+      };
+      document.head.appendChild(script);
+    }
+
+    loadNext();
+  }
+
   function projectOffset(theta, radius, viewAngle) {
     var spatialX = Math.sin(theta) * radius;
     var spatialZ = Math.cos(theta) * radius;
@@ -785,11 +825,21 @@ function initProjectsAtlas() {
     }
   }
 
-  if (window.THREE && webglMount) {
+  function enableWebglIfPossible() {
+    if (!webglMount || webglHelix || !window.THREE) return false;
     webglHelix = createWebglHelix();
-    if (webglHelix) {
-      helix.classList.add('projects-helix--webgl-enabled');
-    }
+    if (!webglHelix) return false;
+
+    helix.classList.add('projects-helix--webgl-enabled');
+    if (guides) guides.remove();
+    layoutHelix();
+    return true;
+  }
+
+  if (!enableWebglIfPossible() && webglMount && !window.THREE) {
+    loadThreeFromCdn(function () {
+      enableWebglIfPossible();
+    });
   }
 
   nodes.forEach(function (node) {

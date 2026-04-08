@@ -2148,7 +2148,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__webgl {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -2173,7 +2173,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix--webgl-enabled .projects-helix__guides {
-  opacity: 0;
+  display: none;
 }
 
 .projects-helix__axis,
@@ -2267,7 +2267,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  z-index: 2;
+  z-index: 6;
 }
 
 .projects-helix__stem,
