@@ -2220,8 +2220,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --node-opacity: 0.6;
   --lift: 64px;
   position: absolute;
-  left: 0;
-  top: 0;
+  left: var(--x);
+  top: var(--y);
   width: 0;
   height: 0;
   opacity: var(--node-opacity);
@@ -2293,6 +2293,14 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   box-shadow: 0 8px 22px rgba(44, 36, 30, 0.06);
   transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
+}
+
+.projects-helix__node:nth-of-type(odd) .projects-helix__label {
+  transform: translate(calc(-100% - 12px), calc(6px + (1 - var(--proximity)) * 10px));
+}
+
+.projects-helix__node:nth-of-type(even) .projects-helix__label {
+  transform: translate(12px, calc(6px + (1 - var(--proximity)) * 10px));
 }
 
 .projects-helix__node:hover,

@@ -382,79 +382,8 @@ function initProjectsAtlas() {
 
   if (!stage || !architectureGuide || !interiorGuide || !designGuide || nodes.length === 0) return;
 
-  var stageWidth = 1000;
-  var stageHeight = 1500;
-  var centerX = stageWidth * 0.5;
-  var baseY = stageHeight - 130;
-  var levelRise = 118;
-  var seriesConfig = {
-    architecture: { phase: -0.45, radiusX: 308, radiusZ: 132, radiusGrowth: 7.2 },
-    interior: { phase: 1.62, radiusX: 224, radiusZ: 94, radiusGrowth: 5.1 },
-    design: { phase: 3.82, radiusX: 146, radiusZ: 62, radiusGrowth: 2.8 }
-  };
-
-  function clamp(val, min, max) {
-    return Math.max(min, Math.min(max, val));
-  }
-
   function isCoarsePointer() {
     return window.matchMedia('(pointer: coarse)').matches;
-  }
-
-  function projectPoint(series, level) {
-    var config = seriesConfig[series];
-    var t = config.phase + level * 0.92;
-    var radiusX = config.radiusX + level * config.radiusGrowth;
-    var z = Math.sin(t) * config.radiusZ;
-    var x = centerX + Math.cos(t) * radiusX;
-    var y = baseY - level * levelRise - z * 0.6;
-    var scale = 0.8 + ((z + config.radiusZ) / (config.radiusZ * 2)) * 0.4;
-
-    return {
-      x: x,
-      y: y,
-      z: z,
-      scale: scale
-    };
-  }
-
-  function buildGuidePath(series) {
-    var segments = [];
-    var i;
-
-    for (i = 0; i <= 120; i++) {
-      var level = i * 0.09;
-      var point = projectPoint(series, level);
-      segments.push((i === 0 ? 'M' : 'L') + point.x.toFixed(2) + ' ' + point.y.toFixed(2));
-    }
-
-    return segments.join(' ');
-  }
-
-  function positionNode(node) {
-    var level = parseFloat(node.dataset.level || '0');
-    var shiftX = parseFloat(node.dataset.shiftX || '0');
-    var shiftY = parseFloat(node.dataset.shiftY || '0');
-    var point = projectPoint(node.dataset.series, level);
-    var x = point.x + shiftX;
-    var y = point.y + shiftY;
-    var lift = parseFloat(node.dataset.lift || (60 + point.scale * 18));
-    var opacity = clamp(0.56 + point.scale * 0.34, 0.5, 1);
-
-    node.style.left = (x / stageWidth * 100) + '%';
-    node.style.top = (y / stageHeight * 100) + '%';
-    node.style.setProperty('--depth-scale', point.scale.toFixed(3));
-    node.style.setProperty('--lift', lift.toFixed(1) + 'px');
-    node.style.setProperty('--node-opacity', opacity.toFixed(3));
-    node.style.zIndex = String(Math.round(100 + point.z + level * 12));
-  }
-
-  function positionAll() {
-    architectureGuide.setAttribute('d', buildGuidePath('architecture'));
-    interiorGuide.setAttribute('d', buildGuidePath('interior'));
-    designGuide.setAttribute('d', buildGuidePath('design'));
-
-    nodes.forEach(positionNode);
   }
 
   function clearVisualState() {
@@ -535,13 +464,6 @@ function initProjectsAtlas() {
     }
     clearVisualState();
   });
-
-  window.addEventListener('resize', function () {
-    positionAll();
-    if (selectedNode) activateSelection(selectedNode);
-  });
-
-  positionAll();
   clearVisualState();
 }
 
