@@ -739,7 +739,7 @@ function initProjectsAtlas() {
 
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: false,
+        antialias: true,
         alpha: true,
         powerPreference: 'high-performance'
       });
@@ -755,7 +755,7 @@ function initProjectsAtlas() {
     }
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
 
     while (webglMount.firstChild) {
       webglMount.removeChild(webglMount.firstChild);
@@ -1002,7 +1002,7 @@ function initProjectsAtlas() {
       viewportWidth = width;
       viewportHeight = height;
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.2 : 1.4));
       renderer.setSize(width, height, false);
 
       // Orthographic top-corner (architectural axonometric) with upright axis.
