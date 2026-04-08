@@ -386,6 +386,11 @@ function initProjectsAtlas() {
   var resizeFrame = null;
   var webglHelix = null;
   var fallbackCenterBias = 0.48;
+  var primaryNode = null;
+  var proximityTarget = new WeakMap();
+  var proximityCurrent = new WeakMap();
+  var proximityFrame = null;
+  var proximityLast = 0;
 
   if (!stage || nodes.length === 0) return;
 
@@ -402,6 +407,82 @@ function initProjectsAtlas() {
     var strength = isNaN(proximity) ? 0 : proximity;
     var layer = 2 + Math.round(depth * 24 + strength * 26);
     node.style.zIndex = String(layer);
+  }
+
+  function setPrimaryNode(node) {
+    if (primaryNode === node) return;
+    primaryNode = node || null;
+    nodes.forEach(function (item) {
+      item.classList.toggle('is-primary', item === primaryNode);
+    });
+  }
+
+  function setTargetProximity(node, value) {
+    proximityTarget.set(node, clamp(value, 0, 1));
+  }
+
+  function applyNodeProximity(node, value) {
+    var clamped = clamp(value, 0, 1);
+    node.style.setProperty('--proximity', clamped.toFixed(3));
+    node.classList.toggle('is-active', clamped > 0.22);
+    setNodeLayer(node, clamped);
+  }
+
+  function stepProximity(deltaMs) {
+    var ease = 1 - Math.exp(-Math.max(1, deltaMs) / 88);
+    var bestNode = null;
+    var bestValue = 0;
+    var moving = false;
+
+    nodes.forEach(function (node) {
+      var current = proximityCurrent.get(node) || 0;
+      var target = proximityTarget.get(node) || 0;
+      var next = current + (target - current) * ease;
+
+      if (Math.abs(target - next) < 0.001) next = target;
+      if (Math.abs(next - current) > 0.0008) moving = true;
+
+      proximityCurrent.set(node, next);
+      applyNodeProximity(node, next);
+
+      if (next > bestValue) {
+        bestValue = next;
+        bestNode = node;
+      }
+    });
+
+    if (selectedNode) {
+      setPrimaryNode(selectedNode);
+      stage.setAttribute('data-active-series', selectedNode.dataset.series || '');
+    } else if (bestNode && bestValue > 0.08) {
+      setPrimaryNode(bestNode);
+      stage.setAttribute('data-active-series', bestNode.dataset.series || '');
+    } else {
+      setPrimaryNode(null);
+      stage.setAttribute('data-active-series', '');
+    }
+
+    return moving;
+  }
+
+  function runProximityAnimation(now) {
+    if (!proximityLast) proximityLast = now;
+    var delta = Math.min(48, now - proximityLast);
+    proximityLast = now;
+    var moving = stepProximity(delta || 16);
+
+    if (moving) {
+      proximityFrame = requestAnimationFrame(runProximityAnimation);
+    } else {
+      proximityFrame = null;
+    }
+  }
+
+  function ensureProximityAnimation() {
+    if (webglHelix) return;
+    if (proximityFrame) return;
+    proximityLast = 0;
+    proximityFrame = requestAnimationFrame(runProximityAnimation);
   }
 
   function ensureSvgFallbackGuides() {
@@ -430,24 +511,29 @@ function initProjectsAtlas() {
     orbitBottom = svg.querySelector('.projects-helix__orbit--bottom');
   }
 
-  function clearVisualState() {
+  function clearVisualState(immediate) {
+    selectedNode = null;
     nodes.forEach(function (node) {
-      node.classList.remove('is-active');
-      node.style.setProperty('--proximity', '0');
-      setNodeLayer(node, 0);
+      setTargetProximity(node, 0);
+      if (immediate) {
+        proximityCurrent.set(node, 0);
+        applyNodeProximity(node, 0);
+      }
     });
+    setPrimaryNode(null);
     stage.setAttribute('data-active-series', '');
+    if (!immediate) ensureProximityAnimation();
   }
 
   function activateSelection(node) {
     selectedNode = node;
     nodes.forEach(function (item) {
       var isActive = item === node;
-      item.classList.toggle('is-active', isActive);
-      item.style.setProperty('--proximity', isActive ? '1' : '0');
-      setNodeLayer(item, isActive ? 1 : 0);
+      setTargetProximity(item, isActive ? 1 : 0);
     });
+    setPrimaryNode(node);
     stage.setAttribute('data-active-series', node ? node.dataset.series : '');
+    ensureProximityAnimation();
   }
 
   function createWebglHelix() {
@@ -520,16 +606,6 @@ function initProjectsAtlas() {
         points.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius));
       }
       return points;
-    }
-
-    function worldToScreen(vector, width, height) {
-      var world = vector.clone().applyMatrix4(group.matrixWorld);
-      var projected = world.project(camera);
-      return {
-        x: (projected.x * 0.5 + 0.5) * width,
-        y: (-projected.y * 0.5 + 0.5) * height,
-        z: projected.z
-      };
     }
 
     function buildWorld(width) {
@@ -617,21 +693,35 @@ function initProjectsAtlas() {
         var data = nodeData[index];
         if (!data) return;
 
-        var pointScreen = worldToScreen(data.point, width, height);
+        var worldPoint = data.point.clone().applyMatrix4(group.matrixWorld);
+        var projected = worldPoint.clone().project(camera);
+        var pointScreen = {
+          x: (projected.x * 0.5 + 0.5) * width,
+          y: (-projected.y * 0.5 + 0.5) * height,
+          z: projected.z
+        };
         var depth = clamp(1 - (pointScreen.z + 1) * 0.5, 0, 1);
+        var fog = clamp(1 - depth, 0, 1);
+        var outward = new THREE.Vector3(worldPoint.x - group.position.x, 0, worldPoint.z - group.position.z);
+        if (outward.lengthSq() < 0.0001) {
+          outward.set(0, 0, 1);
+        } else {
+          outward.normalize();
+        }
+        var toCamera = camera.position.clone().sub(worldPoint).normalize();
+        var facing = clamp(outward.dot(toCamera), 0, 1);
         var side = data.point.x >= 0 ? 1 : -1;
-        var currentProximity = parseFloat(node.style.getPropertyValue('--proximity'));
 
         node.style.setProperty('--x', pointScreen.x.toFixed(2) + 'px');
         node.style.setProperty('--y', pointScreen.y.toFixed(2) + 'px');
         node.style.setProperty('--depth', depth.toFixed(3));
+        node.style.setProperty('--fog', fog.toFixed(3));
+        node.style.setProperty('--facing', facing.toFixed(3));
         node.style.setProperty('--arm-length', '0px');
         node.style.setProperty('--arm-shift', '0px');
         node.style.setProperty('--helix-shift', '0px');
         node.style.setProperty('--panel-yaw', (side > 0 ? -24 : 24).toFixed(2));
         node.dataset.depth = depth.toFixed(3);
-
-        setNodeLayer(node, isNaN(currentProximity) ? 0 : currentProximity);
       });
     }
 
@@ -645,6 +735,7 @@ function initProjectsAtlas() {
 
       renderer.render(scene, camera);
       syncNodes(viewportWidth, viewportHeight);
+      stepProximity(delta || 16);
       frameId = requestAnimationFrame(renderFrame);
     }
 
@@ -794,20 +885,21 @@ function initProjectsAtlas() {
       var helixX = centerX + projected.x;
       var y = topY + progress * loopHeight;
       var depth = Math.max(0, Math.min(1, (projected.depth / radiusX + 1) * 0.5));
+      var fog = clamp(1 - depth, 0, 1);
+      var facing = clamp(0.15 + depth * 1.05, 0, 1);
       var side = projected.x >= 0 ? 1 : -1;
       var panelYaw = side > 0 ? -28 : 28;
-      var currentProximity = parseFloat(node.style.getPropertyValue('--proximity'));
 
       node.style.setProperty('--x', helixX.toFixed(2) + 'px');
       node.style.setProperty('--y', y.toFixed(2) + 'px');
       node.style.setProperty('--depth', depth.toFixed(3));
+      node.style.setProperty('--fog', fog.toFixed(3));
+      node.style.setProperty('--facing', facing.toFixed(3));
       node.style.setProperty('--arm-length', '0px');
       node.style.setProperty('--arm-shift', '0px');
       node.style.setProperty('--helix-shift', '0px');
       node.style.setProperty('--panel-yaw', panelYaw.toFixed(2));
       node.dataset.depth = depth.toFixed(3);
-
-      setNodeLayer(node, isNaN(currentProximity) ? 0 : currentProximity);
     });
   }
 
@@ -835,9 +927,7 @@ function initProjectsAtlas() {
       var proximity = Math.max(0, 1 - dist / threshold);
       proximity = proximity * proximity;
 
-      node.style.setProperty('--proximity', proximity.toFixed(3));
-      node.classList.toggle('is-active', proximity > 0.22);
-      setNodeLayer(node, proximity);
+      setTargetProximity(node, proximity);
 
       if (proximity > bestValue) {
         bestValue = proximity;
@@ -845,15 +935,17 @@ function initProjectsAtlas() {
       }
     });
 
-    if (bestNode && bestValue > 0.08) {
-      stage.setAttribute('data-active-series', bestNode.dataset.series || '');
-    } else {
-      stage.setAttribute('data-active-series', '');
-      nodes.forEach(function (node) {
-        node.classList.remove('is-active');
-        setNodeLayer(node, 0);
-      });
+    if (!selectedNode) {
+      if (bestNode && bestValue > 0.08) {
+        stage.setAttribute('data-active-series', bestNode.dataset.series || '');
+        setPrimaryNode(bestNode);
+      } else {
+        stage.setAttribute('data-active-series', '');
+        setPrimaryNode(null);
+      }
     }
+
+    ensureProximityAnimation();
   }
 
   function enableWebglIfPossible() {
@@ -930,7 +1022,7 @@ function initProjectsAtlas() {
   window.addEventListener('resize', handleResize);
 
   layoutHelix();
-  clearVisualState();
+  clearVisualState(true);
 }
 
 function initProjectsIndexPreview() {
