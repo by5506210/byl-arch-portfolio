@@ -519,7 +519,7 @@ function initProjectsAtlas() {
     var svg = document.createElementNS(ns, 'svg');
     svg.classList.add('projects-helix__guides');
     svg.setAttribute('viewBox', '0 0 1200 520');
-    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     svg.setAttribute('aria-hidden', 'true');
     svg.innerHTML =
       '<path class="projects-helix__axis" d="" fill="none" stroke-linecap="round"></path>' +
@@ -654,8 +654,11 @@ function initProjectsAtlas() {
 
       var total = nodes.length;
       var startAngle = -Math.PI * 0.5;
-      var helixRadius = Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
-      var helixHeight = 10.2;
+      var isMobile = width <= 820;
+      var helixRadius = isMobile
+        ? Math.max(2.8, Math.min(3.8, 3.2 + (width - 390) / 360))
+        : Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
+      var helixHeight = isMobile ? 7.2 : 10.2;
       var threadSegments = Math.max(220, total * 36);
       var threadPoints = [];
       var axisTop = helixHeight * 0.61;
@@ -808,7 +811,8 @@ function initProjectsAtlas() {
       var width = Math.max(1, Math.round(rect.width));
       var height = Math.max(1, Math.round(rect.height));
       var aspect = width / height;
-      var frustumSize = 14.1;
+      var isMobile = width <= 820;
+      var frustumSize = isMobile ? 11.2 : 14.1;
       viewportWidth = width;
       viewportHeight = height;
 
@@ -833,8 +837,8 @@ function initProjectsAtlas() {
 
   function loadThreeFromCdn(onReady) {
     var urls = [
-      'https://unpkg.com/three@0.164.1/build/three.min.js',
-      'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.min.js'
+      'https://unpkg.com/three@0.152.2/build/three.min.js',
+      'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js'
     ];
     var i = 0;
 
@@ -912,12 +916,15 @@ function initProjectsAtlas() {
     var rect = stage.getBoundingClientRect();
     var width = rect.width;
     var height = rect.height;
-    var centerX = width * fallbackCenterBias;
-    var topY = height * 0.14;
-    var loopHeight = height * 0.72;
-    var radiusX = Math.min(width * 0.47, 560);
-    var orbitRadiusY = Math.max(14, Math.min(height * 0.07, 34));
-    var viewAngle = baseViewAngle + fallbackRotation;
+    var isMobile = width <= 820;
+    var centerX = width * (isMobile ? 0.5 : fallbackCenterBias);
+    var topY = height * (isMobile ? 0.17 : 0.14);
+    var loopHeight = height * (isMobile ? 0.66 : 0.72);
+    var radiusX = isMobile ? Math.min(width * 0.34, 250) : Math.min(width * 0.47, 560);
+    var orbitRadiusY = isMobile
+      ? Math.max(10, Math.min(height * 0.045, 20))
+      : Math.max(14, Math.min(height * 0.07, 34));
+    var viewAngle = (isMobile ? Math.PI * 0.2 : baseViewAngle) + fallbackRotation;
     var startAngle = -Math.PI * 0.5;
     var total = nodes.length;
 
@@ -947,9 +954,9 @@ function initProjectsAtlas() {
       var fog = clamp(1 - depth, 0, 1);
       var facing = clamp(0.15 + depth * 1.05, 0, 1);
       var side = projected.x >= 0 ? 1 : -1;
-      var offset = 62 + depth * 22;
+      var offset = (isMobile ? 44 : 62) + depth * (isMobile ? 14 : 22);
       var anchorX = helixX + side * offset;
-      var anchorY = y - (1 - depth) * 5;
+      var anchorY = y - (1 - depth) * (isMobile ? 3 : 5);
       var connectorDx = helixX - anchorX;
       var connectorDy = y - anchorY;
       var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
