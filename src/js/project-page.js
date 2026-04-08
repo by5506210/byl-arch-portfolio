@@ -448,9 +448,14 @@ function initProjectsAtlas() {
 
     var group = new THREE.Group();
     scene.add(group);
+    group.rotation.x = -0.08;
 
     var dotGeometry = new THREE.SphereGeometry(0.08, 14, 14);
     var nodeData = [];
+    var viewportWidth = 1;
+    var viewportHeight = 1;
+    var frameId = 0;
+    var lastFrameTime = 0;
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -489,7 +494,8 @@ function initProjectsAtlas() {
     }
 
     function worldToScreen(vector, width, height) {
-      var projected = vector.clone().project(camera);
+      var world = vector.clone().applyMatrix4(group.matrixWorld);
+      var projected = world.project(camera);
       return {
         x: (projected.x * 0.5 + 0.5) * width,
         y: (-projected.y * 0.5 + 0.5) * height,
@@ -577,6 +583,7 @@ function initProjectsAtlas() {
     }
 
     function syncNodes(width, height) {
+      group.updateMatrixWorld(true);
       nodes.forEach(function (node, index) {
         var data = nodeData[index];
         if (!data) return;
@@ -599,12 +606,33 @@ function initProjectsAtlas() {
       });
     }
 
+    function renderFrame(now) {
+      if (!lastFrameTime) lastFrameTime = now;
+      var delta = Math.min(80, now - lastFrameTime);
+      lastFrameTime = now;
+
+      // Extremely slow rotation for subtle movement.
+      group.rotation.y += delta * 0.0000009;
+
+      renderer.render(scene, camera);
+      syncNodes(viewportWidth, viewportHeight);
+      frameId = requestAnimationFrame(renderFrame);
+    }
+
+    function ensureAnimation() {
+      if (frameId) return;
+      lastFrameTime = 0;
+      frameId = requestAnimationFrame(renderFrame);
+    }
+
     function layout() {
       var rect = stage.getBoundingClientRect();
       var width = Math.max(1, Math.round(rect.width));
       var height = Math.max(1, Math.round(rect.height));
       var aspect = width / height;
       var frustumSize = 12.4;
+      viewportWidth = width;
+      viewportHeight = height;
 
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(width, height, false);
@@ -618,6 +646,7 @@ function initProjectsAtlas() {
       buildWorld(width);
       renderer.render(scene, camera);
       syncNodes(width, height);
+      ensureAnimation();
     }
 
     return { layout: layout };
