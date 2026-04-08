@@ -609,10 +609,7 @@ function initProjectsAtlas() {
 
   function applyNodeProximity(node, value) {
     var clamped = clamp(value, 0, 1);
-    var facePull = clamp((clamped - 0.82) / 0.18, 0, 1);
-    facePull = Math.pow(facePull, 1.8);
     node.style.setProperty('--proximity', clamped.toFixed(3));
-    node.style.setProperty('--face-pull', facePull.toFixed(3));
     node.classList.toggle('is-active', clamped > 0.22);
     setNodeLayer(node, clamped);
   }
@@ -803,8 +800,6 @@ function initProjectsAtlas() {
     var tempAnchorWorld = new THREE.Vector3();
     var tempProjectedPoint = new THREE.Vector3();
     var tempProjectedAnchor = new THREE.Vector3();
-    var tempOutward = new THREE.Vector3();
-    var tempToCamera = new THREE.Vector3();
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -953,15 +948,6 @@ function initProjectsAtlas() {
         var depth = clamp(1 - (tempProjectedPoint.z + 1) * 0.5, 0, 1);
         var fog = clamp(1 - depth, 0, 1);
         var hitThreshold = (width <= 820 ? 126 : 148) * (0.9 + depth * 0.7);
-        tempOutward.set(tempPointWorld.x - group.position.x, 0, tempPointWorld.z - group.position.z);
-        if (tempOutward.lengthSq() < 0.0001) {
-          tempOutward.set(0, 0, 1);
-        } else {
-          tempOutward.normalize();
-        }
-        tempToCamera.copy(camera.position).sub(tempPointWorld).normalize();
-        var facing = clamp(tempOutward.dot(tempToCamera), 0, 1);
-        var facingVisibility = clamp((facing - 0.42) / 0.5, 0, 1);
         var side = connectorDx >= 0 ? 1 : -1;
         var yawBase = width <= 820 ? 30 : 44;
 
@@ -969,8 +955,6 @@ function initProjectsAtlas() {
         node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
         node.style.setProperty('--depth', depth.toFixed(3));
         node.style.setProperty('--fog', fog.toFixed(3));
-        node.style.setProperty('--facing', facing.toFixed(3));
-        node.style.setProperty('--facing-visibility', facingVisibility.toFixed(3));
         node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
         node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
         node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
@@ -1152,8 +1136,6 @@ function initProjectsAtlas() {
       var y = topY + progress * loopHeight;
       var depth = Math.max(0, Math.min(1, (projected.depth / radiusX + 1) * 0.5));
       var fog = clamp(1 - depth, 0, 1);
-      var facing = clamp(0.15 + depth * 1.05, 0, 1);
-      var facingVisibility = clamp((facing - 0.42) / 0.5, 0, 1);
       var side = projected.x >= 0 ? 1 : -1;
       var offset = (isMobile ? 44 : 62) + depth * (isMobile ? 14 : 22);
       var anchorX = helixX + side * offset;
@@ -1170,8 +1152,6 @@ function initProjectsAtlas() {
       node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
       node.style.setProperty('--depth', depth.toFixed(3));
       node.style.setProperty('--fog', fog.toFixed(3));
-      node.style.setProperty('--facing', facing.toFixed(3));
-      node.style.setProperty('--facing-visibility', facingVisibility.toFixed(3));
       node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
       node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
       node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');

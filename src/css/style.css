@@ -2315,11 +2315,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__node {
   --proximity: 0;
-  --face-pull: 0;
   --depth: 0.5;
   --fog: 0;
-  --facing: 0.5;
-  --facing-visibility: 0.5;
   --focus-dim: 1;
   --panel-yaw: 0;
   --arm-length: 0px;
@@ -2378,24 +2375,22 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   border: 1px solid rgba(17, 17, 15, 0.18);
   opacity: calc(0.34 + var(--focus-dim) * 0.66);
   box-shadow:
-    0 0 0 calc(2px + var(--proximity) * 7px) rgba(255, 255, 255, calc(0.14 + var(--proximity) * 0.14)),
-    0 0 0 1px rgba(17, 17, 15, 0.05);
+    0 0 0 calc(1px + var(--proximity) * 3px) rgba(255, 255, 255, calc(0.1 + var(--proximity) * 0.1)),
+    0 0 0 1px rgba(17, 17, 15, 0.04);
 }
 
 .projects-helix__thumb {
   width: var(--thumb-w, 72px);
   height: var(--thumb-h, 52px);
-  transform: translate3d(-50%, -50%, 0.01px) rotateY(calc(var(--panel-yaw) * (1 - var(--face-pull) * 0.45) * 1deg)) rotateX(calc(-3deg + var(--face-pull) * 2.2deg)) scale(calc(1 + var(--depth) * 0.18 + var(--proximity) * 0.52));
+  transform: translate3d(-50%, -50%, 0.01px) rotateY(calc(var(--panel-yaw) * 1deg)) rotateX(-2.4deg) scale(calc(1 + var(--depth) * 0.15 + var(--proximity) * 0.34));
   transform-origin: center center;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.95);
   opacity: calc(0.26 + var(--focus-dim) * 0.74);
-  box-shadow:
-    0 4px 10px rgba(44, 36, 30, calc(0.08 + var(--depth) * 0.12 - var(--fog) * 0.06)),
-    0 12px 22px rgba(44, 36, 30, calc(0.06 + var(--proximity) * 0.2 - var(--fog) * 0.05));
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 8px 18px rgba(44, 36, 30, calc(0.08 + var(--depth) * 0.1 - var(--fog) * 0.05));
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
   will-change: transform;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -2406,20 +2401,17 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 100%;
   object-fit: cover;
   transform: scale(calc(1 + var(--proximity) * 0.12));
-  filter: grayscale(calc(0.2 - var(--proximity) * 0.16 + var(--fog) * 0.24))
-    saturate(calc(0.92 + var(--proximity) * 0.14 - var(--fog) * 0.18))
-    contrast(calc(1.02 + var(--proximity) * 0.1 - var(--fog) * 0.06))
-    brightness(calc(1.01 + var(--proximity) * 0.04 - var(--fog) * 0.12));
+  filter: none;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  will-change: transform, filter;
-  transition: filter 0.16s ease, transform 0.16s ease;
+  will-change: transform;
+  transition: transform 0.14s ease;
 }
 
 .projects-helix__label {
   min-width: max-content;
   top: calc(var(--thumb-h, 52px) * 0.5 + 12px);
-  transform: translate(-50%, calc(6px + (1 - var(--proximity)) * 5px + (1 - var(--facing-visibility)) * 2px));
+  transform: translate(-50%, calc(6px + (1 - var(--proximity)) * 4px));
   font-family: var(--font-primary);
   font-size: 0.54rem;
   line-height: 1.35;
@@ -2428,7 +2420,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   color: rgba(22, 20, 18, 0.86);
   padding-left: 0.88rem;
   white-space: nowrap;
-  opacity: calc((0.42 + var(--proximity) * 0.58) * (0.58 + var(--facing-visibility) * 0.42) * var(--focus-dim));
+  opacity: calc((0.52 + var(--proximity) * 0.48) * var(--focus-dim));
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
