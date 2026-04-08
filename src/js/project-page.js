@@ -375,12 +375,9 @@ function initProjectsAtlas() {
 
   var stage = helix.querySelector('.projects-helix__stage');
   var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
-  var architectureGuide = helix.querySelector('.projects-helix__guide--architecture');
-  var interiorGuide = helix.querySelector('.projects-helix__guide--interior');
-  var designGuide = helix.querySelector('.projects-helix__guide--design');
   var selectedNode = null;
 
-  if (!stage || !architectureGuide || !interiorGuide || !designGuide || nodes.length === 0) return;
+  if (!stage || nodes.length === 0) return;
 
   function isCoarsePointer() {
     return window.matchMedia('(pointer: coarse)').matches;
@@ -415,7 +412,7 @@ function initProjectsAtlas() {
       var centerThumbX = rect.left + rect.width * 0.5;
       var centerThumbY = rect.top + rect.height * 0.5;
       var dist = Math.sqrt(Math.pow(clientX - centerThumbX, 2) + Math.pow(clientY - centerThumbY, 2));
-      var threshold = Math.max(150, rect.width * 2.4);
+      var threshold = Math.max(170, rect.width * 2.8);
       var proximity = Math.max(0, 1 - dist / threshold);
       proximity = proximity * proximity;
 
