@@ -2390,7 +2390,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   background: rgba(255, 255, 255, 0.95);
   opacity: calc(0.26 + var(--focus-dim) * 0.74);
   box-shadow: 0 8px 18px rgba(44, 36, 30, calc(0.08 + var(--depth) * 0.1 - var(--fog) * 0.05));
-  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  transition: none;
   will-change: transform;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -2405,7 +2405,15 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   will-change: transform;
-  transition: transform 0.14s ease;
+  transition: none;
+}
+
+.projects-helix__stage.projects-helix__stage--ready .projects-helix__thumb {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.projects-helix__stage.projects-helix__stage--ready .projects-helix__thumb img {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .projects-helix__label {

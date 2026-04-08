@@ -959,7 +959,7 @@ function initProjectsAtlas() {
         node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
         node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
         node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
-        node.style.setProperty('--panel-yaw', (side > 0 ? -yawBase : yawBase).toFixed(2));
+        node.style.setProperty('--panel-yaw', (side > 0 ? yawBase : -yawBase).toFixed(2));
         node.dataset.depth = depth.toFixed(3);
         nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
       });
@@ -1145,7 +1145,7 @@ function initProjectsAtlas() {
       var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
       var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
       var panelYawBase = isMobile ? 30 : 44;
-      var panelYaw = side > 0 ? -panelYawBase : panelYawBase;
+      var panelYaw = side > 0 ? panelYawBase : -panelYawBase;
       var hitThreshold = (isMobile ? 126 : 148) * (0.9 + depth * 0.7);
 
       node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
@@ -1313,6 +1313,9 @@ function initProjectsAtlas() {
   layoutHelix();
   clearVisualState(true);
   ensureFallbackAnimation();
+  requestAnimationFrame(function () {
+    stage.classList.add('projects-helix__stage--ready');
+  });
 }
 
 function initProjectsIndexPreview() {
