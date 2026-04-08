@@ -410,8 +410,44 @@ function initProjectsAtlas() {
   });
 
   function collectRibbonSources() {
+    var extraRibbonPaths = [
+      '../assets/images/act-before-it-burns/hero.png',
+      '../assets/images/aphelion/hero.jpg',
+      '../assets/images/aphelion/lit-below.jpg',
+      '../assets/images/aphelion/top-view.jpg',
+      '../assets/images/arboretum-shed/exterior-1.png',
+      '../assets/images/arboretum-shed/exterior-2.png',
+      '../assets/images/arboretum-shed/exterior-3.png',
+      '../assets/images/arboretum-shed/hero.png',
+      '../assets/images/arboretum-shed/sequence-1.png',
+      '../assets/images/arboretum-shed/sequence-2.png',
+      '../assets/images/arboretum-shed/sequence-3.png',
+      '../assets/images/arboretum-shed/summer-1.png',
+      '../assets/images/arboretum-shed/summer-2.png',
+      '../assets/images/arboretum-shed/summer-plan.jpg',
+      '../assets/images/arboretum-shed/winter-1.png',
+      '../assets/images/arboretum-shed/winter-2.jpg',
+      '../assets/images/arboretum-shed/winter-plan.jpg',
+      '../assets/images/eden-museum/aerial-plan.png',
+      '../assets/images/eden-museum/hero.jpg',
+      '../assets/images/eden-museum/interior-reception-alt.png',
+      '../assets/images/eden-museum/interior-reception.jpg',
+      '../assets/images/eden-museum/perspective.jpg',
+      '../assets/images/eden-museum/section-cut.png',
+      '../assets/images/eden-museum/waterfall-2.jpg',
+      '../assets/images/maple-xi/hero.png',
+      '../assets/images/marty-supreme/hero.jpg',
+      '../assets/images/modulor/alt.png',
+      '../assets/images/modulor/hero.png',
+      '../assets/images/the-triad/axonometric.jpg',
+      '../assets/images/the-triad/hero.jpg',
+      '../assets/images/the-triad/interior-1.jpg',
+      '../assets/images/the-triad/interior-2.jpg',
+      '../assets/images/tolman/hero.png'
+    ];
+
     var seen = Object.create(null);
-    return nodes
+    var sources = nodes
       .map(function (node) {
         var img = node.querySelector('.projects-helix__thumb img');
         if (!img) return null;
@@ -423,6 +459,15 @@ function initProjectsAtlas() {
       .filter(function (item) {
         return !!item;
       });
+
+    extraRibbonPaths.forEach(function (relativePath) {
+      var absolute = new URL(relativePath, window.location.href).href;
+      if (seen[absolute]) return;
+      seen[absolute] = true;
+      sources.push(absolute);
+    });
+
+    return sources;
   }
 
   function clamp(value, min, max) {
@@ -884,9 +929,18 @@ function initProjectsAtlas() {
       var imageCache = Object.create(null);
       var frameSources = [];
 
+      var previousSrc = '';
       for (var i = 0; i < frameCount; i++) {
-        var offset = Math.floor(Math.random() * sourceUrls.length);
-        frameSources.push(sourceUrls[(i + offset) % sourceUrls.length]);
+        var pick = sourceUrls[Math.floor(Math.random() * sourceUrls.length)];
+        if (sourceUrls.length > 1) {
+          var guard = 0;
+          while (pick === previousSrc && guard < 10) {
+            pick = sourceUrls[Math.floor(Math.random() * sourceUrls.length)];
+            guard++;
+          }
+        }
+        frameSources.push(pick);
+        previousSrc = pick;
       }
       canvas.width = frameW * frameCount;
       canvas.height = frameH;
