@@ -761,7 +761,7 @@ function initProjectsAtlas() {
     }
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.1));
+    renderer.setPixelRatio(1);
 
     while (webglMount.firstChild) {
       webglMount.removeChild(webglMount.firstChild);
@@ -948,8 +948,6 @@ function initProjectsAtlas() {
         var depth = clamp(1 - (tempProjectedPoint.z + 1) * 0.5, 0, 1);
         var fog = clamp(1 - depth, 0, 1);
         var hitThreshold = (width <= 820 ? 126 : 148) * (0.9 + depth * 0.7);
-        var side = connectorDx >= 0 ? 1 : -1;
-        var yawBase = width <= 820 ? 30 : 44;
 
         node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
         node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
@@ -959,7 +957,6 @@ function initProjectsAtlas() {
         node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
         node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
         node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
-        node.style.setProperty('--panel-yaw', (side > 0 ? yawBase : -yawBase).toFixed(2));
         node.dataset.depth = depth.toFixed(3);
         nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
       });
@@ -997,7 +994,7 @@ function initProjectsAtlas() {
       viewportWidth = width;
       viewportHeight = height;
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 1.1));
+      renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
 
       // Orthographic top-corner (architectural axonometric) with upright axis.
@@ -1144,8 +1141,6 @@ function initProjectsAtlas() {
       var connectorDy = y - anchorY;
       var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
       var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
-      var panelYawBase = isMobile ? 30 : 44;
-      var panelYaw = side > 0 ? panelYawBase : -panelYawBase;
       var hitThreshold = (isMobile ? 126 : 148) * (0.9 + depth * 0.7);
 
       node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
@@ -1156,7 +1151,6 @@ function initProjectsAtlas() {
       node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
       node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
       node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
-      node.style.setProperty('--panel-yaw', panelYaw.toFixed(2));
       node.dataset.depth = depth.toFixed(3);
       nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
     });
@@ -1313,9 +1307,6 @@ function initProjectsAtlas() {
   layoutHelix();
   clearVisualState(true);
   ensureFallbackAnimation();
-  requestAnimationFrame(function () {
-    stage.classList.add('projects-helix__stage--ready');
-  });
 }
 
 function initProjectsIndexPreview() {
