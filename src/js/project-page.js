@@ -403,6 +403,32 @@ function initProjectsAtlas() {
     node.style.zIndex = String(layer);
   }
 
+  function ensureSvgFallbackGuides() {
+    if (guides) return;
+    if (!stage) return;
+
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.classList.add('projects-helix__guides');
+    svg.setAttribute('viewBox', '0 0 1200 520');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML =
+      '<path class="projects-helix__axis" d="" fill="none" stroke-linecap="round"></path>' +
+      '<ellipse class="projects-helix__orbit projects-helix__orbit--top" cx="600" cy="108" rx="270" ry="28" fill="none"></ellipse>' +
+      '<ellipse class="projects-helix__orbit projects-helix__orbit--mid" cx="600" cy="264" rx="270" ry="28" fill="none"></ellipse>' +
+      '<ellipse class="projects-helix__orbit projects-helix__orbit--bottom" cx="600" cy="420" rx="270" ry="28" fill="none"></ellipse>' +
+      '<path class="projects-helix__thread" d="" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>';
+
+    stage.appendChild(svg);
+    guides = svg;
+    axisPath = svg.querySelector('.projects-helix__axis');
+    threadPath = svg.querySelector('.projects-helix__thread');
+    orbitTop = svg.querySelector('.projects-helix__orbit--top');
+    orbitMid = svg.querySelector('.projects-helix__orbit--mid');
+    orbitBottom = svg.querySelector('.projects-helix__orbit--bottom');
+  }
+
   function clearVisualState() {
     nodes.forEach(function (node) {
       node.classList.remove('is-active');
@@ -522,26 +548,26 @@ function initProjectsAtlas() {
         new THREE.LineDashedMaterial({
           color: 0x11110f,
           transparent: true,
-          opacity: 0.2,
-          dashSize: 0.18,
-          gapSize: 0.16
+          opacity: 0.5,
+          dashSize: 0.14,
+          gapSize: 0.11
         }),
         true
       );
 
       addLine(
         ringPoints(helixRadius, helixHeight * 0.5, 108),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.2 }),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.45 }),
         false
       );
       addLine(
         ringPoints(helixRadius, 0, 108),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.1 }),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.28 }),
         false
       );
       addLine(
         ringPoints(helixRadius, -helixHeight * 0.5, 108),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.2 }),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.45 }),
         false
       );
 
@@ -557,7 +583,7 @@ function initProjectsAtlas() {
 
       addLine(
         threadPoints,
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.33 }),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.72 }),
         false
       );
 
@@ -572,9 +598,9 @@ function initProjectsAtlas() {
         var anchor = point.clone();
 
         var dot = new THREE.Mesh(dotGeometry, new THREE.MeshBasicMaterial({
-          color: 0xf9f8f5,
+          color: 0x0f0f0d,
           transparent: true,
-          opacity: 0.95
+          opacity: 0.9
         }));
         dot.position.copy(point);
         group.add(dot);
@@ -662,10 +688,13 @@ function initProjectsAtlas() {
 
     function loadNext() {
       if (window.THREE) {
-        onReady();
+        onReady(true);
         return;
       }
-      if (i >= urls.length) return;
+      if (i >= urls.length) {
+        onReady(false);
+        return;
+      }
 
       var existing = document.querySelector('script[data-three-loader="' + i + '"]');
       if (existing) {
@@ -680,7 +709,7 @@ function initProjectsAtlas() {
       script.defer = true;
       script.dataset.threeLoader = String(i);
       script.onload = function () {
-        onReady();
+        onReady(true);
       };
       script.onerror = function () {
         i++;
@@ -831,15 +860,30 @@ function initProjectsAtlas() {
     if (!webglHelix) return false;
 
     helix.classList.add('projects-helix--webgl-enabled');
-    if (guides) guides.remove();
+    if (guides) {
+      guides.remove();
+      guides = null;
+      axisPath = null;
+      threadPath = null;
+      orbitTop = null;
+      orbitMid = null;
+      orbitBottom = null;
+    }
     layoutHelix();
     return true;
   }
 
-  if (!enableWebglIfPossible() && webglMount && !window.THREE) {
-    loadThreeFromCdn(function () {
-      enableWebglIfPossible();
-    });
+  if (!enableWebglIfPossible()) {
+    if (webglMount && !window.THREE) {
+      loadThreeFromCdn(function (loaded) {
+        if (!loaded || !enableWebglIfPossible()) {
+          ensureSvgFallbackGuides();
+          layoutHelix();
+        }
+      });
+    } else {
+      ensureSvgFallbackGuides();
+    }
   }
 
   nodes.forEach(function (node) {
