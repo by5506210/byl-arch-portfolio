@@ -393,10 +393,12 @@ function initProjectsAtlas() {
   var fallbackFrame = null;
   var fallbackLast = 0;
   var primaryNode = null;
+  var helixNavigationInProgress = false;
   var proximityTarget = new WeakMap();
   var proximityCurrent = new WeakMap();
   var proximityFrame = null;
   var proximityLast = 0;
+  var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
 
   if (!stage || nodes.length === 0) return;
   nodes.forEach(function (node, index) {
@@ -409,6 +411,139 @@ function initProjectsAtlas() {
 
   function isCoarsePointer() {
     return window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function resolveAbsoluteHref(href) {
+    try {
+      return new URL(href, window.location.href).href;
+    } catch (err) {
+      return href || '';
+    }
+  }
+
+  function resolvePathname(href) {
+    try {
+      return new URL(href, window.location.href).pathname;
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function storeHelixZoomState(payload) {
+    try {
+      sessionStorage.setItem(HELIX_ZOOM_KEY, JSON.stringify(payload));
+    } catch (err) {
+      // Session storage can fail in strict privacy modes; fallback remains graceful.
+    }
+  }
+
+  function beginHelixThumbNavigation(node, evt) {
+    if (!node || helixNavigationInProgress) {
+      if (evt) evt.preventDefault();
+      return true;
+    }
+    if (evt && (evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1)) {
+      return false;
+    }
+
+    var href = node.getAttribute('href');
+    if (!href) return false;
+
+    var thumb = node.querySelector('.projects-helix__thumb');
+    var thumbImg = thumb && thumb.querySelector('img');
+    if (!thumb || !thumbImg || typeof gsap === 'undefined') return false;
+
+    if (evt) evt.preventDefault();
+    helixNavigationInProgress = true;
+
+    var rect = thumb.getBoundingClientRect();
+    var src = thumbImg.currentSrc || thumbImg.src || '';
+    if (!src) return false;
+    var alt = thumbImg.alt || node.dataset.title || '';
+    var absoluteHref = resolveAbsoluteHref(href);
+    var payload = {
+      active: true,
+      source: 'projects-helix',
+      href: absoluteHref,
+      path: resolvePathname(absoluteHref),
+      src: src,
+      alt: alt,
+      timestamp: Date.now()
+    };
+
+    var layer = document.createElement('div');
+    layer.style.position = 'fixed';
+    layer.style.inset = '0';
+    layer.style.overflow = 'hidden';
+    layer.style.pointerEvents = 'none';
+    layer.style.zIndex = '12000';
+
+    var clone = document.createElement('img');
+    clone.src = src;
+    clone.alt = alt;
+    clone.style.position = 'fixed';
+    clone.style.left = rect.left + 'px';
+    clone.style.top = rect.top + 'px';
+    clone.style.width = Math.max(1, rect.width) + 'px';
+    clone.style.height = Math.max(1, rect.height) + 'px';
+    clone.style.objectFit = 'cover';
+    clone.style.borderRadius = '2px';
+    clone.style.transformOrigin = 'center center';
+    clone.style.willChange = 'left, top, width, height, opacity, border-radius';
+    clone.style.zIndex = '12001';
+
+    layer.appendChild(clone);
+    document.body.appendChild(layer);
+
+    payload.layerEl = layer;
+    payload.cloneEl = clone;
+    window.bylHelixThumbZoom = payload;
+    storeHelixZoomState({
+      href: payload.href,
+      path: payload.path,
+      src: payload.src,
+      alt: payload.alt,
+      timestamp: payload.timestamp
+    });
+
+    function continueNavigation() {
+      try {
+        if (window.barba && typeof window.barba.go === 'function') {
+          window.barba.go(href);
+          return;
+        }
+        window.location.href = href;
+      } catch (err) {
+        helixNavigationInProgress = false;
+        stage.style.opacity = '';
+        if (layer.parentNode) layer.remove();
+        window.bylHelixThumbZoom = null;
+        try {
+          sessionStorage.removeItem(HELIX_ZOOM_KEY);
+        } catch (removeErr) {}
+      }
+    }
+
+    gsap.timeline({
+      defaults: { overwrite: true },
+      onComplete: continueNavigation
+    })
+      .to(clone, {
+        left: 0,
+        top: 0,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        borderRadius: 0,
+        duration: 0.58,
+        ease: 'power3.inOut'
+      }, 0)
+      .to(stage, {
+        opacity: 0.25,
+        duration: 0.38,
+        ease: 'power2.out'
+      }, 0.02);
+
+    return true;
   }
 
   function ensureModeBadge() {
@@ -1151,7 +1286,9 @@ function initProjectsAtlas() {
       if (isCoarsePointer() && selectedNode !== node) {
         evt.preventDefault();
         activateSelection(node);
+        return;
       }
+      beginHelixThumbNavigation(node, evt);
     });
   });
 
