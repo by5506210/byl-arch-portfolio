@@ -2267,6 +2267,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --depth: 0.5;
   --fog: 0;
   --facing: 0.5;
+  --facing-visibility: 0.5;
   --panel-yaw: 0;
   --arm-length: 0px;
   --arm-angle: 0;
@@ -2356,7 +2357,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__label {
   min-width: max-content;
   top: calc(var(--thumb-h, 52px) * 0.5 + 12px);
-  transform: translate(-50%, calc(8px + (1 - var(--proximity)) * 8px + (1 - var(--facing)) * 7px));
+  transform: translate(-50%, calc(8px + (1 - var(--proximity)) * 8px + (1 - var(--facing-visibility)) * 9px));
   font-family: var(--font-primary);
   font-size: 0.5rem;
   line-height: 1.35;
@@ -2364,7 +2365,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   text-transform: uppercase;
   color: rgba(22, 20, 18, 0.78);
   white-space: nowrap;
-  opacity: calc((0.04 + var(--proximity) * 1.18) * (0.14 + var(--facing) * 1.02));
+  opacity: calc((0.04 + var(--proximity) * 1.18) * var(--facing-visibility));
   transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
   -webkit-user-select: none;

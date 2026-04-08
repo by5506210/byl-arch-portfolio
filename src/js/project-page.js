@@ -575,7 +575,11 @@ function initProjectsAtlas() {
     var renderer;
 
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
     } catch (err) {
       webglFailureReason = 'renderer init failed' + (err && err.message ? ': ' + err.message : '');
       return null;
@@ -588,7 +592,7 @@ function initProjectsAtlas() {
     }
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 
     while (webglMount.firstChild) {
       webglMount.removeChild(webglMount.firstChild);
@@ -597,12 +601,12 @@ function initProjectsAtlas() {
 
     var scene = new THREE.Scene();
     var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
-    camera.position.set(10.4, 2.7, 9.8);
+    camera.position.set(10.2, 0.18, 9.6);
     camera.lookAt(0, 0, 0);
 
     var group = new THREE.Group();
     scene.add(group);
-    group.rotation.x = -0.08;
+    group.rotation.x = 0;
     group.position.x = 0;
 
     var dotGeometry = new THREE.SphereGeometry(0.08, 14, 14);
@@ -611,6 +615,7 @@ function initProjectsAtlas() {
     var viewportHeight = 1;
     var frameId = 0;
     var lastFrameTime = 0;
+    var frameAccumulator = 0;
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -770,6 +775,7 @@ function initProjectsAtlas() {
         }
         var toCamera = camera.position.clone().sub(worldPoint).normalize();
         var facing = clamp(outward.dot(toCamera), 0, 1);
+        var facingVisibility = clamp((facing - 0.42) / 0.5, 0, 1);
         var side = connectorDx >= 0 ? 1 : -1;
 
         node.style.setProperty('--x', anchorScreen.x.toFixed(2) + 'px');
@@ -777,6 +783,7 @@ function initProjectsAtlas() {
         node.style.setProperty('--depth', depth.toFixed(3));
         node.style.setProperty('--fog', fog.toFixed(3));
         node.style.setProperty('--facing', facing.toFixed(3));
+        node.style.setProperty('--facing-visibility', facingVisibility.toFixed(3));
         node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
         node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
         node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
@@ -790,6 +797,14 @@ function initProjectsAtlas() {
       if (!lastFrameTime) lastFrameTime = now;
       var delta = Math.min(80, now - lastFrameTime);
       lastFrameTime = now;
+      frameAccumulator += delta;
+      var frameStep = 1000 / 45;
+      if (frameAccumulator < frameStep) {
+        frameId = requestAnimationFrame(renderFrame);
+        return;
+      }
+      delta = frameAccumulator;
+      frameAccumulator = 0;
 
       // Slow, clearly visible rotation.
       group.rotation.y += delta * 0.00006;
@@ -803,6 +818,7 @@ function initProjectsAtlas() {
     function ensureAnimation() {
       if (frameId) return;
       lastFrameTime = 0;
+      frameAccumulator = 0;
       frameId = requestAnimationFrame(renderFrame);
     }
 
@@ -816,7 +832,7 @@ function initProjectsAtlas() {
       viewportWidth = width;
       viewportHeight = height;
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
       renderer.setSize(width, height, false);
 
       camera.left = (-frustumSize * aspect) * 0.5;
@@ -953,6 +969,7 @@ function initProjectsAtlas() {
       var depth = Math.max(0, Math.min(1, (projected.depth / radiusX + 1) * 0.5));
       var fog = clamp(1 - depth, 0, 1);
       var facing = clamp(0.15 + depth * 1.05, 0, 1);
+      var facingVisibility = clamp((facing - 0.42) / 0.5, 0, 1);
       var side = projected.x >= 0 ? 1 : -1;
       var offset = (isMobile ? 44 : 62) + depth * (isMobile ? 14 : 22);
       var anchorX = helixX + side * offset;
@@ -968,6 +985,7 @@ function initProjectsAtlas() {
       node.style.setProperty('--depth', depth.toFixed(3));
       node.style.setProperty('--fog', fog.toFixed(3));
       node.style.setProperty('--facing', facing.toFixed(3));
+      node.style.setProperty('--facing-visibility', facingVisibility.toFixed(3));
       node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
       node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
       node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
