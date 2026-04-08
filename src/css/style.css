@@ -985,11 +985,11 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   z-index: 40;
   width: 22px;
   padding: 0.35rem 0.2rem 0.35rem 0.4rem;
-  border: 1px solid rgba(26, 26, 26, 0.04);
-  background: rgba(244, 242, 236, 0.04);
+  border: none;
+  background: transparent;
   opacity: 0.72;
   pointer-events: none;
-  transition: border-color 0.3s ease, background 0.3s ease, opacity 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 .slideshow__progress-frame {
@@ -1043,8 +1043,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .slideshow__progress--light {
-  border-color: rgba(244, 242, 236, 0.08);
-  background: rgba(0, 0, 0, 0.04);
+  border-color: transparent;
+  background: transparent;
 }
 
 .slideshow__progress--light .slideshow__progress-track::after {
@@ -2529,8 +2529,32 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   will-change: transform, opacity;
 }
 
+.landing__portal::before,
 .landing__portal-bloom {
+  display: none;
+}
+
+.landing__portal-orbit,
+.landing__portal-ring,
+.landing__portal-core {
+  display: none;
+}
+
+.landing__portal.is-near .landing__portal-orbit,
+.landing__portal.is-centered .landing__portal-orbit,
+.landing__portal.is-charging .landing__portal-orbit,
+.landing__portal.is-near .landing__portal-ring,
+.landing__portal.is-centered .landing__portal-ring,
+.landing__portal.is-charging .landing__portal-ring {
   display: block;
+}
+
+.landing__portal.is-centered .landing__portal-core,
+.landing__portal.is-charging .landing__portal-core {
+  display: block;
+}
+
+.landing__portal-bloom {
   position: absolute;
   top: 50%;
   left: 50%;

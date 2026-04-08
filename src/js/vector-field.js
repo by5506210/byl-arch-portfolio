@@ -984,15 +984,34 @@ function initVectorField() {
           ctx.lineWidth = 0.45 + landingTransition.progress * 0.45;
           ctx.stroke();
         }
-      } else if (portalPresence > 0.012 || portalCharge > 0.01) {
-        if (portalCentered > 0.03 || portalCharge > 0.01) {
-          var seamHalf = 1 + portalCentered * 4 + portalCharge * 6 + portalPulse * 3;
+      } else {
+        var portalGlowStrength = _min(1, portalIdleGlow * 0.94 + portalPresence * 0.42 + portalCentered * 0.24 + portalCharge * 0.44 + portalPulse * 0.34);
+        if (portalGlowStrength > 0.012) {
+          var portalGlowRadius = 34 + portalIdleGlow * 156 + portalPresence * 84 + portalCentered * 28 + portalCharge * 72 + portalPulse * 64;
+          var portalGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, portalGlowRadius);
+          portalGlow.addColorStop(0, 'rgba(' + lightLineColor + ', ' + (0.016 + portalGlowStrength * 0.14) + ')');
+          portalGlow.addColorStop(0.18, 'rgba(' + lightLineColor + ', ' + (0.009 + portalGlowStrength * 0.085) + ')');
+          portalGlow.addColorStop(0.42, 'rgba(' + lightLineColor + ', ' + (0.004 + portalGlowStrength * 0.04) + ')');
+          portalGlow.addColorStop(0.7, 'rgba(' + lightLineColor + ', ' + (0.001 + portalGlowStrength * 0.012) + ')');
+          portalGlow.addColorStop(1, 'rgba(' + lightLineColor + ', 0)');
+          ctx.save();
+          ctx.fillStyle = portalGlow;
           ctx.beginPath();
-          ctx.moveTo(centerX, centerY - seamHalf);
-          ctx.lineTo(centerX, centerY + seamHalf);
-          ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.015 + portalCentered * 0.12 + portalCharge * 0.16 + portalPulse * 0.08) + ')';
-          ctx.lineWidth = 1;
-          ctx.stroke();
+          ctx.arc(centerX, centerY, portalGlowRadius, 0, TWO_PI);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        if (portalPresence > 0.012 || portalCharge > 0.01) {
+          if (portalCentered > 0.03 || portalCharge > 0.01) {
+            var seamHalf = 1 + portalCentered * 4 + portalCharge * 6 + portalPulse * 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - seamHalf);
+            ctx.lineTo(centerX, centerY + seamHalf);
+            ctx.strokeStyle = 'rgba(' + lineColor + ', ' + (0.015 + portalCentered * 0.12 + portalCharge * 0.16 + portalPulse * 0.08) + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
         }
       }
 
