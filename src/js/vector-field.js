@@ -617,7 +617,7 @@ function initVectorField() {
         : _min(1, portalCharge * 0.72);
 
       portalIdle = _max(0, 1 - portalPresence * 1.9 - portalCentered * 1.4 - portalCharge * 1.8);
-      portalIdleGlow = portalIdle * (0.045 + portalBreath * 0.085);
+      portalIdleGlow = portalIdle * (0.14 + portalBreath * 0.24);
 
       if (portalProximity > 0.08 || portalCentered > 0.02 || portalCharge > 0.01) {
         var portalPulseRate = 1.8 + portalProximity * 2.4 + portalCentered * 4.2 + portalCharge * 5.8;
