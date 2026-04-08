@@ -394,6 +394,10 @@ function initProjectsAtlas() {
   var fallbackLast = 0;
   var primaryNode = null;
   var helixNavigationInProgress = false;
+  var nodeHitCache = [];
+  var pointerClientX = 0;
+  var pointerClientY = 0;
+  var pointerFrame = null;
   var proximityTarget = new WeakMap();
   var proximityCurrent = new WeakMap();
   var proximityFrame = null;
@@ -605,7 +609,8 @@ function initProjectsAtlas() {
 
   function applyNodeProximity(node, value) {
     var clamped = clamp(value, 0, 1);
-    var facePull = clamp((clamped - 0.4) / 0.6, 0, 1);
+    var facePull = clamp((clamped - 0.82) / 0.18, 0, 1);
+    facePull = Math.pow(facePull, 1.8);
     node.style.setProperty('--proximity', clamped.toFixed(3));
     node.style.setProperty('--face-pull', facePull.toFixed(3));
     node.classList.toggle('is-active', clamped > 0.22);
@@ -759,7 +764,7 @@ function initProjectsAtlas() {
     }
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.1));
 
     while (webglMount.firstChild) {
       webglMount.removeChild(webglMount.firstChild);
@@ -947,6 +952,7 @@ function initProjectsAtlas() {
         var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
         var depth = clamp(1 - (tempProjectedPoint.z + 1) * 0.5, 0, 1);
         var fog = clamp(1 - depth, 0, 1);
+        var hitThreshold = (width <= 820 ? 126 : 148) * (0.9 + depth * 0.7);
         tempOutward.set(tempPointWorld.x - group.position.x, 0, tempPointWorld.z - group.position.z);
         if (tempOutward.lengthSq() < 0.0001) {
           tempOutward.set(0, 0, 1);
@@ -971,6 +977,7 @@ function initProjectsAtlas() {
         node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
         node.style.setProperty('--panel-yaw', (side > 0 ? -yawBase : yawBase).toFixed(2));
         node.dataset.depth = depth.toFixed(3);
+        nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
       });
     }
 
@@ -1006,7 +1013,7 @@ function initProjectsAtlas() {
       viewportWidth = width;
       viewportHeight = height;
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.05 : 1.2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 1.1));
       renderer.setSize(width, height, false);
 
       // Orthographic top-corner (architectural axonometric) with upright axis.
@@ -1157,6 +1164,7 @@ function initProjectsAtlas() {
       var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
       var panelYawBase = isMobile ? 30 : 44;
       var panelYaw = side > 0 ? -panelYawBase : panelYawBase;
+      var hitThreshold = (isMobile ? 126 : 148) * (0.9 + depth * 0.7);
 
       node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
       node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
@@ -1170,6 +1178,7 @@ function initProjectsAtlas() {
       node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
       node.style.setProperty('--panel-yaw', panelYaw.toFixed(2));
       node.dataset.depth = depth.toFixed(3);
+      nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
     });
   }
 
@@ -1205,15 +1214,18 @@ function initProjectsAtlas() {
   }
 
   function updateProximity(clientX, clientY) {
-    nodes.forEach(function (node) {
-      var thumb = node.querySelector('.projects-helix__thumb');
-      if (!thumb) return;
+    var stageRect = stage.getBoundingClientRect();
+    var localX = clientX - stageRect.left;
+    var localY = clientY - stageRect.top;
 
-      var rect = thumb.getBoundingClientRect();
-      var centerThumbX = rect.left + rect.width * 0.5;
-      var centerThumbY = rect.top + rect.height * 0.5;
-      var dist = Math.sqrt(Math.pow(clientX - centerThumbX, 2) + Math.pow(clientY - centerThumbY, 2));
-      var threshold = Math.max(132, rect.width * 2.25);
+    nodes.forEach(function (node, index) {
+      var hit = nodeHitCache[index];
+      if (!hit) return;
+
+      var dx = localX - hit.x;
+      var dy = localY - hit.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      var threshold = hit.threshold || 140;
       var proximity = Math.max(0, 1 - dist / threshold);
       proximity = proximity * proximity;
 
@@ -1294,11 +1306,21 @@ function initProjectsAtlas() {
 
   stage.addEventListener('mousemove', function (evt) {
     if (isCoarsePointer()) return;
-    selectedNode = null;
-    updateProximity(evt.clientX, evt.clientY);
+    pointerClientX = evt.clientX;
+    pointerClientY = evt.clientY;
+    if (pointerFrame) return;
+    pointerFrame = requestAnimationFrame(function () {
+      pointerFrame = null;
+      selectedNode = null;
+      updateProximity(pointerClientX, pointerClientY);
+    });
   });
 
   stage.addEventListener('mouseleave', function () {
+    if (pointerFrame) {
+      cancelAnimationFrame(pointerFrame);
+      pointerFrame = null;
+    }
     if (selectedNode) {
       activateSelection(selectedNode);
       return;

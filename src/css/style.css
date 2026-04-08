@@ -2385,7 +2385,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__thumb {
   width: var(--thumb-w, 72px);
   height: var(--thumb-h, 52px);
-  transform: translate3d(-50%, -50%, 0.01px) rotateY(calc(var(--panel-yaw) * (1 - var(--face-pull) * 0.92) * 1deg)) rotateX(calc(-3deg + var(--face-pull) * 3deg)) scale(calc(1 + var(--depth) * 0.18 + var(--proximity) * 0.62));
+  transform: translate3d(-50%, -50%, 0.01px) rotateY(calc(var(--panel-yaw) * (1 - var(--face-pull) * 0.45) * 1deg)) rotateX(calc(-3deg + var(--face-pull) * 2.2deg)) scale(calc(1 + var(--depth) * 0.18 + var(--proximity) * 0.52));
   transform-origin: center center;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
@@ -2474,7 +2474,11 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__node.is-primary .projects-helix__thumb {
-  animation: helix-node-pulse 2.2s ease-in-out infinite;
+  animation: none;
+  border-color: rgba(17, 17, 15, 0.34);
+  box-shadow:
+    0 4px 10px rgba(44, 36, 30, 0.14),
+    0 12px 24px rgba(44, 36, 30, 0.2);
 }
 
 @keyframes helix-node-pulse {
