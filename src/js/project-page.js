@@ -612,8 +612,8 @@ function initProjectsAtlas() {
       var delta = Math.min(80, now - lastFrameTime);
       lastFrameTime = now;
 
-      // Slow but noticeable rotation.
-      group.rotation.y += delta * 0.0000048;
+      // Slow, clearly visible rotation.
+      group.rotation.y += delta * 0.00006;
 
       renderer.render(scene, camera);
       syncNodes(viewportWidth, viewportHeight);
