@@ -416,14 +416,26 @@ function initProjectsAtlas() {
     stage.setAttribute('data-active-series', node ? node.dataset.series : '');
   }
 
-  function buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle) {
+  function projectOffset(theta, radius, viewAngle) {
+    var spatialX = Math.sin(theta) * radius;
+    var spatialZ = Math.cos(theta) * radius;
+    var projectedX = spatialX * Math.cos(viewAngle) + spatialZ * Math.sin(viewAngle);
+    var projectedDepth = (-spatialX * Math.sin(viewAngle)) + (spatialZ * Math.cos(viewAngle));
+    return {
+      x: projectedX,
+      depth: projectedDepth
+    };
+  }
+
+  function buildThreadPath(centerX, topY, loopHeight, radius, startAngle, viewAngle) {
     var segments = Math.max(72, nodes.length * 14);
     var d = '';
 
     for (var i = 0; i <= segments; i++) {
       var progress = i / segments;
       var theta = startAngle + progress * Math.PI * 2;
-      var x = centerX + Math.sin(theta) * radiusX;
+      var projected = projectOffset(theta, radius, viewAngle);
+      var x = centerX + projected.x;
       var y = topY + progress * loopHeight;
       d += (i === 0 ? 'M' : ' L') + x.toFixed(2) + ' ' + y.toFixed(2);
     }
@@ -446,8 +458,10 @@ function initProjectsAtlas() {
     var centerX = width * 0.5;
     var topY = height * 0.14;
     var loopHeight = height * 0.72;
-    var radiusX = Math.min(width * 0.3, 320);
+    var radiusX = Math.min(width * 0.42, 460);
     var orbitRadiusY = Math.max(14, Math.min(height * 0.07, 34));
+    var viewAngle = Math.PI * 0.24;
+    var shelfOffsetBase = Math.max(56, Math.min(width * 0.085, 108));
     var startAngle = -Math.PI * 0.5;
     var total = nodes.length;
 
@@ -464,25 +478,35 @@ function initProjectsAtlas() {
     setOrbitGeometry(orbitBottom, centerX, topY + loopHeight, radiusX, orbitRadiusY);
 
     if (threadPath) {
-      threadPath.setAttribute('d', buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle));
+      threadPath.setAttribute('d', buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle, viewAngle));
     }
 
     nodes.forEach(function (node, index) {
       var progress = total === 1 ? 0.5 : index / (total - 1);
       var theta = startAngle + progress * Math.PI * 2;
-      var x = centerX + Math.sin(theta) * radiusX;
+      var projected = projectOffset(theta, radiusX, viewAngle);
+      var helixX = centerX + projected.x;
       var y = topY + progress * loopHeight;
-      var depth = (Math.cos(theta) + 1) * 0.5;
-      var offset = x - centerX;
-      var armLength = Math.max(Math.abs(offset) - 8, 0);
+      var depth = Math.max(0, Math.min(1, (projected.depth / radiusX + 1) * 0.5));
+      var side = projected.x >= 0 ? 1 : -1;
+      if (Math.abs(projected.x) < 2) {
+        side = Math.cos(theta) >= 0 ? 1 : -1;
+      }
+      var shelfOffset = shelfOffsetBase + depth * 26;
+      var projectX = helixX + side * shelfOffset;
+      var armLength = Math.max(Math.abs(projectX - helixX), 0);
+      var linkShift = side > 0 ? -armLength : 0;
+      var helixShift = side > 0 ? -armLength : armLength;
+      var panelYaw = side > 0 ? -28 : 28;
       var currentProximity = parseFloat(node.style.getPropertyValue('--proximity'));
 
-      node.style.setProperty('--x', x.toFixed(2) + 'px');
+      node.style.setProperty('--x', projectX.toFixed(2) + 'px');
       node.style.setProperty('--y', y.toFixed(2) + 'px');
       node.style.setProperty('--depth', depth.toFixed(3));
-      node.style.setProperty('--angle', ((theta * 180) / Math.PI + 90).toFixed(2));
       node.style.setProperty('--arm-length', armLength.toFixed(2) + 'px');
-      node.style.setProperty('--arm-shift', (offset >= 0 ? -armLength : armLength).toFixed(2) + 'px');
+      node.style.setProperty('--arm-shift', linkShift.toFixed(2) + 'px');
+      node.style.setProperty('--helix-shift', helixShift.toFixed(2) + 'px');
+      node.style.setProperty('--panel-yaw', panelYaw.toFixed(2));
       node.dataset.depth = depth.toFixed(3);
 
       setNodeLayer(node, isNaN(currentProximity) ? 0 : currentProximity);

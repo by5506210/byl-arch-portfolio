@@ -2113,7 +2113,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix::before {
   top: 5rem;
   left: 50%;
-  width: min(82vw, 1120px);
+  width: min(88vw, 1260px);
   height: min(42vw, 520px);
   transform: translateX(-50%);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.56) 34%, rgba(255, 255, 255, 0) 72%);
@@ -2123,7 +2123,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix::after {
   left: 50%;
   bottom: -2rem;
-  width: min(80vw, 1040px);
+  width: min(86vw, 1180px);
   height: 7rem;
   transform: translateX(-50%);
   background: radial-gradient(ellipse at center, rgba(207, 200, 190, 0.24) 0%, rgba(207, 200, 190, 0.08) 34%, rgba(207, 200, 190, 0) 72%);
@@ -2133,7 +2133,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__viewport {
   position: relative;
   z-index: 1;
-  width: min(96vw, 1120px);
+  width: min(98vw, 1280px);
   height: clamp(470px, 66vh, 700px);
   margin: 0 auto;
 }
@@ -2142,8 +2142,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   position: relative;
   width: 100%;
   height: 100%;
-  perspective: 1200px;
-  transform-style: preserve-3d;
 }
 
 .projects-helix__guides,
@@ -2182,7 +2180,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__thread {
   stroke: rgba(17, 17, 15, 0.34);
-  stroke-width: 1.36;
+  stroke-width: 1.22;
 }
 
 .projects-helix__orbit--mid {
@@ -2231,9 +2229,10 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__node {
   --proximity: 0;
   --depth: 0.5;
-  --angle: 0;
+  --panel-yaw: 0;
   --arm-length: 0px;
   --arm-shift: 0px;
+  --helix-shift: 0px;
   position: absolute;
   left: var(--x);
   top: var(--y);
@@ -2263,47 +2262,52 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__stem {
   width: var(--arm-length);
-  height: 1px;
+  height: 2px;
   transform: translate(var(--arm-shift), -50%);
   transform-origin: center;
-  background: linear-gradient(90deg, rgba(17, 17, 15, 0.04) 0%, rgba(17, 17, 15, 0.3) 100%);
-  opacity: calc(0.2 + var(--depth) * 0.26 + var(--proximity) * 0.28);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(17, 17, 15, 0.2) 0 1px,
+    rgba(17, 17, 15, 0) 1px 6px
+  );
+  opacity: calc(0.22 + var(--depth) * 0.28 + var(--proximity) * 0.26);
+  filter: saturate(0.8);
 }
 
 .projects-helix__core {
-  width: 5px;
-  height: 5px;
-  transform: translate(-50%, -50%) scale(calc(0.9 + var(--proximity) * 0.38));
+  width: 6px;
+  height: 6px;
+  transform: translate(calc(-50% + var(--helix-shift)), -50%) scale(calc(0.86 + var(--proximity) * 0.42));
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(17, 17, 15, 0.18);
   box-shadow:
-    0 0 0 calc(2px + var(--proximity) * 6px) rgba(255, 255, 255, calc(0.14 + var(--proximity) * 0.14)),
+    0 0 0 calc(2px + var(--proximity) * 7px) rgba(255, 255, 255, calc(0.14 + var(--proximity) * 0.14)),
     0 0 0 1px rgba(17, 17, 15, 0.05);
 }
 
 .projects-helix__thumb {
   width: var(--thumb-w, 72px);
   height: var(--thumb-h, 52px);
-  transform: translate(-50%, -50%) rotateX(68deg) rotateZ(calc(var(--angle) * 1deg)) scale(calc(0.78 + var(--depth) * 0.2 + var(--proximity) * 0.88));
+  transform: translate(-50%, -50%) rotateY(calc(var(--panel-yaw) * 1deg)) scale(calc(0.9 + var(--depth) * 0.22 + var(--proximity) * 0.58));
   transform-origin: center center;
-  transform-style: preserve-3d;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   box-shadow:
-    0 4px 10px rgba(44, 36, 30, calc(0.08 + var(--depth) * 0.12)),
-    0 12px 22px rgba(44, 36, 30, calc(0.04 + var(--proximity) * 0.2));
+    0 4px 10px rgba(44, 36, 30, calc(0.06 + var(--depth) * 0.1)),
+    0 12px 22px rgba(44, 36, 30, calc(0.04 + var(--proximity) * 0.18));
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
   will-change: transform;
+  backface-visibility: hidden;
 }
 
 .projects-helix__thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(calc(1 + var(--proximity) * 0.16));
+  transform: scale(calc(1 + var(--proximity) * 0.2));
   filter: grayscale(calc(0.7 - var(--proximity) * 0.68)) contrast(calc(1.02 + var(--proximity) * 0.2)) brightness(calc(0.96 + var(--proximity) * 0.12));
   transition: filter 0.16s ease, transform 0.16s ease;
 }
@@ -2350,7 +2354,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 
   .projects-helix__viewport {
-    width: min(98vw, 860px);
+    width: min(99vw, 980px);
     height: 520px;
   }
 }
