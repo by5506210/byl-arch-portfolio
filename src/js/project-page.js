@@ -412,12 +412,12 @@ function initProjectsAtlas() {
       var centerThumbX = rect.left + rect.width * 0.5;
       var centerThumbY = rect.top + rect.height * 0.5;
       var dist = Math.sqrt(Math.pow(clientX - centerThumbX, 2) + Math.pow(clientY - centerThumbY, 2));
-      var threshold = Math.max(170, rect.width * 2.8);
+      var threshold = Math.max(132, rect.width * 2.25);
       var proximity = Math.max(0, 1 - dist / threshold);
       proximity = proximity * proximity;
 
       node.style.setProperty('--proximity', proximity.toFixed(3));
-      node.classList.toggle('is-active', proximity > 0.16);
+      node.classList.toggle('is-active', proximity > 0.22);
 
       if (proximity > bestValue) {
         bestValue = proximity;
