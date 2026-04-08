@@ -4,6 +4,7 @@
 
 (function () {
   if (typeof barba === 'undefined' || typeof gsap === 'undefined') return;
+  var DEFAULT_PAGE_BG = '#f4f2ec';
 
   function rememberCurrentPage() {
     var current = window.location.pathname + window.location.search + window.location.hash;
@@ -20,7 +21,7 @@
 
   // Create shared overlay for seamless transitions
   var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#e8e4df;z-index:9999;pointer-events:none;opacity:0;';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:' + DEFAULT_PAGE_BG + ';z-index:9999;pointer-events:none;opacity:0;';
   document.body.appendChild(overlay);
   var manualNavigationInProgress = false;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
@@ -148,7 +149,7 @@
     if (!visualState || !visualState.cloneEl) return null;
 
     gsap.set(overlay, { opacity: 0 });
-    gsap.set(container, { opacity: 0, y: 0 });
+    gsap.set(container, { opacity: 1, y: 0 });
 
     return gsap.timeline({
       onComplete: function () {
@@ -156,16 +157,11 @@
         helixZoomState = null;
       }
     })
-      .to(container, {
-        opacity: 1,
-        duration: 0.44,
-        ease: 'power2.out'
-      }, 0.08)
       .to(visualState.cloneEl, {
         opacity: 0,
-        duration: 0.42,
+        duration: 0.48,
         ease: 'power2.out'
-      }, 0);
+      }, 0.08);
   }
 
   function playInitialHelixArrivalIfNeeded() {
@@ -183,7 +179,7 @@
     var opts = options || {};
     var target = opts.container || document.querySelector('[data-barba="container"]') || document.body;
 
-    overlay.style.background = opts.background || '#e8e4df';
+    overlay.style.background = opts.background || DEFAULT_PAGE_BG;
     overlay.style.opacity = '0';
 
     gsap.timeline()
@@ -229,10 +225,7 @@
             });
         }
 
-        // Match overlay to destination page background
-        var nextNs = data.next.url.path || '';
-        var isContactPage = nextNs.indexOf('contact') !== -1;
-        overlay.style.background = isContactPage ? '#0a0a0a' : '#e8e4df';
+        overlay.style.background = DEFAULT_PAGE_BG;
 
         return gsap.timeline()
           .to(data.current.container, {
@@ -251,11 +244,7 @@
       enter: function (data) {
         window.scrollTo(0, 0);
 
-        if (data.next.namespace === 'contact') {
-          document.body.style.background = '#0a0a0a';
-        } else {
-          document.body.style.background = '#e8e4df';
-        }
+        document.body.style.background = DEFAULT_PAGE_BG;
 
         if (helixZoomState) {
           var helixTl = playHelixArrival(data.next.container, helixZoomState);
@@ -323,7 +312,7 @@
     e.preventDefault();
     var href = link.getAttribute('href');
     navigateWithOverlay(href, {
-      background: '#0a0a0a'
+      background: DEFAULT_PAGE_BG
     });
   });
 })();
