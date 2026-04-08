@@ -634,7 +634,20 @@ function initProjectsAtlas() {
   function setNodeLayer(node, proximity) {
     var depth = parseFloat(node.dataset.depth || '0.5');
     var strength = isNaN(proximity) ? 0 : proximity;
-    var layer = 2 + Math.round(depth * 24 + strength * 26);
+    var isBehind = depth < 0.5;
+    var backAmount = isBehind ? (0.5 - depth) / 0.5 : 0;
+    var layer;
+
+    node.classList.toggle('is-behind', isBehind);
+    node.classList.toggle('is-front', !isBehind);
+    node.style.setProperty('--depth-back', backAmount.toFixed(3));
+
+    if (isBehind) {
+      layer = 4 + Math.round(depth * 10 + strength * 10);
+    } else {
+      layer = 24 + Math.round((depth - 0.5) * 34 + strength * 18);
+    }
+
     node.style.zIndex = String(layer);
   }
 
