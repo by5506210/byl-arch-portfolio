@@ -368,34 +368,30 @@ function initFilmstrip() {
 }
 
 function initProjectsAtlas() {
-  var atlas = document.querySelector('.projects-atlas');
-  if (!atlas) return;
-  if (atlas.dataset.atlasInit === 'true') return;
-  atlas.dataset.atlasInit = 'true';
+  var helix = document.querySelector('.projects-helix');
+  if (!helix) return;
+  if (helix.dataset.helixInit === 'true') return;
+  helix.dataset.helixInit = 'true';
 
-  var stage = atlas.querySelector('.projects-atlas__stage');
-  var nodes = Array.prototype.slice.call(atlas.querySelectorAll('.projects-atlas__node'));
-  var detailFrame = atlas.querySelector('.projects-atlas__detail-frame');
-  var detailMedia = atlas.querySelector('.projects-atlas__detail-media');
-  var detailImage = atlas.querySelector('.projects-atlas__detail-image');
-  var placeholderLabel = atlas.querySelector('.projects-atlas__detail-placeholder-label');
-  var placeholderCopy = atlas.querySelector('.projects-atlas__detail-placeholder-copy');
-  var detailCategory = atlas.querySelector('.projects-atlas__detail-category');
-  var detailYear = atlas.querySelector('.projects-atlas__detail-year');
-  var detailTitle = atlas.querySelector('.projects-atlas__detail-title');
-  var detailDescription = atlas.querySelector('.projects-atlas__detail-description');
-  var detailType = atlas.querySelector('[data-detail="type"]');
-  var detailLocation = atlas.querySelector('[data-detail="location"]');
-  var detailStatus = atlas.querySelector('[data-detail="status"]');
-  var detailTags = atlas.querySelector('.projects-atlas__detail-tags');
-  var detailLink = atlas.querySelector('.projects-atlas__detail-link');
-  var activeNode = null;
+  var stage = helix.querySelector('.projects-helix__stage');
+  var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
+  var architectureGuide = helix.querySelector('.projects-helix__guide--architecture');
+  var interiorGuide = helix.querySelector('.projects-helix__guide--interior');
+  var designGuide = helix.querySelector('.projects-helix__guide--design');
+  var selectedNode = null;
 
-  if (!stage || !detailFrame || !detailMedia || !detailImage || !placeholderLabel || !placeholderCopy ||
-      !detailCategory || !detailYear || !detailTitle || !detailDescription || !detailType ||
-      !detailLocation || !detailStatus || !detailTags || !detailLink || nodes.length === 0) {
-    return;
-  }
+  if (!stage || !architectureGuide || !interiorGuide || !designGuide || nodes.length === 0) return;
+
+  var stageWidth = 1000;
+  var stageHeight = 1500;
+  var centerX = stageWidth * 0.5;
+  var baseY = stageHeight - 130;
+  var levelRise = 118;
+  var seriesConfig = {
+    architecture: { phase: -0.45, radiusX: 308, radiusZ: 132, radiusGrowth: 7.2 },
+    interior: { phase: 1.62, radiusX: 224, radiusZ: 94, radiusGrowth: 5.1 },
+    design: { phase: 3.82, radiusX: 146, radiusZ: 62, radiusGrowth: 2.8 }
+  };
 
   function clamp(val, min, max) {
     return Math.max(min, Math.min(max, val));
@@ -405,105 +401,148 @@ function initProjectsAtlas() {
     return window.matchMedia('(pointer: coarse)').matches;
   }
 
-  function buildTags(tagsString) {
-    detailTags.innerHTML = '';
+  function projectPoint(series, level) {
+    var config = seriesConfig[series];
+    var t = config.phase + level * 0.92;
+    var radiusX = config.radiusX + level * config.radiusGrowth;
+    var z = Math.sin(t) * config.radiusZ;
+    var x = centerX + Math.cos(t) * radiusX;
+    var y = baseY - level * levelRise - z * 0.6;
+    var scale = 0.8 + ((z + config.radiusZ) / (config.radiusZ * 2)) * 0.4;
 
-    if (!tagsString) return;
-
-    tagsString.split('|').forEach(function (tag) {
-      var clean = tag.trim();
-      if (!clean) return;
-
-      var chip = document.createElement('span');
-      chip.textContent = clean;
-      detailTags.appendChild(chip);
-    });
+    return {
+      x: x,
+      y: y,
+      z: z,
+      scale: scale
+    };
   }
 
-  function activateNode(node) {
-    if (!node) return;
+  function buildGuidePath(series) {
+    var segments = [];
+    var i;
 
-    activeNode = node;
-    nodes.forEach(function (item) {
-      item.classList.toggle('is-active', item === node);
-    });
-
-    atlas.style.setProperty('--atlas-accent', node.dataset.accent || '#8e342a');
-    stage.setAttribute('data-active-orbit', node.dataset.orbit || 'architecture');
-
-    detailCategory.textContent = node.dataset.category || '';
-    detailYear.textContent = node.dataset.year || '';
-    detailTitle.textContent = node.dataset.title || '';
-    detailDescription.textContent = node.dataset.description || '';
-    detailType.textContent = node.dataset.type || '';
-    detailLocation.textContent = node.dataset.location || '';
-    detailStatus.textContent = node.dataset.status || '';
-    buildTags(node.dataset.tags || '');
-
-    if (node.dataset.image) {
-      detailMedia.classList.remove('is-empty');
-      detailImage.setAttribute('src', node.dataset.image);
-      detailImage.setAttribute('alt', node.dataset.title || 'Selected project image');
-    } else {
-      detailMedia.classList.add('is-empty');
-      detailImage.removeAttribute('src');
-      detailImage.setAttribute('alt', '');
-      placeholderLabel.textContent = node.dataset.placeholderLabel || 'Incoming project';
-      placeholderCopy.textContent = node.dataset.placeholderCopy || 'Documentation is still being assembled.';
+    for (i = 0; i <= 120; i++) {
+      var level = i * 0.09;
+      var point = projectPoint(series, level);
+      segments.push((i === 0 ? 'M' : 'L') + point.x.toFixed(2) + ' ' + point.y.toFixed(2));
     }
 
-    detailLink.href = node.getAttribute('href') || '#';
-    detailLink.textContent = node.dataset.linkLabel || 'Open project';
-    detailLink.setAttribute('aria-label', detailLink.textContent + ': ' + (node.dataset.title || 'project'));
+    return segments.join(' ');
   }
 
-  function updateStageMotion(evt) {
-    if (!evt) return;
+  function positionNode(node) {
+    var level = parseFloat(node.dataset.level || '0');
+    var shiftX = parseFloat(node.dataset.shiftX || '0');
+    var shiftY = parseFloat(node.dataset.shiftY || '0');
+    var point = projectPoint(node.dataset.series, level);
+    var x = point.x + shiftX;
+    var y = point.y + shiftY;
+    var lift = parseFloat(node.dataset.lift || (60 + point.scale * 18));
+    var opacity = clamp(0.56 + point.scale * 0.34, 0.5, 1);
 
-    var rect = stage.getBoundingClientRect();
-    var relativeX = (evt.clientX - rect.left) / rect.width;
-    var relativeY = (evt.clientY - rect.top) / rect.height;
-
-    stage.style.setProperty('--atlas-glow-x', clamp(relativeX * 100, 0, 100) + '%');
-    stage.style.setProperty('--atlas-glow-y', clamp(relativeY * 100, 0, 100) + '%');
-    stage.style.setProperty('--atlas-drift-x', clamp((relativeX - 0.5) * 18, -18, 18) + 'px');
-    stage.style.setProperty('--atlas-drift-y', clamp((relativeY - 0.5) * 16, -16, 16) + 'px');
+    node.style.left = (x / stageWidth * 100) + '%';
+    node.style.top = (y / stageHeight * 100) + '%';
+    node.style.setProperty('--depth-scale', point.scale.toFixed(3));
+    node.style.setProperty('--lift', lift.toFixed(1) + 'px');
+    node.style.setProperty('--node-opacity', opacity.toFixed(3));
+    node.style.zIndex = String(Math.round(100 + point.z + level * 12));
   }
 
-  function resetStageMotion() {
-    stage.style.setProperty('--atlas-glow-x', '50%');
-    stage.style.setProperty('--atlas-glow-y', '50%');
-    stage.style.setProperty('--atlas-drift-x', '0px');
-    stage.style.setProperty('--atlas-drift-y', '0px');
+  function positionAll() {
+    architectureGuide.setAttribute('d', buildGuidePath('architecture'));
+    interiorGuide.setAttribute('d', buildGuidePath('interior'));
+    designGuide.setAttribute('d', buildGuidePath('design'));
+
+    nodes.forEach(positionNode);
+  }
+
+  function clearVisualState() {
+    nodes.forEach(function (node) {
+      node.classList.remove('is-active');
+      node.style.setProperty('--proximity', '0');
+    });
+    stage.setAttribute('data-active-series', '');
+  }
+
+  function activateSelection(node) {
+    selectedNode = node;
+    nodes.forEach(function (item) {
+      item.classList.toggle('is-active', item === node);
+      item.style.setProperty('--proximity', item === node ? '1' : '0');
+    });
+    stage.setAttribute('data-active-series', node ? node.dataset.series : '');
+  }
+
+  function updateProximity(clientX, clientY) {
+    var bestNode = null;
+    var bestValue = 0;
+
+    nodes.forEach(function (node) {
+      var thumb = node.querySelector('.projects-helix__thumb');
+      if (!thumb) return;
+
+      var rect = thumb.getBoundingClientRect();
+      var centerThumbX = rect.left + rect.width * 0.5;
+      var centerThumbY = rect.top + rect.height * 0.5;
+      var dist = Math.sqrt(Math.pow(clientX - centerThumbX, 2) + Math.pow(clientY - centerThumbY, 2));
+      var threshold = Math.max(150, rect.width * 2.4);
+      var proximity = Math.max(0, 1 - dist / threshold);
+      proximity = proximity * proximity;
+
+      node.style.setProperty('--proximity', proximity.toFixed(3));
+      node.classList.toggle('is-active', proximity > 0.16);
+
+      if (proximity > bestValue) {
+        bestValue = proximity;
+        bestNode = node;
+      }
+    });
+
+    if (bestNode && bestValue > 0.08) {
+      stage.setAttribute('data-active-series', bestNode.dataset.series || '');
+    } else {
+      stage.setAttribute('data-active-series', '');
+      nodes.forEach(function (node) {
+        node.classList.remove('is-active');
+      });
+    }
   }
 
   nodes.forEach(function (node) {
-    node.addEventListener('mouseenter', function () {
-      activateNode(node);
-    });
-
     node.addEventListener('focus', function () {
-      activateNode(node);
+      activateSelection(node);
     });
 
     node.addEventListener('click', function (evt) {
-      if (isCoarsePointer() && activeNode !== node) {
+      if (isCoarsePointer() && selectedNode !== node) {
         evt.preventDefault();
-        activateNode(node);
+        activateSelection(node);
       }
     });
   });
 
   stage.addEventListener('mousemove', function (evt) {
-    updateStageMotion(evt);
+    if (isCoarsePointer()) return;
+    selectedNode = null;
+    updateProximity(evt.clientX, evt.clientY);
   });
 
   stage.addEventListener('mouseleave', function () {
-    resetStageMotion();
+    if (selectedNode) {
+      activateSelection(selectedNode);
+      return;
+    }
+    clearVisualState();
   });
 
-  activateNode(nodes[0]);
-  resetStageMotion();
+  window.addEventListener('resize', function () {
+    positionAll();
+    if (selectedNode) activateSelection(selectedNode);
+  });
+
+  positionAll();
+  clearVisualState();
 }
 
 function initProjectsIndexPreview() {

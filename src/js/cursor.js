@@ -64,9 +64,10 @@
   document.addEventListener('mouseover', function (e) {
     var target = e.target;
 
-    var projectCard = target.closest('.projects-index__card, .projects-atlas__node');
+    var projectCard = target.closest('.projects-index__card, .projects-atlas__node, .projects-helix__node');
     if (projectCard && !projectCard.classList.contains('projects-index__card--coming-soon')) {
       var projectSnapTarget =
+        projectCard.querySelector('.projects-helix__thumb') ||
         projectCard.querySelector('.projects-atlas__node-thumb') ||
         projectCard.querySelector('.projects-index__card-img') ||
         projectCard;
