@@ -601,7 +601,8 @@ function initProjectsAtlas() {
 
     var scene = new THREE.Scene();
     var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
-    camera.position.set(10.2, 0.18, 9.6);
+    camera.up.set(0, 1, 0);
+    camera.position.set(9.8, 0, 9.8);
     camera.lookAt(0, 0, 0);
 
     var group = new THREE.Group();
@@ -829,11 +830,18 @@ function initProjectsAtlas() {
       var aspect = width / height;
       var isMobile = width <= 820;
       var frustumSize = isMobile ? 11.2 : 14.1;
+      var cameraDistance = isMobile ? 7.7 : 9.8;
       viewportWidth = width;
       viewportHeight = height;
 
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
       renderer.setSize(width, height, false);
+
+      // True orthographic corner view with upright axis:
+      // rotate around Y only (no pitch, no roll).
+      camera.position.set(cameraDistance, 0, cameraDistance);
+      camera.up.set(0, 1, 0);
+      camera.lookAt(0, 0, 0);
 
       camera.left = (-frustumSize * aspect) * 0.5;
       camera.right = (frustumSize * aspect) * 0.5;
