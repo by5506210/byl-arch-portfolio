@@ -2090,8 +2090,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
    PROJECTS HELIX
    ============================================ */
 .projects-index.projects-helix {
-  min-height: 100vh;
-  padding: 5.35rem 1.35rem 1.5rem;
+  min-height: 100dvh;
+  padding: 4.65rem 1rem 0.9rem;
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.99) 0%, rgba(255, 255, 255, 0.95) 30%, rgba(255, 255, 255, 0) 60%),
     linear-gradient(180deg, #ffffff 0%, #f6f3ee 100%);
@@ -2111,10 +2111,10 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix::before {
-  top: 5rem;
+  top: 3.6rem;
   left: 50%;
-  width: min(88vw, 1260px);
-  height: min(42vw, 520px);
+  width: min(94vw, 1560px);
+  height: min(48vw, 660px);
   transform: translateX(-50%);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.56) 34%, rgba(255, 255, 255, 0) 72%);
   opacity: 0.92;
@@ -2122,19 +2122,20 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix::after {
   left: 50%;
-  bottom: -2rem;
-  width: min(86vw, 1180px);
-  height: 7rem;
+  bottom: -2.5rem;
+  width: min(92vw, 1460px);
+  height: 8rem;
   transform: translateX(-50%);
   background: radial-gradient(ellipse at center, rgba(207, 200, 190, 0.24) 0%, rgba(207, 200, 190, 0.08) 34%, rgba(207, 200, 190, 0) 72%);
-  filter: blur(20px);
+  filter: blur(22px);
 }
 
 .projects-helix__viewport {
   position: relative;
   z-index: 1;
-  width: min(98vw, 1280px);
-  height: clamp(470px, 66vh, 700px);
+  width: min(99.2vw, 1580px);
+  height: min(920px, calc(100dvh - 5.55rem));
+  min-height: 580px;
   margin: 0 auto;
 }
 
@@ -2258,7 +2259,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 0;
   display: block;
   color: inherit;
-  transform: translate(-50%, -50%) scale(calc(0.74 + var(--depth) * 0.3 + var(--proximity) * 0.22));
+  transform: translate(-50%, -50%) scale(calc(0.82 + var(--depth) * 0.34 + var(--proximity) * 0.24));
   transform-origin: center center;
   opacity: calc(0.24 + var(--depth) * 0.56 + var(--proximity) * 0.38);
   transition: transform 0.16s ease, opacity 0.16s ease;
@@ -2307,7 +2308,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__thumb {
   width: var(--thumb-w, 72px);
   height: var(--thumb-h, 52px);
-  transform: translate(-50%, -50%) rotateY(calc(var(--panel-yaw) * 1deg)) scale(calc(0.9 + var(--depth) * 0.22 + var(--proximity) * 0.58));
+  transform: translate(-50%, -50%) rotateY(calc(var(--panel-yaw) * 1deg)) scale(calc(1 + var(--depth) * 0.26 + var(--proximity) * 0.66));
   transform-origin: center center;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
@@ -2373,24 +2374,27 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 @media (max-width: 900px) {
   .projects-index.projects-helix {
-    padding-top: 4.8rem;
+    padding-top: 4.3rem;
   }
 
   .projects-helix__viewport {
-    width: min(99vw, 980px);
-    height: 520px;
+    width: min(99.4vw, 1080px);
+    height: calc(100dvh - 5rem);
+    min-height: 500px;
   }
 }
 
 @media (max-width: 640px) {
   .projects-index.projects-helix {
-    padding-left: 0.9rem;
-    padding-right: 0.9rem;
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
+    padding-top: 4rem;
   }
 
   .projects-helix__viewport {
     width: 100%;
-    height: 560px;
+    height: calc(100dvh - 4.7rem);
+    min-height: 460px;
   }
 
   .projects-helix__thumb {
@@ -3381,8 +3385,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 
   .projects-index.projects-helix {
-    padding-left: 0.9rem;
-    padding-right: 0.9rem;
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
   }
 
   .contact-page__card-value {

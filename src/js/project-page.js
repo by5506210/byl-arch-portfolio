@@ -443,7 +443,7 @@ function initProjectsAtlas() {
 
     var scene = new THREE.Scene();
     var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
-    camera.position.set(9.2, 2.4, 8.4);
+    camera.position.set(10.4, 2.7, 9.8);
     camera.lookAt(0, 0, 0);
 
     var group = new THREE.Group();
@@ -509,8 +509,8 @@ function initProjectsAtlas() {
 
       var total = nodes.length;
       var startAngle = -Math.PI * 0.5;
-      var helixRadius = Math.max(3.7, Math.min(5.4, 4 + (width - 920) / 520));
-      var helixHeight = 8.8;
+      var helixRadius = Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
+      var helixHeight = 10.2;
       var threadSegments = Math.max(220, total * 36);
       var threadPoints = [];
       var axisTop = helixHeight * 0.61;
@@ -611,8 +611,8 @@ function initProjectsAtlas() {
       var delta = Math.min(80, now - lastFrameTime);
       lastFrameTime = now;
 
-      // Extremely slow rotation for subtle movement.
-      group.rotation.y += delta * 0.0000009;
+      // Slow but noticeable rotation.
+      group.rotation.y += delta * 0.0000048;
 
       renderer.render(scene, camera);
       syncNodes(viewportWidth, viewportHeight);
@@ -630,7 +630,7 @@ function initProjectsAtlas() {
       var width = Math.max(1, Math.round(rect.width));
       var height = Math.max(1, Math.round(rect.height));
       var aspect = width / height;
-      var frustumSize = 12.4;
+      var frustumSize = 14.1;
       viewportWidth = width;
       viewportHeight = height;
 
@@ -694,7 +694,7 @@ function initProjectsAtlas() {
     var centerX = width * 0.5;
     var topY = height * 0.14;
     var loopHeight = height * 0.72;
-    var radiusX = Math.min(width * 0.42, 460);
+    var radiusX = Math.min(width * 0.47, 560);
     var orbitRadiusY = Math.max(14, Math.min(height * 0.07, 34));
     var viewAngle = Math.PI * 0.24;
     var startAngle = -Math.PI * 0.5;
