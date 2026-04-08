@@ -376,15 +376,12 @@ function initProjectsAtlas() {
   var stage = helix.querySelector('.projects-helix__stage');
   var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
   var webglMount = helix.querySelector('.projects-helix__webgl');
-  var ribbonLayer = helix.querySelector('.projects-helix__ribbon');
   var guides = helix.querySelector('.projects-helix__guides');
   var axisPath = helix.querySelector('.projects-helix__axis');
   var threadPath = helix.querySelector('.projects-helix__thread');
   var orbitTop = helix.querySelector('.projects-helix__orbit--top');
   var orbitMid = helix.querySelector('.projects-helix__orbit--mid');
   var orbitBottom = helix.querySelector('.projects-helix__orbit--bottom');
-  var ribbonFrames = [];
-  var ribbonItems = [];
   var selectedNode = null;
   var resizeFrame = null;
   var webglHelix = null;
@@ -412,73 +409,17 @@ function initProjectsAtlas() {
     node.dataset.nodeIndex = String(index);
   });
 
-  function collectRibbonImagePool() {
+  function collectRibbonSources() {
     return nodes
       .map(function (node) {
         var img = node.querySelector('.projects-helix__thumb img');
         if (!img) return null;
-        var src = img.currentSrc || img.src || '';
-        if (!src) return null;
-        return {
-          src: src,
-          alt: img.alt || node.dataset.title || ''
-        };
+        return img;
       })
       .filter(function (item) {
         return !!item;
       });
   }
-
-  function ensureRibbonLayer() {
-    if (ribbonLayer) return ribbonLayer;
-    if (!stage) return null;
-    ribbonLayer = document.createElement('div');
-    ribbonLayer.className = 'projects-helix__ribbon';
-    ribbonLayer.setAttribute('aria-hidden', 'true');
-    stage.appendChild(ribbonLayer);
-    return ribbonLayer;
-  }
-
-  function rebuildRibbonFrames() {
-    var layer = ensureRibbonLayer();
-    if (!layer) return;
-
-    while (layer.firstChild) layer.removeChild(layer.firstChild);
-    ribbonFrames = [];
-    ribbonItems = [];
-
-    var imagePool = collectRibbonImagePool();
-    if (imagePool.length === 0) return;
-
-    var frameCount = Math.max(10, Math.min(14, nodes.length + 3));
-    for (var i = 0; i < frameCount; i++) {
-      var pick = imagePool[Math.floor(Math.random() * imagePool.length)];
-      if (!pick) continue;
-
-      var frame = document.createElement('span');
-      frame.className = 'projects-helix__ribbon-frame';
-      frame.style.setProperty('--x', '50%');
-      frame.style.setProperty('--y', '50%');
-      frame.style.setProperty('--depth', '0.5');
-      frame.style.setProperty('--fog', '0.3');
-
-      var image = document.createElement('img');
-      image.src = pick.src;
-      image.alt = pick.alt;
-      image.loading = 'lazy';
-      image.decoding = 'async';
-
-      frame.appendChild(image);
-      layer.appendChild(frame);
-      ribbonFrames.push(frame);
-      ribbonItems.push({
-        progress: frameCount === 1 ? 0.5 : i / (frameCount - 1),
-        twist: ((i % 5) - 2) * 0.035
-      });
-    }
-  }
-
-  rebuildRibbonFrames();
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -813,10 +754,11 @@ function initProjectsAtlas() {
     }
     var THREE = window.THREE;
     var renderer;
+    var useAntialias = (window.devicePixelRatio || 1) <= 1.5;
 
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: useAntialias,
         alpha: true,
         powerPreference: 'high-performance'
       });
@@ -861,9 +803,8 @@ function initProjectsAtlas() {
     group.rotation.x = 0;
     group.position.x = 0;
 
-    var dotGeometry = new THREE.SphereGeometry(0.08, 10, 10);
+    var dotGeometry = new THREE.SphereGeometry(0.08, 8, 8);
     var nodeData = [];
-    var ribbonData = [];
     var viewportWidth = 1;
     var viewportHeight = 1;
     var frameId = 0;
@@ -872,8 +813,7 @@ function initProjectsAtlas() {
     var tempAnchorWorld = new THREE.Vector3();
     var tempProjectedPoint = new THREE.Vector3();
     var tempProjectedAnchor = new THREE.Vector3();
-    var tempRibbonWorld = new THREE.Vector3();
-    var tempProjectedRibbon = new THREE.Vector3();
+    var ribbonTexture = null;
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -911,6 +851,141 @@ function initProjectsAtlas() {
       return points;
     }
 
+    function drawCoverImage(ctx, img, x, y, w, h) {
+      if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) return false;
+      var scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+      var srcW = w / scale;
+      var srcH = h / scale;
+      var srcX = (img.naturalWidth - srcW) * 0.5;
+      var srcY = (img.naturalHeight - srcH) * 0.5;
+      try {
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, x, y, w, h);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function createRibbonTexture() {
+      var sourceImages = collectRibbonSources();
+      if (sourceImages.length === 0) return null;
+
+      var frameCount = Math.max(18, Math.min(30, sourceImages.length * 3));
+      var frameW = 30;
+      var frameH = 20;
+      var edgeBand = 4;
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      canvas.width = frameW * frameCount;
+      canvas.height = frameH + edgeBand * 2;
+
+      ctx.fillStyle = 'rgba(22, 20, 18, 0.58)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (var index = 0; index < frameCount; index++) {
+        var offsetX = index * frameW;
+        var pick = sourceImages[Math.floor(Math.random() * sourceImages.length)];
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+        ctx.fillRect(offsetX + 1, edgeBand + 1, frameW - 2, frameH - 2);
+
+        if (!drawCoverImage(ctx, pick, offsetX + 1, edgeBand + 1, frameW - 2, frameH - 2)) {
+          ctx.fillStyle = 'rgba(216, 210, 201, 0.8)';
+          ctx.fillRect(offsetX + 1, edgeBand + 1, frameW - 2, frameH - 2);
+        }
+
+        ctx.fillStyle = 'rgba(17, 17, 15, 0.34)';
+        ctx.fillRect(offsetX, edgeBand, 1, frameH);
+      }
+
+      var perforationStep = 5;
+      for (var px = 2; px < canvas.width; px += perforationStep) {
+        ctx.fillStyle = 'rgba(244, 241, 235, 0.42)';
+        ctx.fillRect(px, 1, 2, 2);
+        ctx.fillRect(px, canvas.height - 3, 2, 2);
+      }
+
+      var texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = false;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      if ('colorSpace' in texture && THREE.SRGBColorSpace) {
+        texture.colorSpace = THREE.SRGBColorSpace;
+      }
+      return texture;
+    }
+
+    function createRibbonStripMesh(config) {
+      if (!ribbonTexture) ribbonTexture = createRibbonTexture();
+      if (!ribbonTexture) return null;
+
+      var stripSegments = config.segments;
+      var stripWidth = config.width;
+      var vertexCount = (stripSegments + 1) * 2;
+      var positions = new Float32Array(vertexCount * 3);
+      var uvs = new Float32Array(vertexCount * 2);
+      var indices = [];
+
+      for (var i = 0; i <= stripSegments; i++) {
+        var u = i / stripSegments;
+        var t = config.startT + (config.endT - config.startT) * u;
+        var theta = config.startAngle + t * Math.PI * 2 + config.phaseShift;
+        var centerX = Math.sin(theta) * config.radius;
+        var centerY = (0.5 - t) * config.height;
+        var centerZ = Math.cos(theta) * config.radius;
+        var radialX = Math.sin(theta);
+        var radialZ = Math.cos(theta);
+
+        var leftIndex = i * 2;
+        var rightIndex = leftIndex + 1;
+        var leftBase = leftIndex * 3;
+        var rightBase = rightIndex * 3;
+        var leftUvBase = leftIndex * 2;
+        var rightUvBase = rightIndex * 2;
+
+        positions[leftBase] = centerX - radialX * stripWidth * 0.5;
+        positions[leftBase + 1] = centerY;
+        positions[leftBase + 2] = centerZ - radialZ * stripWidth * 0.5;
+
+        positions[rightBase] = centerX + radialX * stripWidth * 0.5;
+        positions[rightBase + 1] = centerY;
+        positions[rightBase + 2] = centerZ + radialZ * stripWidth * 0.5;
+
+        uvs[leftUvBase] = u;
+        uvs[leftUvBase + 1] = 0;
+        uvs[rightUvBase] = u;
+        uvs[rightUvBase + 1] = 1;
+      }
+
+      for (var seg = 0; seg < stripSegments; seg++) {
+        var a = seg * 2;
+        var b = a + 1;
+        var c = a + 2;
+        var d = a + 3;
+        indices.push(a, b, c);
+        indices.push(b, d, c);
+      }
+
+      var geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+      geometry.setIndex(indices);
+
+      var material = new THREE.MeshBasicMaterial({
+        map: ribbonTexture,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      return new THREE.Mesh(geometry, material);
+    }
+
     function buildWorld(width) {
       clearGroup();
       nodeData = [];
@@ -921,15 +996,14 @@ function initProjectsAtlas() {
       var helixRadius = isMobile
         ? Math.max(2.8, Math.min(3.8, 3.2 + (width - 390) / 360))
         : Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
-      var ribbonRadius = helixRadius * (isMobile ? 1.28 : 1.22);
+      var ribbonRadius = helixRadius * (isMobile ? 0.78 : 0.72);
       var helixHeight = isMobile ? 7.2 : 10.2;
-      var ringSegments = 72;
-      var threadSegments = Math.max(160, total * 24);
+      var ringSegments = 56;
+      var threadSegments = Math.max(112, total * 16);
       var threadPoints = [];
-      var ribbonPoints = [];
       var axisTop = helixHeight * 0.61;
       var axisBottom = -helixHeight * 0.61;
-      var ribbonPhaseShift = Math.PI * 0.72;
+      var ribbonPhaseShift = Math.PI * 0.24;
 
       addLine(
         [new THREE.Vector3(0, axisTop, 0), new THREE.Vector3(0, axisBottom, 0)],
@@ -975,27 +1049,19 @@ function initProjectsAtlas() {
         false
       );
 
-      for (var j = 0; j <= threadSegments; j++) {
-        var ribbonProgress = j / threadSegments;
-        var ribbonTheta = startAngle + ribbonProgress * Math.PI * 2 + ribbonPhaseShift;
-        ribbonPoints.push(new THREE.Vector3(
-          Math.sin(ribbonTheta) * ribbonRadius,
-          (0.5 - ribbonProgress) * helixHeight,
-          Math.cos(ribbonTheta) * ribbonRadius
-        ));
+      var ribbonMesh = createRibbonStripMesh({
+        radius: ribbonRadius,
+        height: helixHeight,
+        startAngle: startAngle,
+        phaseShift: ribbonPhaseShift,
+        startT: 0.97,
+        endT: 0.44,
+        width: isMobile ? 0.36 : 0.48,
+        segments: isMobile ? 48 : 64
+      });
+      if (ribbonMesh) {
+        group.add(ribbonMesh);
       }
-
-      addLine(
-        ribbonPoints,
-        new THREE.LineDashedMaterial({
-          color: 0x11110f,
-          transparent: true,
-          opacity: 0.14,
-          dashSize: 0.14,
-          gapSize: 0.2
-        }),
-        true
-      );
 
       for (var index = 0; index < total; index++) {
         var progress = total === 1 ? 0.5 : index / (total - 1);
@@ -1023,15 +1089,6 @@ function initProjectsAtlas() {
 
         nodeData.push({ point: point, anchor: anchor });
       }
-
-      ribbonData = ribbonItems.map(function (item) {
-        var ribbonTheta = startAngle + item.progress * Math.PI * 2 + ribbonPhaseShift + item.twist;
-        return new THREE.Vector3(
-          Math.sin(ribbonTheta) * ribbonRadius,
-          (0.5 - item.progress) * helixHeight,
-          Math.cos(ribbonTheta) * ribbonRadius
-        );
-      });
     }
 
     function syncNodes(width, height) {
@@ -1068,26 +1125,6 @@ function initProjectsAtlas() {
         node.dataset.depth = depth.toFixed(3);
         nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
       });
-
-      var ribbonCount = Math.min(ribbonFrames.length, ribbonData.length);
-      for (var ribbonIndex = 0; ribbonIndex < ribbonCount; ribbonIndex++) {
-        var frame = ribbonFrames[ribbonIndex];
-        var ribbonPoint = ribbonData[ribbonIndex];
-        if (!frame || !ribbonPoint) continue;
-
-        tempRibbonWorld.copy(ribbonPoint).applyMatrix4(group.matrixWorld);
-        tempProjectedRibbon.copy(tempRibbonWorld).project(camera);
-
-        var ribbonX = (tempProjectedRibbon.x * 0.5 + 0.5) * width;
-        var ribbonY = (-tempProjectedRibbon.y * 0.5 + 0.5) * height;
-        var ribbonDepth = clamp(1 - (tempProjectedRibbon.z + 1) * 0.5, 0, 1);
-        var ribbonFog = clamp(1 - ribbonDepth, 0, 1);
-
-        frame.style.setProperty('--x', ribbonX.toFixed(2) + 'px');
-        frame.style.setProperty('--y', ribbonY.toFixed(2) + 'px');
-        frame.style.setProperty('--depth', ribbonDepth.toFixed(3));
-        frame.style.setProperty('--fog', ribbonFog.toFixed(3));
-      }
     }
 
     function renderFrame(now) {
@@ -1230,13 +1267,11 @@ function initProjectsAtlas() {
     var topY = height * (isMobile ? 0.17 : 0.14);
     var loopHeight = height * (isMobile ? 0.66 : 0.72);
     var radiusX = isMobile ? Math.min(width * 0.34, 250) : Math.min(width * 0.47, 560);
-    var ribbonRadiusX = radiusX * (isMobile ? 1.28 : 1.22);
     var orbitRadiusY = isMobile
       ? Math.max(10, Math.min(height * 0.045, 20))
       : Math.max(14, Math.min(height * 0.07, 34));
     var viewAngle = (isMobile ? Math.PI * 0.2 : baseViewAngle) + fallbackRotation;
     var startAngle = -Math.PI * 0.5;
-    var ribbonPhaseShift = Math.PI * 0.72;
     var total = nodes.length;
 
     if (axisPath) {
@@ -1284,25 +1319,6 @@ function initProjectsAtlas() {
       node.dataset.depth = depth.toFixed(3);
       nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
     });
-
-    var ribbonCount = Math.min(ribbonFrames.length, ribbonItems.length);
-    for (var ribbonIndex = 0; ribbonIndex < ribbonCount; ribbonIndex++) {
-      var frame = ribbonFrames[ribbonIndex];
-      var item = ribbonItems[ribbonIndex];
-      if (!frame || !item) continue;
-
-      var ribbonTheta = startAngle + item.progress * Math.PI * 2 + ribbonPhaseShift + item.twist;
-      var ribbonProjected = projectOffset(ribbonTheta, ribbonRadiusX, viewAngle);
-      var ribbonX = centerX + ribbonProjected.x;
-      var ribbonY = topY + item.progress * loopHeight;
-      var ribbonDepth = Math.max(0, Math.min(1, (ribbonProjected.depth / ribbonRadiusX + 1) * 0.5));
-      var ribbonFog = clamp(1 - ribbonDepth, 0, 1);
-
-      frame.style.setProperty('--x', ribbonX.toFixed(2) + 'px');
-      frame.style.setProperty('--y', ribbonY.toFixed(2) + 'px');
-      frame.style.setProperty('--depth', ribbonDepth.toFixed(3));
-      frame.style.setProperty('--fog', ribbonFog.toFixed(3));
-    }
   }
 
   function layoutHelix() {

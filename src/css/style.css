@@ -2159,59 +2159,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   display: block;
 }
 
-.projects-helix__ribbon {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
-}
-
-.projects-helix__ribbon-frame {
-  --depth: 0.5;
-  --fog: 0.3;
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: 34px;
-  height: 46px;
-  transform: translate(-50%, -50%) scale(calc(0.74 + var(--depth) * 0.34));
-  transform-origin: center center;
-  overflow: hidden;
-  border: 1px solid rgba(17, 17, 15, calc(0.08 + var(--depth) * 0.08));
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.5);
-  opacity: calc((0.08 + var(--depth) * 0.2) * (1 - var(--fog) * 0.52));
-  box-shadow: 0 4px 8px rgba(32, 27, 22, 0.08);
-}
-
-.projects-helix__ribbon-frame::before,
-.projects-helix__ribbon-frame::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  width: 2px;
-  background-image: radial-gradient(circle, rgba(17, 17, 15, 0.25) 0 0.8px, rgba(17, 17, 15, 0) 0.8px);
-  background-size: 2px 6px;
-  opacity: 0.33;
-  z-index: 1;
-}
-
-.projects-helix__ribbon-frame::before {
-  left: 2px;
-}
-
-.projects-helix__ribbon-frame::after {
-  right: 2px;
-}
-
-.projects-helix__ribbon-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(0.2) contrast(1.02);
-}
-
 .projects-helix__mode-badge {
   position: absolute;
   left: 0.75rem;
