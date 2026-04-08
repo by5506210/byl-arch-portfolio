@@ -601,9 +601,20 @@ function initProjectsAtlas() {
 
     var scene = new THREE.Scene();
     var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
-    camera.up.set(0, 1, 0);
-    camera.position.set(9.8, 0, 9.8);
-    camera.lookAt(0, 0, 0);
+    var cornerAzimuth = Math.PI * 0.25;
+
+    function setCornerCamera(distance, elevation) {
+      var planarDistance = Math.cos(elevation) * distance;
+      camera.position.set(
+        Math.cos(cornerAzimuth) * planarDistance,
+        Math.sin(elevation) * distance,
+        Math.sin(cornerAzimuth) * planarDistance
+      );
+      camera.up.set(0, 1, 0);
+      camera.lookAt(0, 0, 0);
+    }
+
+    setCornerCamera(13.2, Math.PI * 0.2);
 
     var group = new THREE.Group();
     scene.add(group);
@@ -829,19 +840,17 @@ function initProjectsAtlas() {
       var height = Math.max(1, Math.round(rect.height));
       var aspect = width / height;
       var isMobile = width <= 820;
-      var frustumSize = isMobile ? 11.2 : 14.1;
-      var cameraDistance = isMobile ? 7.7 : 9.8;
+      var frustumSize = isMobile ? 12.8 : 15.8;
+      var cameraDistance = isMobile ? 11 : 13.6;
+      var cameraElevation = isMobile ? Math.PI * 0.19 : Math.PI * 0.2;
       viewportWidth = width;
       viewportHeight = height;
 
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
       renderer.setSize(width, height, false);
 
-      // True orthographic corner view with upright axis:
-      // rotate around Y only (no pitch, no roll).
-      camera.position.set(cameraDistance, 0, cameraDistance);
-      camera.up.set(0, 1, 0);
-      camera.lookAt(0, 0, 0);
+      // Orthographic top-corner (architectural axonometric) with upright axis.
+      setCornerCamera(cameraDistance, cameraElevation);
 
       camera.left = (-frustumSize * aspect) * 0.5;
       camera.right = (frustumSize * aspect) * 0.5;
