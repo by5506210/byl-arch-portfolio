@@ -375,7 +375,13 @@ function initProjectsAtlas() {
 
   var stage = helix.querySelector('.projects-helix__stage');
   var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
+  var axisPath = helix.querySelector('.projects-helix__axis');
+  var threadPath = helix.querySelector('.projects-helix__thread');
+  var orbitTop = helix.querySelector('.projects-helix__orbit--top');
+  var orbitMid = helix.querySelector('.projects-helix__orbit--mid');
+  var orbitBottom = helix.querySelector('.projects-helix__orbit--bottom');
   var selectedNode = null;
+  var resizeFrame = null;
 
   if (!stage || nodes.length === 0) return;
 
@@ -383,10 +389,18 @@ function initProjectsAtlas() {
     return window.matchMedia('(pointer: coarse)').matches;
   }
 
+  function setNodeLayer(node, proximity) {
+    var depth = parseFloat(node.dataset.depth || '0.5');
+    var strength = isNaN(proximity) ? 0 : proximity;
+    var layer = 2 + Math.round(depth * 24 + strength * 26);
+    node.style.zIndex = String(layer);
+  }
+
   function clearVisualState() {
     nodes.forEach(function (node) {
       node.classList.remove('is-active');
       node.style.setProperty('--proximity', '0');
+      setNodeLayer(node, 0);
     });
     stage.setAttribute('data-active-series', '');
   }
@@ -394,10 +408,85 @@ function initProjectsAtlas() {
   function activateSelection(node) {
     selectedNode = node;
     nodes.forEach(function (item) {
-      item.classList.toggle('is-active', item === node);
-      item.style.setProperty('--proximity', item === node ? '1' : '0');
+      var isActive = item === node;
+      item.classList.toggle('is-active', isActive);
+      item.style.setProperty('--proximity', isActive ? '1' : '0');
+      setNodeLayer(item, isActive ? 1 : 0);
     });
     stage.setAttribute('data-active-series', node ? node.dataset.series : '');
+  }
+
+  function buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle) {
+    var segments = Math.max(72, nodes.length * 14);
+    var d = '';
+
+    for (var i = 0; i <= segments; i++) {
+      var progress = i / segments;
+      var theta = startAngle + progress * Math.PI * 2;
+      var x = centerX + Math.sin(theta) * radiusX;
+      var y = topY + progress * loopHeight;
+      d += (i === 0 ? 'M' : ' L') + x.toFixed(2) + ' ' + y.toFixed(2);
+    }
+
+    return d;
+  }
+
+  function setOrbitGeometry(orbit, cx, cy, rx, ry) {
+    if (!orbit) return;
+    orbit.setAttribute('cx', cx.toFixed(2));
+    orbit.setAttribute('cy', cy.toFixed(2));
+    orbit.setAttribute('rx', rx.toFixed(2));
+    orbit.setAttribute('ry', ry.toFixed(2));
+  }
+
+  function layoutHelix() {
+    var rect = stage.getBoundingClientRect();
+    var width = rect.width;
+    var height = rect.height;
+    var centerX = width * 0.5;
+    var topY = height * 0.14;
+    var loopHeight = height * 0.72;
+    var radiusX = Math.min(width * 0.3, 320);
+    var orbitRadiusY = Math.max(14, Math.min(height * 0.07, 34));
+    var startAngle = -Math.PI * 0.5;
+    var total = nodes.length;
+
+    if (axisPath) {
+      axisPath.setAttribute(
+        'd',
+        'M' + centerX.toFixed(2) + ' ' + (topY - orbitRadiusY * 1.35).toFixed(2) +
+        ' L' + centerX.toFixed(2) + ' ' + (topY + loopHeight + orbitRadiusY * 1.35).toFixed(2)
+      );
+    }
+
+    setOrbitGeometry(orbitTop, centerX, topY, radiusX, orbitRadiusY);
+    setOrbitGeometry(orbitMid, centerX, topY + loopHeight * 0.5, radiusX, orbitRadiusY);
+    setOrbitGeometry(orbitBottom, centerX, topY + loopHeight, radiusX, orbitRadiusY);
+
+    if (threadPath) {
+      threadPath.setAttribute('d', buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle));
+    }
+
+    nodes.forEach(function (node, index) {
+      var progress = total === 1 ? 0.5 : index / (total - 1);
+      var theta = startAngle + progress * Math.PI * 2;
+      var x = centerX + Math.sin(theta) * radiusX;
+      var y = topY + progress * loopHeight;
+      var depth = (Math.cos(theta) + 1) * 0.5;
+      var offset = x - centerX;
+      var armLength = Math.max(Math.abs(offset) - 8, 0);
+      var currentProximity = parseFloat(node.style.getPropertyValue('--proximity'));
+
+      node.style.setProperty('--x', x.toFixed(2) + 'px');
+      node.style.setProperty('--y', y.toFixed(2) + 'px');
+      node.style.setProperty('--depth', depth.toFixed(3));
+      node.style.setProperty('--angle', ((theta * 180) / Math.PI + 90).toFixed(2));
+      node.style.setProperty('--arm-length', armLength.toFixed(2) + 'px');
+      node.style.setProperty('--arm-shift', (offset >= 0 ? -armLength : armLength).toFixed(2) + 'px');
+      node.dataset.depth = depth.toFixed(3);
+
+      setNodeLayer(node, isNaN(currentProximity) ? 0 : currentProximity);
+    });
   }
 
   function updateProximity(clientX, clientY) {
@@ -418,6 +507,7 @@ function initProjectsAtlas() {
 
       node.style.setProperty('--proximity', proximity.toFixed(3));
       node.classList.toggle('is-active', proximity > 0.22);
+      setNodeLayer(node, proximity);
 
       if (proximity > bestValue) {
         bestValue = proximity;
@@ -431,6 +521,7 @@ function initProjectsAtlas() {
       stage.setAttribute('data-active-series', '');
       nodes.forEach(function (node) {
         node.classList.remove('is-active');
+        setNodeLayer(node, 0);
       });
     }
   }
@@ -448,6 +539,18 @@ function initProjectsAtlas() {
     });
   });
 
+  function handleResize() {
+    if (resizeFrame) cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(function () {
+      layoutHelix();
+      if (selectedNode) {
+        activateSelection(selectedNode);
+      } else {
+        clearVisualState();
+      }
+    });
+  }
+
   stage.addEventListener('mousemove', function (evt) {
     if (isCoarsePointer()) return;
     selectedNode = null;
@@ -461,6 +564,10 @@ function initProjectsAtlas() {
     }
     clearVisualState();
   });
+
+  window.addEventListener('resize', handleResize);
+
+  layoutHelix();
   clearVisualState();
 }
 
