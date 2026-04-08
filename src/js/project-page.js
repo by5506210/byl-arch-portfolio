@@ -399,6 +399,9 @@ function initProjectsAtlas() {
   var proximityLast = 0;
 
   if (!stage || nodes.length === 0) return;
+  nodes.forEach(function (node, index) {
+    node.dataset.nodeIndex = String(index);
+  });
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -443,6 +446,24 @@ function initProjectsAtlas() {
     });
   }
 
+  function applyFocusContext(centerNode) {
+    if (!centerNode) {
+      stage.dataset.focusMode = 'off';
+      nodes.forEach(function (node) {
+        node.style.setProperty('--focus-dim', '1');
+      });
+      return;
+    }
+
+    stage.dataset.focusMode = 'on';
+    var centerIndex = parseInt(centerNode.dataset.nodeIndex || '-1', 10);
+    nodes.forEach(function (node, index) {
+      var distance = Math.abs(index - centerIndex);
+      var dim = distance === 0 ? 1 : distance === 1 ? 0.72 : 0.28;
+      node.style.setProperty('--focus-dim', dim.toFixed(3));
+    });
+  }
+
   function setTargetProximity(node, value) {
     proximityTarget.set(node, clamp(value, 0, 1));
   }
@@ -480,12 +501,15 @@ function initProjectsAtlas() {
     if (selectedNode) {
       setPrimaryNode(selectedNode);
       stage.setAttribute('data-active-series', selectedNode.dataset.series || '');
+      applyFocusContext(selectedNode);
     } else if (bestNode && bestValue > 0.08) {
       setPrimaryNode(bestNode);
       stage.setAttribute('data-active-series', bestNode.dataset.series || '');
+      applyFocusContext(bestNode);
     } else {
       setPrimaryNode(null);
       stage.setAttribute('data-active-series', '');
+      applyFocusContext(null);
     }
 
     return moving;
@@ -547,6 +571,7 @@ function initProjectsAtlas() {
       }
     });
     setPrimaryNode(null);
+    applyFocusContext(null);
     stage.setAttribute('data-active-series', '');
     if (!immediate) ensureProximityAnimation();
   }
@@ -558,6 +583,7 @@ function initProjectsAtlas() {
       setTargetProximity(item, isActive ? 1 : 0);
     });
     setPrimaryNode(node);
+    applyFocusContext(node);
     stage.setAttribute('data-active-series', node ? node.dataset.series : '');
     ensureProximityAnimation();
   }
@@ -692,7 +718,7 @@ function initProjectsAtlas() {
         new THREE.LineDashedMaterial({
           color: 0x11110f,
           transparent: true,
-          opacity: 0.5,
+          opacity: 0.34,
           dashSize: 0.14,
           gapSize: 0.11
         }),
@@ -701,17 +727,17 @@ function initProjectsAtlas() {
 
       addLine(
         ringPoints(helixRadius, helixHeight * 0.5, ringSegments),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.08 }),
-        false
-      );
-      addLine(
-        ringPoints(helixRadius, 0, ringSegments),
         new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.045 }),
         false
       );
       addLine(
+        ringPoints(helixRadius, 0, ringSegments),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.025 }),
+        false
+      );
+      addLine(
         ringPoints(helixRadius, -helixHeight * 0.5, ringSegments),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.08 }),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.045 }),
         false
       );
 
@@ -727,7 +753,7 @@ function initProjectsAtlas() {
 
       addLine(
         threadPoints,
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.72 }),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.86 }),
         false
       );
 

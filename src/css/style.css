@@ -2143,6 +2143,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   position: relative;
   width: 100%;
   height: 100%;
+  counter-reset: helix-node;
 }
 
 .projects-helix__webgl {
@@ -2175,6 +2176,51 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   backdrop-filter: blur(3px);
 }
 
+.projects-helix__axis-notes {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.projects-helix__axis-note {
+  position: absolute;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-primary);
+  font-size: 0.46rem;
+  letter-spacing: 0.16em;
+  color: rgba(17, 17, 15, 0.38);
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.projects-helix__axis-note i {
+  width: 28px;
+  height: 1px;
+  background: rgba(17, 17, 15, 0.22);
+  display: block;
+}
+
+.projects-helix__axis-note b {
+  font-weight: 400;
+}
+
+.projects-helix__axis-note--top {
+  top: 20.5%;
+}
+
+.projects-helix__axis-note--mid {
+  top: 50%;
+}
+
+.projects-helix__axis-note--base {
+  top: 79.5%;
+}
+
 .projects-helix__guides,
 .projects-helix__floor-ring {
   pointer-events: none;
@@ -2203,24 +2249,24 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__axis {
-  stroke: rgba(17, 17, 15, 0.16);
-  stroke-width: 1;
+  stroke: rgba(17, 17, 15, 0.12);
+  stroke-width: 0.84;
   stroke-dasharray: 2 16;
 }
 
 .projects-helix__orbit {
-  stroke: rgba(17, 17, 15, 0.14);
-  stroke-width: 0.84;
-  opacity: 0.14;
+  stroke: rgba(17, 17, 15, 0.1);
+  stroke-width: 0.58;
+  opacity: 0.08;
 }
 
 .projects-helix__thread {
-  stroke: rgba(17, 17, 15, 0.34);
-  stroke-width: 1.22;
+  stroke: rgba(17, 17, 15, 0.38);
+  stroke-width: 1.38;
 }
 
 .projects-helix__orbit--mid {
-  opacity: 0.08;
+  opacity: 0.05;
 }
 
 .projects-helix__stage[data-active-series] .projects-helix__orbit,
@@ -2237,19 +2283,19 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__stage[data-active-series='architecture'] .projects-helix__orbit,
 .projects-helix__stage[data-active-series='interior'] .projects-helix__orbit,
 .projects-helix__stage[data-active-series='design'] .projects-helix__orbit {
-  opacity: 0.2;
+  opacity: 0.12;
 }
 
 .projects-helix__stage[data-active-series='architecture'] .projects-helix__node:not([data-series='architecture']),
 .projects-helix__stage[data-active-series='interior'] .projects-helix__node:not([data-series='interior']),
 .projects-helix__stage[data-active-series='design'] .projects-helix__node:not([data-series='design']) {
-  opacity: calc(0.16 + var(--depth) * 0.32);
+  opacity: calc((0.16 + var(--depth) * 0.32) * var(--focus-dim));
 }
 
 .projects-helix__stage[data-active-series='architecture'] .projects-helix__node[data-series='architecture'],
 .projects-helix__stage[data-active-series='interior'] .projects-helix__node[data-series='interior'],
 .projects-helix__stage[data-active-series='design'] .projects-helix__node[data-series='design'] {
-  opacity: calc(0.38 + var(--depth) * 0.62 + var(--proximity) * 0.44);
+  opacity: calc((0.38 + var(--depth) * 0.62 + var(--proximity) * 0.44) * var(--focus-dim));
 }
 
 .projects-helix__floor-ring {
@@ -2271,11 +2317,13 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --fog: 0;
   --facing: 0.5;
   --facing-visibility: 0.5;
+  --focus-dim: 1;
   --panel-yaw: 0;
   --arm-length: 0px;
   --arm-angle: 0;
   --helix-dx: 0px;
   --helix-dy: 0px;
+  counter-increment: helix-node;
   position: absolute;
   left: var(--x);
   top: var(--y);
@@ -2285,7 +2333,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   color: inherit;
   transform: translate(-50%, -50%) scale(calc(0.82 + var(--depth) * 0.34 + var(--proximity) * 0.42));
   transform-origin: center center;
-  opacity: calc((0.22 + var(--depth) * 0.62 + var(--proximity) * 0.4) * (1 - var(--fog) * 0.38));
+  opacity: calc((0.24 + var(--depth) * 0.6 + var(--proximity) * 0.36) * (1 - var(--fog) * 0.34) * var(--focus-dim));
   transition: transform 0.16s ease, opacity 0.16s ease;
   -webkit-user-select: none;
   user-select: none;
@@ -2305,7 +2353,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__stem {
   width: var(--arm-length);
-  height: 2px;
+  height: calc(1px + var(--depth) * 0.8px + var(--proximity) * 0.4px);
   transform: translate(0, -50%) rotate(calc(var(--arm-angle) * 1deg));
   transform-origin: 0 50%;
   background-image: repeating-linear-gradient(
@@ -2313,7 +2361,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     rgba(17, 17, 15, 0.2) 0 1px,
     rgba(17, 17, 15, 0) 1px 6px
   );
-  opacity: calc(0.22 + var(--depth) * 0.28 + var(--proximity) * 0.26);
+  opacity: calc((0.18 + var(--depth) * 0.3 + var(--proximity) * 0.22) * var(--focus-dim));
   filter: saturate(0.8);
 }
 
@@ -2324,6 +2372,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(17, 17, 15, 0.18);
+  opacity: calc(0.34 + var(--focus-dim) * 0.66);
   box-shadow:
     0 0 0 calc(2px + var(--proximity) * 7px) rgba(255, 255, 255, calc(0.14 + var(--proximity) * 0.14)),
     0 0 0 1px rgba(17, 17, 15, 0.05);
@@ -2338,6 +2387,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.95);
+  opacity: calc(0.26 + var(--focus-dim) * 0.74);
   box-shadow:
     0 4px 10px rgba(44, 36, 30, calc(0.08 + var(--depth) * 0.12 - var(--fog) * 0.06)),
     0 12px 22px rgba(44, 36, 30, calc(0.06 + var(--proximity) * 0.2 - var(--fog) * 0.05));
@@ -2351,28 +2401,50 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 100%;
   object-fit: cover;
   transform: scale(calc(1 + var(--proximity) * 0.32));
-  filter: grayscale(calc(0.72 - var(--proximity) * 0.68 + var(--fog) * 0.18))
-    contrast(calc(1.02 + var(--proximity) * 0.2 - var(--fog) * 0.12))
-    brightness(calc(0.96 + var(--proximity) * 0.12 - var(--fog) * 0.18));
+  filter: grayscale(calc(0.36 - var(--proximity) * 0.32 + var(--fog) * 0.38))
+    saturate(calc(0.78 + var(--proximity) * 0.24 - var(--fog) * 0.3))
+    contrast(calc(1.03 + var(--proximity) * 0.18 - var(--fog) * 0.08))
+    brightness(calc(1 + var(--proximity) * 0.08 - var(--fog) * 0.2));
   transition: filter 0.16s ease, transform 0.16s ease;
 }
 
 .projects-helix__label {
   min-width: max-content;
   top: calc(var(--thumb-h, 52px) * 0.5 + 12px);
-  transform: translate(-50%, calc(8px + (1 - var(--proximity)) * 8px + (1 - var(--facing-visibility)) * 9px));
+  transform: translate(-50%, calc(6px + (1 - var(--proximity)) * 5px + (1 - var(--facing-visibility)) * 2px));
   font-family: var(--font-primary);
-  font-size: 0.5rem;
+  font-size: 0.54rem;
   line-height: 1.35;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.075em;
   text-transform: uppercase;
-  color: rgba(22, 20, 18, 0.78);
+  color: rgba(22, 20, 18, 0.86);
+  padding-left: 0.88rem;
   white-space: nowrap;
-  opacity: calc((0.04 + var(--proximity) * 1.18) * var(--facing-visibility));
+  opacity: calc((0.42 + var(--proximity) * 0.58) * (0.58 + var(--facing-visibility) * 0.42) * var(--focus-dim));
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+.projects-helix__label::before {
+  content: counter(helix-node, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0.02rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 0.44rem;
+  letter-spacing: 0.12em;
+  color: rgba(17, 17, 15, 0.54);
+}
+
+.projects-helix__stage[data-focus-mode='on'] .projects-helix__node:not(.is-primary) .projects-helix__thumb {
+  box-shadow:
+    0 2px 8px rgba(44, 36, 30, calc(0.06 + var(--depth) * 0.08)),
+    0 8px 18px rgba(44, 36, 30, calc(0.03 + var(--proximity) * 0.14));
 }
 
 .projects-helix__node:hover,
@@ -2443,8 +2515,22 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 
   .projects-helix__label {
-    font-size: 0.48rem;
+    font-size: 0.5rem;
     letter-spacing: 0.06em;
+    padding-left: 0.78rem;
+  }
+
+  .projects-helix__label::before {
+    font-size: 0.4rem;
+  }
+
+  .projects-helix__axis-note {
+    font-size: 0.41rem;
+    gap: 0.3rem;
+  }
+
+  .projects-helix__axis-note i {
+    width: 20px;
   }
 }
 
