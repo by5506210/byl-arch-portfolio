@@ -385,6 +385,8 @@ function initProjectsAtlas() {
   var selectedNode = null;
   var resizeFrame = null;
   var webglHelix = null;
+  var webglFailureReason = '';
+  var modeBadge = null;
   var fallbackCenterBias = 0.5;
   var baseViewAngle = Math.PI * 0.24;
   var fallbackRotation = 0;
@@ -404,6 +406,26 @@ function initProjectsAtlas() {
 
   function isCoarsePointer() {
     return window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function ensureModeBadge() {
+    if (modeBadge) return modeBadge;
+    modeBadge = document.createElement('div');
+    modeBadge.className = 'projects-helix__mode-badge';
+    stage.appendChild(modeBadge);
+    return modeBadge;
+  }
+
+  function setRenderMode(mode, reason) {
+    helix.dataset.renderMode = mode;
+    var badge = ensureModeBadge();
+    var details = reason ? ' - ' + reason : '';
+    badge.textContent = (mode === 'webgl' ? 'WEBGL' : 'FALLBACK') + details;
+    if (mode === 'webgl') {
+      console.info('[Projects Helix] WEBGL active' + details);
+    } else {
+      console.warn('[Projects Helix] FALLBACK active' + details);
+    }
   }
 
   function setNodeLayer(node, proximity) {
@@ -541,13 +563,27 @@ function initProjectsAtlas() {
   }
 
   function createWebglHelix() {
-    if (!window.THREE || !webglMount) return null;
+    if (!window.THREE) {
+      webglFailureReason = 'three.js missing';
+      return null;
+    }
+    if (!webglMount) {
+      webglFailureReason = 'webgl mount missing';
+      return null;
+    }
     var THREE = window.THREE;
     var renderer;
 
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     } catch (err) {
+      webglFailureReason = 'renderer init failed' + (err && err.message ? ': ' + err.message : '');
+      return null;
+    }
+
+    var gl = renderer.getContext && renderer.getContext();
+    if (!gl) {
+      webglFailureReason = 'no GL context returned';
       return null;
     }
 
@@ -791,6 +827,7 @@ function initProjectsAtlas() {
       ensureAnimation();
     }
 
+    webglFailureReason = '';
     return { layout: layout };
   }
 
@@ -1021,6 +1058,7 @@ function initProjectsAtlas() {
       orbitBottom = null;
     }
     layoutHelix();
+    setRenderMode('webgl', 'three.js renderer active');
     return true;
   }
 
@@ -1028,14 +1066,17 @@ function initProjectsAtlas() {
     if (webglMount && !window.THREE) {
       loadThreeFromCdn(function (loaded) {
         if (!loaded || !enableWebglIfPossible()) {
+          if (!loaded) webglFailureReason = 'three.js failed to load from CDNs';
           ensureSvgFallbackGuides();
           layoutHelix();
           ensureFallbackAnimation();
+          setRenderMode('fallback', webglFailureReason || 'webgl unavailable');
         }
       });
     } else {
       ensureSvgFallbackGuides();
       ensureFallbackAnimation();
+      setRenderMode('fallback', webglFailureReason || 'webgl unavailable');
     }
   }
 

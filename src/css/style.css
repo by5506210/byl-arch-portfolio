@@ -2158,6 +2158,23 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   display: block;
 }
 
+.projects-helix__mode-badge {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.65rem;
+  z-index: 30;
+  font-family: var(--font-primary);
+  font-size: 0.54rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 15, 0.62);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 17, 15, 0.14);
+  padding: 0.22rem 0.42rem;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+}
+
 .projects-helix__guides,
 .projects-helix__floor-ring {
   pointer-events: none;
