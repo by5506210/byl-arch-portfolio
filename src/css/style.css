@@ -2485,7 +2485,24 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --portal-sweep-ring: 0deg;
   --portal-size: 24px;
   opacity: 1;
+  overflow: visible;
   transition: transform 0.12s linear;
+}
+
+.landing__portal::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(68px + var(--portal-idle-glow) * 240px + var(--portal-presence) * 120px + var(--portal-charge) * 96px + var(--portal-pulse) * 108px);
+  height: calc(68px + var(--portal-idle-glow) * 240px + var(--portal-presence) * 120px + var(--portal-charge) * 96px + var(--portal-pulse) * 108px);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(calc(0.8 + var(--portal-breath) * 0.14 + var(--portal-pulse) * 0.16 + var(--portal-charge) * 0.08));
+  opacity: calc(0.03 + var(--portal-idle-glow) * 0.92 + var(--portal-presence) * 0.2 + var(--portal-charge) * 0.22 + var(--portal-pulse) * 0.2);
+  background:
+    radial-gradient(circle, rgba(232, 228, 223, calc(0.03 + var(--portal-idle-glow) * 0.36 + var(--portal-presence) * 0.08 + var(--portal-pulse) * 0.1 + var(--portal-charge) * 0.08)) 0%, rgba(232, 228, 223, calc(0.012 + var(--portal-idle-glow) * 0.18 + var(--portal-presence) * 0.05 + var(--portal-charge) * 0.05)) 26%, rgba(232, 228, 223, calc(0.004 + var(--portal-idle-glow) * 0.08 + var(--portal-presence) * 0.02 + var(--portal-charge) * 0.015)) 52%, rgba(232, 228, 223, 0) 76%);
+  filter: blur(calc(18px + var(--portal-idle-glow) * 16px + var(--portal-presence) * 8px + var(--portal-pulse) * 8px + var(--portal-charge) * 8px));
 }
 
 .landing__portal.is-visible {
@@ -2528,7 +2545,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   background:
     radial-gradient(circle, rgba(232, 228, 223, calc(0.02 + var(--portal-idle-glow) * 0.34 + var(--portal-presence) * 0.05 + var(--portal-pulse) * 0.18 + var(--portal-charge) * 0.14)) 0%, rgba(232, 228, 223, calc(0.01 + var(--portal-idle-glow) * 0.16 + var(--portal-presence) * 0.03 + var(--portal-charge) * 0.05)) 22%, rgba(232, 228, 223, calc(0.004 + var(--portal-idle-glow) * 0.08 + var(--portal-presence) * 0.012 + var(--portal-charge) * 0.02)) 48%, rgba(232, 228, 223, 0) 76%),
     radial-gradient(circle, rgba(232, 228, 223, calc(0.006 + var(--portal-idle-glow) * 0.16 + var(--portal-presence) * 0.02 + var(--portal-pulse) * 0.08 + var(--portal-charge) * 0.05)) 0%, rgba(232, 228, 223, 0) 72%);
-  mix-blend-mode: screen;
   transition: opacity 0.12s linear, transform 0.12s linear, width 0.12s linear, height 0.12s linear, filter 0.12s linear;
   animation: portal-bloom-pulse 2.6s ease-in-out infinite;
 }
