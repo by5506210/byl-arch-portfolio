@@ -2209,9 +2209,9 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__orbit {
-  stroke: rgba(17, 17, 15, 0.2);
+  stroke: rgba(17, 17, 15, 0.14);
   stroke-width: 0.84;
-  opacity: 0.44;
+  opacity: 0.14;
 }
 
 .projects-helix__thread {
@@ -2220,7 +2220,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__orbit--mid {
-  opacity: 0.24;
+  opacity: 0.08;
 }
 
 .projects-helix__stage[data-active-series] .projects-helix__orbit,
@@ -2228,13 +2228,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   transition: opacity 0.22s ease, stroke-width 0.22s ease;
 }
 
-.projects-helix__stage[data-active-series='architecture'] .projects-helix__orbit,
-.projects-helix__stage[data-active-series='interior'] .projects-helix__orbit,
-.projects-helix__stage[data-active-series='design'] .projects-helix__orbit,
 .projects-helix__stage[data-active-series='architecture'] .projects-helix__thread,
 .projects-helix__stage[data-active-series='interior'] .projects-helix__thread,
 .projects-helix__stage[data-active-series='design'] .projects-helix__thread {
   opacity: 1;
+}
+
+.projects-helix__stage[data-active-series='architecture'] .projects-helix__orbit,
+.projects-helix__stage[data-active-series='interior'] .projects-helix__orbit,
+.projects-helix__stage[data-active-series='design'] .projects-helix__orbit {
+  opacity: 0.2;
 }
 
 .projects-helix__stage[data-active-series='architecture'] .projects-helix__node:not([data-series='architecture']),

@@ -592,7 +592,7 @@ function initProjectsAtlas() {
     }
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
 
     while (webglMount.firstChild) {
       webglMount.removeChild(webglMount.firstChild);
@@ -621,13 +621,18 @@ function initProjectsAtlas() {
     group.rotation.x = 0;
     group.position.x = 0;
 
-    var dotGeometry = new THREE.SphereGeometry(0.08, 14, 14);
+    var dotGeometry = new THREE.SphereGeometry(0.08, 10, 10);
     var nodeData = [];
     var viewportWidth = 1;
     var viewportHeight = 1;
     var frameId = 0;
     var lastFrameTime = 0;
-    var frameAccumulator = 0;
+    var tempPointWorld = new THREE.Vector3();
+    var tempAnchorWorld = new THREE.Vector3();
+    var tempProjectedPoint = new THREE.Vector3();
+    var tempProjectedAnchor = new THREE.Vector3();
+    var tempOutward = new THREE.Vector3();
+    var tempToCamera = new THREE.Vector3();
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -676,7 +681,8 @@ function initProjectsAtlas() {
         ? Math.max(2.8, Math.min(3.8, 3.2 + (width - 390) / 360))
         : Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
       var helixHeight = isMobile ? 7.2 : 10.2;
-      var threadSegments = Math.max(220, total * 36);
+      var ringSegments = 72;
+      var threadSegments = Math.max(160, total * 24);
       var threadPoints = [];
       var axisTop = helixHeight * 0.61;
       var axisBottom = -helixHeight * 0.61;
@@ -694,18 +700,18 @@ function initProjectsAtlas() {
       );
 
       addLine(
-        ringPoints(helixRadius, helixHeight * 0.5, 108),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.45 }),
+        ringPoints(helixRadius, helixHeight * 0.5, ringSegments),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.08 }),
         false
       );
       addLine(
-        ringPoints(helixRadius, 0, 108),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.28 }),
+        ringPoints(helixRadius, 0, ringSegments),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.045 }),
         false
       );
       addLine(
-        ringPoints(helixRadius, -helixHeight * 0.5, 108),
-        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.45 }),
+        ringPoints(helixRadius, -helixHeight * 0.5, ringSegments),
+        new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.08 }),
         false
       );
 
@@ -759,39 +765,34 @@ function initProjectsAtlas() {
         var data = nodeData[index];
         if (!data) return;
 
-        var worldPoint = data.point.clone().applyMatrix4(group.matrixWorld);
-        var worldAnchor = data.anchor.clone().applyMatrix4(group.matrixWorld);
-        var projected = worldPoint.clone().project(camera);
-        var projectedAnchor = worldAnchor.clone().project(camera);
-        var pointScreen = {
-          x: (projected.x * 0.5 + 0.5) * width,
-          y: (-projected.y * 0.5 + 0.5) * height,
-          z: projected.z
-        };
-        var anchorScreen = {
-          x: (projectedAnchor.x * 0.5 + 0.5) * width,
-          y: (-projectedAnchor.y * 0.5 + 0.5) * height,
-          z: projectedAnchor.z
-        };
-        var connectorDx = pointScreen.x - anchorScreen.x;
-        var connectorDy = pointScreen.y - anchorScreen.y;
+        tempPointWorld.copy(data.point).applyMatrix4(group.matrixWorld);
+        tempAnchorWorld.copy(data.anchor).applyMatrix4(group.matrixWorld);
+        tempProjectedPoint.copy(tempPointWorld).project(camera);
+        tempProjectedAnchor.copy(tempAnchorWorld).project(camera);
+
+        var pointX = (tempProjectedPoint.x * 0.5 + 0.5) * width;
+        var pointY = (-tempProjectedPoint.y * 0.5 + 0.5) * height;
+        var anchorX = (tempProjectedAnchor.x * 0.5 + 0.5) * width;
+        var anchorY = (-tempProjectedAnchor.y * 0.5 + 0.5) * height;
+        var connectorDx = pointX - anchorX;
+        var connectorDy = pointY - anchorY;
         var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
         var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
-        var depth = clamp(1 - (pointScreen.z + 1) * 0.5, 0, 1);
+        var depth = clamp(1 - (tempProjectedPoint.z + 1) * 0.5, 0, 1);
         var fog = clamp(1 - depth, 0, 1);
-        var outward = new THREE.Vector3(worldPoint.x - group.position.x, 0, worldPoint.z - group.position.z);
-        if (outward.lengthSq() < 0.0001) {
-          outward.set(0, 0, 1);
+        tempOutward.set(tempPointWorld.x - group.position.x, 0, tempPointWorld.z - group.position.z);
+        if (tempOutward.lengthSq() < 0.0001) {
+          tempOutward.set(0, 0, 1);
         } else {
-          outward.normalize();
+          tempOutward.normalize();
         }
-        var toCamera = camera.position.clone().sub(worldPoint).normalize();
-        var facing = clamp(outward.dot(toCamera), 0, 1);
+        tempToCamera.copy(camera.position).sub(tempPointWorld).normalize();
+        var facing = clamp(tempOutward.dot(tempToCamera), 0, 1);
         var facingVisibility = clamp((facing - 0.42) / 0.5, 0, 1);
         var side = connectorDx >= 0 ? 1 : -1;
 
-        node.style.setProperty('--x', anchorScreen.x.toFixed(2) + 'px');
-        node.style.setProperty('--y', anchorScreen.y.toFixed(2) + 'px');
+        node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
+        node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
         node.style.setProperty('--depth', depth.toFixed(3));
         node.style.setProperty('--fog', fog.toFixed(3));
         node.style.setProperty('--facing', facing.toFixed(3));
@@ -807,16 +808,8 @@ function initProjectsAtlas() {
 
     function renderFrame(now) {
       if (!lastFrameTime) lastFrameTime = now;
-      var delta = Math.min(80, now - lastFrameTime);
+      var delta = Math.min(64, now - lastFrameTime);
       lastFrameTime = now;
-      frameAccumulator += delta;
-      var frameStep = 1000 / 45;
-      if (frameAccumulator < frameStep) {
-        frameId = requestAnimationFrame(renderFrame);
-        return;
-      }
-      delta = frameAccumulator;
-      frameAccumulator = 0;
 
       // Slow, clearly visible rotation.
       group.rotation.y += delta * 0.00006;
@@ -830,7 +823,6 @@ function initProjectsAtlas() {
     function ensureAnimation() {
       if (frameId) return;
       lastFrameTime = 0;
-      frameAccumulator = 0;
       frameId = requestAnimationFrame(renderFrame);
     }
 
@@ -846,7 +838,7 @@ function initProjectsAtlas() {
       viewportWidth = width;
       viewportHeight = height;
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
       renderer.setSize(width, height, false);
 
       // Orthographic top-corner (architectural axonometric) with upright axis.
