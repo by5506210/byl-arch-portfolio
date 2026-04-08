@@ -2259,7 +2259,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 0;
   display: block;
   color: inherit;
-  transform: translate(-50%, -50%) scale(calc(0.82 + var(--depth) * 0.34 + var(--proximity) * 0.24));
+  transform: translate(-50%, -50%) scale(calc(0.82 + var(--depth) * 0.34 + var(--proximity) * 0.42));
   transform-origin: center center;
   opacity: calc(0.24 + var(--depth) * 0.56 + var(--proximity) * 0.38);
   transition: transform 0.16s ease, opacity 0.16s ease;
@@ -2308,7 +2308,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__thumb {
   width: var(--thumb-w, 72px);
   height: var(--thumb-h, 52px);
-  transform: translate(-50%, -50%) rotateY(calc(var(--panel-yaw) * 1deg)) scale(calc(1 + var(--depth) * 0.26 + var(--proximity) * 0.66));
+  transform: translate(-50%, -50%) rotateY(calc(var(--panel-yaw) * 1deg)) scale(calc(1 + var(--depth) * 0.26 + var(--proximity) * 1.08));
   transform-origin: center center;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
@@ -2326,7 +2326,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(calc(1 + var(--proximity) * 0.2));
+  transform: scale(calc(1 + var(--proximity) * 0.32));
   filter: grayscale(calc(0.7 - var(--proximity) * 0.68)) contrast(calc(1.02 + var(--proximity) * 0.2)) brightness(calc(0.96 + var(--proximity) * 0.12));
   transition: filter 0.16s ease, transform 0.16s ease;
 }

@@ -385,6 +385,7 @@ function initProjectsAtlas() {
   var selectedNode = null;
   var resizeFrame = null;
   var webglHelix = null;
+  var fallbackCenterBias = 0.48;
 
   if (!stage || nodes.length === 0) return;
 
@@ -411,7 +412,7 @@ function initProjectsAtlas() {
     var svg = document.createElementNS(ns, 'svg');
     svg.classList.add('projects-helix__guides');
     svg.setAttribute('viewBox', '0 0 1200 520');
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('preserveAspectRatio', 'none');
     svg.setAttribute('aria-hidden', 'true');
     svg.innerHTML =
       '<path class="projects-helix__axis" d="" fill="none" stroke-linecap="round"></path>' +
@@ -476,6 +477,7 @@ function initProjectsAtlas() {
     var group = new THREE.Group();
     scene.add(group);
     group.rotation.x = -0.08;
+    group.position.x = -0.42;
 
     var dotGeometry = new THREE.SphereGeometry(0.08, 14, 14);
     var nodeData = [];
@@ -760,7 +762,7 @@ function initProjectsAtlas() {
     var rect = stage.getBoundingClientRect();
     var width = rect.width;
     var height = rect.height;
-    var centerX = width * 0.5;
+    var centerX = width * fallbackCenterBias;
     var topY = height * 0.14;
     var loopHeight = height * 0.72;
     var radiusX = Math.min(width * 0.47, 560);
