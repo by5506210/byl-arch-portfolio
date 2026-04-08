@@ -639,10 +639,14 @@ function initProjectsAtlas() {
       setPrimaryNode(selectedNode);
       stage.setAttribute('data-active-series', selectedNode.dataset.series || '');
       applyFocusContext(selectedNode);
-    } else if (bestNode && bestValue > 0.08) {
+    } else if (bestNode && bestValue > 0.14) {
       setPrimaryNode(bestNode);
       stage.setAttribute('data-active-series', bestNode.dataset.series || '');
       applyFocusContext(bestNode);
+    } else if (primaryNode && (proximityCurrent.get(primaryNode) || 0) > 0.09) {
+      setPrimaryNode(primaryNode);
+      stage.setAttribute('data-active-series', primaryNode.dataset.series || '');
+      applyFocusContext(primaryNode);
     } else {
       setPrimaryNode(null);
       stage.setAttribute('data-active-series', '');
@@ -755,7 +759,7 @@ function initProjectsAtlas() {
     }
 
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.2));
 
     while (webglMount.firstChild) {
       webglMount.removeChild(webglMount.firstChild);
@@ -1002,7 +1006,7 @@ function initProjectsAtlas() {
       viewportWidth = width;
       viewportHeight = height;
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.2 : 1.4));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.05 : 1.2));
       renderer.setSize(width, height, false);
 
       // Orthographic top-corner (architectural axonometric) with upright axis.
@@ -1201,9 +1205,6 @@ function initProjectsAtlas() {
   }
 
   function updateProximity(clientX, clientY) {
-    var bestNode = null;
-    var bestValue = 0;
-
     nodes.forEach(function (node) {
       var thumb = node.querySelector('.projects-helix__thumb');
       if (!thumb) return;
@@ -1217,22 +1218,7 @@ function initProjectsAtlas() {
       proximity = proximity * proximity;
 
       setTargetProximity(node, proximity);
-
-      if (proximity > bestValue) {
-        bestValue = proximity;
-        bestNode = node;
-      }
     });
-
-    if (!selectedNode) {
-      if (bestNode && bestValue > 0.08) {
-        stage.setAttribute('data-active-series', bestNode.dataset.series || '');
-        setPrimaryNode(bestNode);
-      } else {
-        stage.setAttribute('data-active-series', '');
-        setPrimaryNode(null);
-      }
-    }
 
     ensureProximityAnimation();
   }
