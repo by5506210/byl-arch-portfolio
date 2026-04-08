@@ -22,6 +22,36 @@
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#e8e4df;z-index:9999;pointer-events:none;opacity:0;';
   document.body.appendChild(overlay);
+  var manualNavigationInProgress = false;
+
+  function navigateWithOverlay(href, options) {
+    if (!href || manualNavigationInProgress) return;
+    manualNavigationInProgress = true;
+
+    var opts = options || {};
+    var target = opts.container || document.querySelector('[data-barba="container"]') || document.body;
+
+    overlay.style.background = opts.background || '#e8e4df';
+    overlay.style.opacity = '0';
+
+    gsap.timeline()
+      .to(target, {
+        opacity: 0,
+        y: typeof opts.y === 'number' ? opts.y : -20,
+        duration: opts.duration || 0.35,
+        ease: 'power2.in'
+      })
+      .to(overlay, {
+        opacity: 1,
+        duration: opts.overlayDuration || 0.25,
+        ease: 'power1.in',
+        onComplete: function () {
+          window.location.href = href;
+        }
+      }, '-=0.1');
+  }
+
+  window.bylNavigateWithOverlay = navigateWithOverlay;
 
   barba.init({
     preventRunning: true,
@@ -120,22 +150,8 @@
 
     e.preventDefault();
     var href = link.getAttribute('href');
-
-    overlay.style.background = '#0a0a0a'; // landing is dark
-    gsap.timeline()
-      .to(document.querySelector('[data-barba="container"]') || document.body, {
-        opacity: 0,
-        y: -20,
-        duration: 0.35,
-        ease: 'power2.in'
-      })
-      .to(overlay, {
-        opacity: 1,
-        duration: 0.25,
-        ease: 'power1.in',
-        onComplete: function () {
-          window.location.href = href;
-        }
-      }, '-=0.1');
+    navigateWithOverlay(href, {
+      background: '#0a0a0a'
+    });
   });
 })();

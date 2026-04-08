@@ -299,9 +299,19 @@ function initSlideshow() {
       // If no full-size image (e.g. About Me slide), just navigate
       if (!img) {
         progressContainer.style.opacity = '0';
-        setTimeout(function () {
-          window.location.href = href;
-        }, 300);
+        if (typeof window.bylNavigateWithOverlay === 'function') {
+          window.bylNavigateWithOverlay(href, {
+            background: '#e8e4df',
+            container: document.querySelector('[data-barba="container"]') || document.getElementById('site') || document.body,
+            y: -12,
+            duration: 0.28,
+            overlayDuration: 0.24
+          });
+        } else {
+          setTimeout(function () {
+            window.location.href = href;
+          }, 300);
+        }
         return;
       }
 
