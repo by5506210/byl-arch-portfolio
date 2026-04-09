@@ -2494,6 +2494,10 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     height: calc(100dvh - 4.65rem);
     min-height: 500px;
   }
+
+  .projects-helix__label {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
