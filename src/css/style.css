@@ -2909,42 +2909,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   opacity: 0.34;
 }
 
-.drafting-room-layer--rings::before,
-.drafting-room-layer--rings::after {
-  content: '';
-  position: absolute;
-  border: 1px solid rgba(17, 17, 15, 0.18);
-  border-radius: 50%;
-  opacity: 0.58;
-}
-
-.drafting-room-layer--rings::before {
-  width: min(42vw, 470px);
-  height: min(42vw, 470px);
-  left: 50%;
-  top: 52%;
-  transform: translate(-50%, -50%) rotate(11deg);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
-}
-
-.drafting-room-layer--rings::after {
-  width: min(30vw, 340px);
-  height: min(30vw, 340px);
-  left: 55%;
-  top: 46%;
-  transform: translate(-50%, -50%) rotate(-8deg);
-  border-style: dashed;
-  border-color: rgba(17, 17, 15, 0.22);
-}
-
-.drafting-room-layer--rings {
-  background:
-    radial-gradient(circle at 50% 52%, transparent 0 13%, rgba(17, 17, 15, 0.16) 13.2% 13.35%, transparent 13.5%),
-    radial-gradient(circle at 50% 52%, transparent 0 23%, rgba(17, 17, 15, 0.15) 23.1% 23.25%, transparent 23.4%),
-    radial-gradient(circle at 50% 52%, transparent 0 33%, rgba(17, 17, 15, 0.14) 33.1% 33.25%, transparent 33.4%);
-  animation: drafting-room-rings-spin 36s linear infinite;
-}
-
 .drafting-room-layer--plan {
   background:
     linear-gradient(rgba(17, 17, 15, 0.14), rgba(17, 17, 15, 0.14)) 12% 21% / 28% 1px no-repeat,
@@ -2999,82 +2963,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   animation: drafting-room-beam-sweep 15s ease-in-out infinite alternate;
 }
 
-.drafting-room-layer--massing {
-  perspective: 1200px;
-}
-
-.drafting-room-block {
-  position: absolute;
-  transform-style: preserve-3d;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(17, 17, 15, 0.1)),
-    repeating-linear-gradient(
-      90deg,
-      rgba(17, 17, 15, 0.2) 0px,
-      rgba(17, 17, 15, 0.2) 1px,
-      rgba(17, 17, 15, 0) 1px,
-      rgba(17, 17, 15, 0) 8px
-    );
-  border: 1px solid rgba(17, 17, 15, 0.22);
-  box-shadow: 0 14px 28px rgba(17, 17, 15, 0.1);
-}
-
-.drafting-room-block::before,
-.drafting-room-block::after {
-  content: '';
-  position: absolute;
-  border: 1px solid rgba(17, 17, 15, 0.22);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(17, 17, 15, 0.08));
-}
-
-.drafting-room-block::before {
-  left: -1px;
-  right: -1px;
-  top: -11%;
-  height: 12%;
-  transform-origin: bottom;
-  transform: skewX(-44deg);
-  border-bottom: 0;
-}
-
-.drafting-room-block::after {
-  right: -10%;
-  width: 10%;
-  top: -1px;
-  bottom: -1px;
-  transform-origin: left;
-  transform: skewY(-45deg);
-  border-left: 0;
-}
-
-.drafting-room-block--a {
-  width: clamp(88px, 12vw, 160px);
-  height: clamp(124px, 20vw, 238px);
-  left: 28%;
-  bottom: 22%;
-  transform: rotate(-14deg) skewY(-10deg);
-  animation: drafting-room-block-rise-a 13.5s ease-in-out infinite;
-}
-
-.drafting-room-block--b {
-  width: clamp(70px, 10vw, 132px);
-  height: clamp(104px, 16vw, 188px);
-  left: 47%;
-  bottom: 25%;
-  transform: rotate(6deg) skewY(-12deg);
-  animation: drafting-room-block-rise-b 11.2s ease-in-out infinite;
-}
-
-.drafting-room-block--c {
-  width: clamp(64px, 9vw, 118px);
-  height: clamp(92px, 14vw, 165px);
-  left: 62%;
-  bottom: 19%;
-  transform: rotate(16deg) skewY(-9deg);
-  animation: drafting-room-block-rise-c 14.6s ease-in-out infinite;
-}
-
 .drafting-room-strip {
   position: absolute;
   left: clamp(1rem, 2.2vw, 1.7rem);
@@ -3124,18 +3012,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 }
 
-@keyframes drafting-room-rings-spin {
-  0% {
-    transform: rotate(0deg) scale(1);
-  }
-  50% {
-    transform: rotate(1.8deg) scale(1.015);
-  }
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-}
-
 @keyframes drafting-room-beam-sweep {
   0% {
     transform: translateX(-1.8%);
@@ -3144,33 +3020,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   100% {
     transform: translateX(1.8%);
     opacity: 0.6;
-  }
-}
-
-@keyframes drafting-room-block-rise-a {
-  0%, 100% {
-    transform: rotate(-14deg) skewY(-10deg) translateY(0px);
-  }
-  50% {
-    transform: rotate(-13deg) skewY(-10deg) translateY(-4px);
-  }
-}
-
-@keyframes drafting-room-block-rise-b {
-  0%, 100% {
-    transform: rotate(6deg) skewY(-12deg) translateY(0px);
-  }
-  50% {
-    transform: rotate(7deg) skewY(-12deg) translateY(-6px);
-  }
-}
-
-@keyframes drafting-room-block-rise-c {
-  0%, 100% {
-    transform: rotate(16deg) skewY(-9deg) translateY(0px);
-  }
-  50% {
-    transform: rotate(17deg) skewY(-9deg) translateY(-3px);
   }
 }
 
@@ -3186,10 +3035,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
   .drafting-room-frame {
     inset: 0.8rem 0.8rem 3.1rem;
-  }
-
-  .drafting-room-block--a {
-    left: 24%;
   }
 }
 
@@ -3209,25 +3054,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
   .drafting-room-layer--grid {
     opacity: 0.28;
-  }
-
-  .drafting-room-layer--rings {
-    opacity: 0.8;
-  }
-
-  .drafting-room-block--a {
-    left: 18%;
-    bottom: 19%;
-  }
-
-  .drafting-room-block--b {
-    left: 42%;
-    bottom: 22%;
-  }
-
-  .drafting-room-block--c {
-    left: 63%;
-    bottom: 16%;
   }
 
   .drafting-room-strip {
