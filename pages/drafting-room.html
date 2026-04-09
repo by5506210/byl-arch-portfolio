@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRAFTING ROOM &mdash; Bryan Youn</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../src/css/style.css">
+</head>
+<body>
+  <div class="grain"></div>
+  <div data-barba="wrapper">
+    <main data-barba="container" data-barba-namespace="drafting-room">
+      <div class="drafting-room-page">
+        <canvas id="vector-field" class="vector-field-bg" data-color="dark"></canvas>
+
+        <article class="drafting-room-poster" aria-label="Drafting Room Poster">
+          <header class="drafting-room-poster__header">
+            <p class="drafting-room-poster__kicker">Architectural Design Club</p>
+            <h1 class="drafting-room-poster__title">DRAFTING ROOM</h1>
+            <p class="drafting-room-poster__meta">Founder and President &middot; Bryan Youn &middot; 2026~</p>
+          </header>
+
+          <section class="drafting-room-poster__columns">
+            <div class="drafting-room-poster__panel">
+              <h2>Mission</h2>
+              <p>
+                A studio collective where architectural thinking is practiced as both craft and culture.
+                We sketch, model, critique, and publish spatial ideas through weekly making sessions.
+              </p>
+              <dl>
+                <div><dt>Format</dt><dd>Open Desk Crit + Charrette</dd></div>
+                <div><dt>Cadence</dt><dd>Weekly Studio Nights</dd></div>
+                <div><dt>Output</dt><dd>Posters, Models, Installations</dd></div>
+              </dl>
+            </div>
+
+            <div class="drafting-room-poster__board" aria-hidden="true">
+              <div class="drafting-room-poster__grid"></div>
+              <div class="drafting-room-poster__plan">
+                <span class="drafting-room-poster__cell drafting-room-poster__cell--a">PIN-UP</span>
+                <span class="drafting-room-poster__cell drafting-room-poster__cell--b">CRIT</span>
+                <span class="drafting-room-poster__cell drafting-room-poster__cell--c">MODEL</span>
+                <span class="drafting-room-poster__cell drafting-room-poster__cell--d">MATERIAL LAB</span>
+              </div>
+              <div class="drafting-room-poster__section-line"></div>
+              <div class="drafting-room-poster__section-tags">
+                <span>SECTION A-A</span>
+                <span>SCALE 1:100</span>
+              </div>
+            </div>
+
+            <div class="drafting-room-poster__panel">
+              <h2>Studio Operations</h2>
+              <ul>
+                <li>Rapid sketch rounds from precedent studies</li>
+                <li>Material experiments translated into spatial systems</li>
+                <li>Monthly open review with invited critics</li>
+                <li>Archive wall documenting process and iteration</li>
+              </ul>
+              <p class="drafting-room-poster__note">
+                Design language: orthographic rigor + atmospheric storytelling.
+              </p>
+            </div>
+          </section>
+
+          <footer class="drafting-room-poster__footer">
+            <span>University of Wisconsin&ndash;Madison</span>
+            <span>Drafting Room Bulletin 01</span>
+            <span>Architectural Design Club</span>
+          </footer>
+        </article>
+      </div>
+    </main>
+  </div>
+
+  <script src="../src/js/cursor.js"></script>
+  <script src="../src/js/vector-field.js"></script>
+  <script src="../src/js/project-page.js"></script>
+  <script src="../src/js/transitions.js"></script>
+</body>
+</html>
