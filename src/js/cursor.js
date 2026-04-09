@@ -15,6 +15,64 @@
   var mouseX = -100, mouseY = -100;
   var cursorX = -100, cursorY = -100;
   var snapping = false;
+  var snapTarget = null;
+  var snapPadX = 0;
+  var snapPadY = 0;
+  var snapRadiusCap = 8;
+  var snapRadiusFactor = 0.2;
+
+  function enterSnapState() {
+    if (currentState !== 'snap') {
+      cursor.classList.remove('cursor--hover-image');
+      cursor.classList.add('cursor--snap');
+      var isDark = !isLanding || isLanding.style.display === 'none';
+      cursor.classList.toggle('cursor--dark', isDark);
+      currentState = 'snap';
+    }
+  }
+
+  function applySnapRect(rect) {
+    var width = rect.width + snapPadX;
+    var height = rect.height + snapPadY;
+    var radius = Math.min(snapRadiusCap, height * snapRadiusFactor);
+
+    cursor.style.width = width + 'px';
+    cursor.style.height = height + 'px';
+    cursor.style.borderRadius = radius + 'px';
+    cursor.style.transform = 'translate(' + (rect.left + rect.width * 0.5 - width * 0.5) + 'px,' + (rect.top + rect.height * 0.5 - height * 0.5) + 'px)';
+
+    // Keep the internal cursor position in sync so exiting snap mode does not jump.
+    cursorX = rect.left + rect.width * 0.5;
+    cursorY = rect.top + rect.height * 0.5;
+  }
+
+  function updateSnapTargetRect() {
+    if (!snapping || !snapTarget || !snapTarget.isConnected) return false;
+    var rect = snapTarget.getBoundingClientRect();
+    if (!rect || rect.width < 0.5 || rect.height < 0.5) return false;
+    applySnapRect(rect);
+    return true;
+  }
+
+  function beginSnap(targetEl, config) {
+    if (!targetEl) return;
+    snapping = true;
+    snapTarget = targetEl;
+    snapPadX = config.padX;
+    snapPadY = config.padY;
+    snapRadiusCap = config.radiusCap;
+    snapRadiusFactor = config.radiusFactor;
+    enterSnapState();
+    if (!updateSnapTargetRect()) {
+      snapping = false;
+      snapTarget = null;
+    }
+  }
+
+  function endSnap() {
+    snapping = false;
+    snapTarget = null;
+  }
 
   document.addEventListener('mousemove', function (e) {
     mouseX = e.clientX;
@@ -22,6 +80,12 @@
   });
 
   function updateCursor() {
+    if (snapping) {
+      if (!updateSnapTargetRect()) {
+        endSnap();
+      }
+    }
+
     if (!snapping) {
       var pullX = mouseX;
       var pullY = mouseY;
@@ -71,61 +135,30 @@
         projectCard.querySelector('.projects-atlas__node-thumb') ||
         projectCard.querySelector('.projects-index__card-img') ||
         projectCard;
-      var projectRect = projectSnapTarget.getBoundingClientRect();
-      snapping = true;
-
-      if (currentState !== 'snap') {
-        cursor.classList.remove('cursor--hover-image');
-        cursor.classList.add('cursor--snap');
-        var isProjectDark = !isLanding || isLanding.style.display === 'none';
-        cursor.classList.toggle('cursor--dark', isProjectDark);
-        currentState = 'snap';
-      }
-
-      var projectPad = 18;
-      var projectW = projectRect.width + projectPad;
-      var projectH = projectRect.height + projectPad;
-      var projectRadius = Math.min(8, projectH * 0.06);
-
-      cursor.style.width = projectW + 'px';
-      cursor.style.height = projectH + 'px';
-      cursor.style.borderRadius = projectRadius + 'px';
-      cursor.style.transform = 'translate(' + (projectRect.left + projectRect.width / 2 - projectW / 2) + 'px,' + (projectRect.top + projectRect.height / 2 - projectH / 2) + 'px)';
+      beginSnap(projectSnapTarget, {
+        padX: 18,
+        padY: 18,
+        radiusCap: 8,
+        radiusFactor: 0.06
+      });
       return;
     }
 
     // Snap to links/buttons
     var link = target.closest('a, button, .project-back');
     if (link && !target.closest('.slideshow__slide')) {
-      var rect = link.getBoundingClientRect();
-      snapping = true;
-
-      if (currentState !== 'snap') {
-        cursor.classList.remove('cursor--hover-image');
-        cursor.classList.add('cursor--snap');
-        var isDark = !isLanding || isLanding.style.display === 'none';
-        cursor.classList.toggle('cursor--dark', isDark);
-        currentState = 'snap';
-      }
-
-      // iPad-style: rectangle that hugs the element with padding
-      var padX = 20;
-      var padY = 12;
-      var w = rect.width + padX;
-      var h = rect.height + padY;
-      // Rounded corners proportional to height, capped for pill vs rect
-      var radius = Math.min(7, h * 0.25);
-
-      cursor.style.width = w + 'px';
-      cursor.style.height = h + 'px';
-      cursor.style.borderRadius = radius + 'px';
-      cursor.style.transform = 'translate(' + (rect.left + rect.width / 2 - w / 2) + 'px,' + (rect.top + rect.height / 2 - h / 2) + 'px)';
+      beginSnap(link, {
+        padX: 20,
+        padY: 12,
+        radiusCap: 7,
+        radiusFactor: 0.25
+      });
       return;
     }
 
     // Hovering clickable slide
     if (target.closest('.slideshow__slide:not(.slideshow__slide--coming-soon)')) {
-      snapping = false;
+      endSnap();
       if (currentState !== 'hover-image') {
         cursor.classList.remove('cursor--snap');
         cursor.classList.add('cursor--hover-image');
@@ -139,7 +172,7 @@
     }
 
     // Default
-    snapping = false;
+    endSnap();
     if (currentState !== 'default') {
       cursor.classList.remove('cursor--snap', 'cursor--hover-image');
       var isDark = !isLanding || isLanding.style.display === 'none' || window.location.hash === '#portfolio';

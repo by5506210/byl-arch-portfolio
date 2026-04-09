@@ -2,6 +2,28 @@
 // PROJECT PAGE — All interactive features
 // ============================================
 
+function registerProjectPageCleanup(fn) {
+  if (typeof fn !== 'function') return;
+  if (!window.__bylProjectPageCleanupFns) {
+    window.__bylProjectPageCleanupFns = [];
+  }
+  window.__bylProjectPageCleanupFns.push(fn);
+}
+
+function runProjectPageCleanup() {
+  var cleanups = window.__bylProjectPageCleanupFns;
+  if (!cleanups || !cleanups.length) return;
+
+  while (cleanups.length) {
+    var cleanup = cleanups.pop();
+    try {
+      cleanup();
+    } catch (err) {
+      // Continue cleanup chain even when one teardown fails.
+    }
+  }
+}
+
 function rememberPageForBackNav() {
   var current = window.location.pathname + window.location.search + window.location.hash;
   var last = sessionStorage.getItem('bylCurrentPage');
@@ -42,6 +64,10 @@ function initGalleryReveals() {
     if (imgEl) imgEl.loading = 'lazy';
     observer.observe(img);
   });
+
+  registerProjectPageCleanup(function () {
+    observer.disconnect();
+  });
 }
 
 // Parallax hero image
@@ -62,12 +88,17 @@ function initParallaxHero() {
     ticking = false;
   }
 
-  window.addEventListener('scroll', function () {
+  function onScroll() {
     if (!ticking) {
       requestAnimationFrame(updateParallax);
       ticking = true;
     }
-  }, { passive: true });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  registerProjectPageCleanup(function () {
+    window.removeEventListener('scroll', onScroll);
+  });
 }
 
 // Integrated nav bar — contains back, project name, and nav links
@@ -99,6 +130,9 @@ function initNavBar() {
   bar.appendChild(links);
 
   document.body.appendChild(bar);
+  registerProjectPageCleanup(function () {
+    if (bar.parentNode) bar.parentNode.removeChild(bar);
+  });
 
   // If hero exists, show/hide bar style on scroll
   if (hero) {
@@ -118,6 +152,9 @@ function initNavBar() {
     }, { threshold: 0 });
 
     observer.observe(hero);
+    registerProjectPageCleanup(function () {
+      observer.disconnect();
+    });
   } else {
     // No hero — always solid
     bar.classList.add('project-nav-bar--solid');
@@ -158,6 +195,10 @@ function initSpecCounters() {
 
   values.forEach(function (el) {
     if (el.dataset.target) observer.observe(el);
+  });
+
+  registerProjectPageCleanup(function () {
+    observer.disconnect();
   });
 }
 
@@ -372,6 +413,8 @@ function initProjectsAtlas() {
   if (!helix) return;
   if (helix.dataset.helixInit === 'true') return;
   helix.dataset.helixInit = 'true';
+  helix.classList.add('projects-helix--is-entering');
+  helix.classList.remove('projects-helix--is-ready');
 
   var stage = helix.querySelector('.projects-helix__stage');
   var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
@@ -403,6 +446,11 @@ function initProjectsAtlas() {
   var proximityFrame = null;
   var proximityLast = 0;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
+  var WEBGL_MIN_FRAME_MS = 1000 / 42;
+  var FALLBACK_MIN_FRAME_MS = 1000 / 36;
+  var RIBBON_DEPTH_UPDATE_MS = 120;
+  var disposed = false;
+  var pendingThreeLoader = null;
 
   if (!stage || nodes.length === 0) return;
   nodes.forEach(function (node, index) {
@@ -460,11 +508,24 @@ function initProjectsAtlas() {
         return !!item;
       });
 
+    var extraSources = [];
     extraRibbonPaths.forEach(function (relativePath) {
       var absolute = new URL(relativePath, window.location.href).href;
       if (seen[absolute]) return;
       seen[absolute] = true;
-      sources.push(absolute);
+      extraSources.push(absolute);
+    });
+
+    for (var i = extraSources.length - 1; i > 0; i--) {
+      var rand = Math.floor(Math.random() * (i + 1));
+      var temp = extraSources[i];
+      extraSources[i] = extraSources[rand];
+      extraSources[rand] = temp;
+    }
+
+    var extraLimit = window.innerWidth <= 900 ? 2 : 4;
+    extraSources.slice(0, extraLimit).forEach(function (source) {
+      sources.push(source);
     });
 
     return sources;
@@ -729,6 +790,10 @@ function initProjectsAtlas() {
   }
 
   function runProximityAnimation(now) {
+    if (disposed || !stage.isConnected) {
+      proximityFrame = null;
+      return;
+    }
     if (!proximityLast) proximityLast = now;
     var delta = Math.min(48, now - proximityLast);
     proximityLast = now;
@@ -742,6 +807,7 @@ function initProjectsAtlas() {
   }
 
   function ensureProximityAnimation() {
+    if (disposed || !stage.isConnected) return;
     if (webglHelix || fallbackFrame) return;
     if (proximityFrame) return;
     proximityLast = 0;
@@ -867,6 +933,9 @@ function initProjectsAtlas() {
     var viewportHeight = 1;
     var frameId = 0;
     var lastFrameTime = 0;
+    var lastRibbonDepthUpdate = 0;
+    var textureRedrawFrame = 0;
+    var webglDestroyed = false;
     var tempPointWorld = new THREE.Vector3();
     var tempAnchorWorld = new THREE.Vector3();
     var tempProjectedPoint = new THREE.Vector3();
@@ -931,7 +1000,7 @@ function initProjectsAtlas() {
       var sourceUrls = collectRibbonSources();
       if (sourceUrls.length === 0) return null;
 
-      var frameCount = Math.max(28, Math.min(46, sourceUrls.length * 5));
+      var frameCount = Math.max(14, Math.min(24, sourceUrls.length * 2));
       var frameW = 28;
       var frameH = 18;
       var canvas = document.createElement('canvas');
@@ -940,6 +1009,12 @@ function initProjectsAtlas() {
       var texture;
       var imageCache = Object.create(null);
       var frameSources = [];
+      var redrawLastTime = 0;
+      var redrawMinInterval = 96;
+      var loadQueue = sourceUrls.slice();
+      var inFlightLoads = 0;
+      var maxConcurrentLoads = window.innerWidth <= 900 ? 1 : 2;
+      var loadIntervalMs = window.innerWidth <= 900 ? 140 : 90;
 
       var previousSrc = '';
       for (var i = 0; i < frameCount; i++) {
@@ -971,6 +1046,19 @@ function initProjectsAtlas() {
         if (texture) texture.needsUpdate = true;
       }
 
+      function scheduleRedraw() {
+        if (textureRedrawFrame) return;
+        textureRedrawFrame = requestAnimationFrame(function (now) {
+          textureRedrawFrame = 0;
+          if (now - redrawLastTime < redrawMinInterval) {
+            scheduleRedraw();
+            return;
+          }
+          redrawLastTime = now;
+          redrawStrip();
+        });
+      }
+
       texture = new THREE.CanvasTexture(canvas);
       texture.generateMipmaps = false;
       texture.minFilter = THREE.LinearFilter;
@@ -984,16 +1072,48 @@ function initProjectsAtlas() {
         texture.colorSpace = THREE.SRGBColorSpace;
       }
 
-      sourceUrls.forEach(function (src) {
+      function queueNextImagePump() {
+        window.setTimeout(pumpImageLoads, loadIntervalMs);
+      }
+
+      function loadImageForRibbon(src) {
         var image = new Image();
         image.decoding = 'async';
-        image.onload = redrawStrip;
-        image.onerror = redrawStrip;
+        image.fetchPriority = 'low';
+        image.onload = function () {
+          if (typeof image.decode === 'function') {
+            image.decode().catch(function () {}).then(function () {
+              inFlightLoads = Math.max(0, inFlightLoads - 1);
+              scheduleRedraw();
+              queueNextImagePump();
+            });
+            return;
+          }
+          inFlightLoads = Math.max(0, inFlightLoads - 1);
+          scheduleRedraw();
+          queueNextImagePump();
+        };
+        image.onerror = function () {
+          inFlightLoads = Math.max(0, inFlightLoads - 1);
+          scheduleRedraw();
+          queueNextImagePump();
+        };
         image.src = src;
         imageCache[src] = image;
-      });
+      }
+
+      function pumpImageLoads() {
+        if (webglDestroyed || disposed) return;
+        while (inFlightLoads < maxConcurrentLoads && loadQueue.length) {
+          var src = loadQueue.shift();
+          if (!src || imageCache[src]) continue;
+          inFlightLoads++;
+          loadImageForRibbon(src);
+        }
+      }
 
       redrawStrip();
+      pumpImageLoads();
       return texture;
     }
 
@@ -1206,9 +1326,12 @@ function initProjectsAtlas() {
       }
     }
 
-    function syncNodes(width, height) {
+    function syncNodes(width, height, now) {
       group.updateMatrixWorld(true);
-      updateRibbonDepthVisual();
+      if (!lastRibbonDepthUpdate || (now - lastRibbonDepthUpdate) >= RIBBON_DEPTH_UPDATE_MS) {
+        updateRibbonDepthVisual();
+        lastRibbonDepthUpdate = now;
+      }
       nodes.forEach(function (node, index) {
         var data = nodeData[index];
         if (!data) return;
@@ -1244,15 +1367,28 @@ function initProjectsAtlas() {
     }
 
     function renderFrame(now) {
+      if (webglDestroyed || disposed || !stage.isConnected || !helix.isConnected) {
+        frameId = 0;
+        return;
+      }
+      if (document.hidden) {
+        frameId = requestAnimationFrame(renderFrame);
+        return;
+      }
       if (!lastFrameTime) lastFrameTime = now;
-      var delta = Math.min(64, now - lastFrameTime);
+      var elapsed = now - lastFrameTime;
+      if (elapsed < WEBGL_MIN_FRAME_MS) {
+        frameId = requestAnimationFrame(renderFrame);
+        return;
+      }
+      var delta = Math.min(64, elapsed);
       lastFrameTime = now;
 
       // Slow, clearly visible rotation.
       group.rotation.y += delta * 0.00006;
 
       renderer.render(scene, camera);
-      syncNodes(viewportWidth, viewportHeight);
+      syncNodes(viewportWidth, viewportHeight, now);
       stepProximity(delta || 16);
       frameId = requestAnimationFrame(renderFrame);
     }
@@ -1264,6 +1400,7 @@ function initProjectsAtlas() {
     }
 
     function layout() {
+      if (webglDestroyed || disposed || !stage.isConnected) return;
       var rect = stage.getBoundingClientRect();
       var width = Math.max(1, Math.round(rect.width));
       var height = Math.max(1, Math.round(rect.height));
@@ -1274,7 +1411,7 @@ function initProjectsAtlas() {
       var cameraElevation = isMobile ? Math.PI * 0.185 : Math.PI * 0.2;
       var deviceRatio = window.devicePixelRatio || 1;
       var targetPixelRatio = isMobile
-        ? Math.min(2, Math.max(1.35, deviceRatio))
+        ? Math.min(1.6, Math.max(1.1, deviceRatio))
         : Math.min(1.25, deviceRatio);
       viewportWidth = width;
       viewportHeight = height;
@@ -1293,28 +1430,63 @@ function initProjectsAtlas() {
 
       buildWorld(width);
       renderer.render(scene, camera);
-      syncNodes(width, height);
+      syncNodes(width, height, performance.now());
       ensureAnimation();
     }
 
+    function destroy() {
+      if (webglDestroyed) return;
+      webglDestroyed = true;
+
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+      if (textureRedrawFrame) {
+        cancelAnimationFrame(textureRedrawFrame);
+        textureRedrawFrame = 0;
+      }
+
+      clearGroup();
+      if (ribbonTexture && ribbonTexture.dispose) ribbonTexture.dispose();
+      ribbonTexture = null;
+      ribbonMeshRef = null;
+      if (dotGeometry && dotGeometry.dispose) dotGeometry.dispose();
+
+      renderer.dispose();
+      if (renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+    }
+
     webglFailureReason = '';
-    return { layout: layout };
+    return { layout: layout, destroy: destroy };
   }
 
   function loadThreeFromCdn(onReady) {
     var urls = [
+      '../src/js/vendor/three.min.js',
       'https://unpkg.com/three@0.152.2/build/three.min.js',
       'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js'
     ];
     var i = 0;
+    var loadState = { cancelled: false };
+    pendingThreeLoader = loadState;
+
+    function finish(result) {
+      if (loadState.cancelled || disposed) return;
+      if (pendingThreeLoader === loadState) pendingThreeLoader = null;
+      onReady(result);
+    }
 
     function loadNext() {
+      if (loadState.cancelled || disposed) return;
       if (window.THREE) {
-        onReady(true);
+        finish(true);
         return;
       }
       if (i >= urls.length) {
-        onReady(false);
+        finish(false);
         return;
       }
 
@@ -1331,9 +1503,10 @@ function initProjectsAtlas() {
       script.defer = true;
       script.dataset.threeLoader = String(i);
       script.onload = function () {
-        onReady(true);
+        finish(true);
       };
       script.onerror = function () {
+        if (loadState.cancelled || disposed) return;
         i++;
         loadNext();
       };
@@ -1442,6 +1615,7 @@ function initProjectsAtlas() {
   }
 
   function layoutHelix() {
+    if (disposed || !stage.isConnected) return;
     if (webglHelix) {
       webglHelix.layout();
       return;
@@ -1450,12 +1624,21 @@ function initProjectsAtlas() {
   }
 
   function runFallbackFrame(now) {
-    if (webglHelix) {
+    if (disposed || !stage.isConnected || !helix.isConnected || webglHelix) {
       fallbackFrame = null;
       return;
     }
+    if (document.hidden) {
+      fallbackFrame = requestAnimationFrame(runFallbackFrame);
+      return;
+    }
     if (!fallbackLast) fallbackLast = now;
-    var delta = Math.min(80, now - fallbackLast);
+    var elapsed = now - fallbackLast;
+    if (elapsed < FALLBACK_MIN_FRAME_MS) {
+      fallbackFrame = requestAnimationFrame(runFallbackFrame);
+      return;
+    }
+    var delta = Math.min(80, elapsed);
     fallbackLast = now;
 
     fallbackRotation += delta * 0.00006;
@@ -1466,6 +1649,7 @@ function initProjectsAtlas() {
   }
 
   function ensureFallbackAnimation() {
+    if (disposed || !stage.isConnected) return;
     if (webglHelix) return;
     if (fallbackFrame) return;
     fallbackLast = 0;
@@ -1473,6 +1657,7 @@ function initProjectsAtlas() {
   }
 
   function updateProximity(clientX, clientY) {
+    if (disposed || !stage.isConnected) return;
     var stageRect = stage.getBoundingClientRect();
     var localX = clientX - stageRect.left;
     var localY = clientY - stageRect.top;
@@ -1495,6 +1680,7 @@ function initProjectsAtlas() {
   }
 
   function enableWebglIfPossible() {
+    if (disposed || !stage.isConnected) return false;
     if (!webglMount || webglHelix || !window.THREE) return false;
     webglHelix = createWebglHelix();
     if (!webglHelix) return false;
@@ -1521,6 +1707,7 @@ function initProjectsAtlas() {
   if (!enableWebglIfPossible()) {
     if (webglMount && !window.THREE) {
       loadThreeFromCdn(function (loaded) {
+        if (disposed || !stage.isConnected) return;
         if (!loaded || !enableWebglIfPossible()) {
           if (!loaded) webglFailureReason = 'three.js failed to load from CDNs';
           ensureSvgFallbackGuides();
@@ -1536,24 +1723,32 @@ function initProjectsAtlas() {
     }
   }
 
+  var nodeHandlers = [];
   nodes.forEach(function (node) {
-    node.addEventListener('focus', function () {
+    var onFocus = function () {
+      if (disposed) return;
       activateSelection(node);
-    });
-
-    node.addEventListener('click', function (evt) {
+    };
+    var onClick = function (evt) {
+      if (disposed) return;
       if (isCoarsePointer() && selectedNode !== node) {
         evt.preventDefault();
         activateSelection(node);
         return;
       }
       beginHelixThumbNavigation(node, evt);
-    });
+    };
+
+    node.addEventListener('focus', onFocus);
+    node.addEventListener('click', onClick);
+    nodeHandlers.push({ node: node, onFocus: onFocus, onClick: onClick });
   });
 
   function handleResize() {
+    if (disposed) return;
     if (resizeFrame) cancelAnimationFrame(resizeFrame);
     resizeFrame = requestAnimationFrame(function () {
+      if (disposed) return;
       layoutHelix();
       if (selectedNode) {
         activateSelection(selectedNode);
@@ -1563,7 +1758,8 @@ function initProjectsAtlas() {
     });
   }
 
-  stage.addEventListener('mousemove', function (evt) {
+  function handleStageMouseMove(evt) {
+    if (disposed) return;
     if (isCoarsePointer()) return;
     pointerClientX = evt.clientX;
     pointerClientY = evt.clientY;
@@ -1573,9 +1769,10 @@ function initProjectsAtlas() {
       selectedNode = null;
       updateProximity(pointerClientX, pointerClientY);
     });
-  });
+  }
 
-  stage.addEventListener('mouseleave', function () {
+  function handleStageMouseLeave() {
+    if (disposed) return;
     if (pointerFrame) {
       cancelAnimationFrame(pointerFrame);
       pointerFrame = null;
@@ -1585,13 +1782,55 @@ function initProjectsAtlas() {
       return;
     }
     clearVisualState();
-  });
+  }
 
+  stage.addEventListener('mousemove', handleStageMouseMove);
+  stage.addEventListener('mouseleave', handleStageMouseLeave);
   window.addEventListener('resize', handleResize);
+
+  function cleanupAtlas() {
+    if (disposed) return;
+    disposed = true;
+    helix.classList.remove('projects-helix--is-ready');
+    helix.classList.remove('projects-helix--is-entering');
+
+    if (pendingThreeLoader) pendingThreeLoader.cancelled = true;
+    if (resizeFrame) cancelAnimationFrame(resizeFrame);
+    if (pointerFrame) cancelAnimationFrame(pointerFrame);
+    if (proximityFrame) cancelAnimationFrame(proximityFrame);
+    if (fallbackFrame) cancelAnimationFrame(fallbackFrame);
+
+    resizeFrame = null;
+    pointerFrame = null;
+    proximityFrame = null;
+    fallbackFrame = null;
+
+    window.removeEventListener('resize', handleResize);
+    stage.removeEventListener('mousemove', handleStageMouseMove);
+    stage.removeEventListener('mouseleave', handleStageMouseLeave);
+
+    nodeHandlers.forEach(function (entry) {
+      entry.node.removeEventListener('focus', entry.onFocus);
+      entry.node.removeEventListener('click', entry.onClick);
+    });
+    nodeHandlers = [];
+
+    if (webglHelix && typeof webglHelix.destroy === 'function') {
+      webglHelix.destroy();
+    }
+    webglHelix = null;
+  }
+
+  registerProjectPageCleanup(cleanupAtlas);
 
   layoutHelix();
   clearVisualState(true);
   ensureFallbackAnimation();
+  requestAnimationFrame(function () {
+    if (disposed || !helix.isConnected) return;
+    helix.classList.add('projects-helix--is-ready');
+    helix.classList.remove('projects-helix--is-entering');
+  });
 }
 
 function initProjectsIndexPreview() {
@@ -1692,31 +1931,53 @@ function initProjectsIndexPreview() {
     }, 220);
   }
 
+  var cardHandlers = [];
   cards.forEach(function (card) {
-    card.addEventListener('mouseenter', function (evt) {
+    var onEnter = function (evt) {
       activatePreview(card, evt);
-    });
-
-    card.addEventListener('mousemove', function (evt) {
+    };
+    var onMove = function (evt) {
       activatePreview(card, evt);
-    });
-
-    card.addEventListener('focus', function () {
+    };
+    var onFocus = function () {
       activatePreview(card);
-    });
+    };
+
+    card.addEventListener('mouseenter', onEnter);
+    card.addEventListener('mousemove', onMove);
+    card.addEventListener('focus', onFocus);
+    cardHandlers.push({ card: card, onEnter: onEnter, onMove: onMove, onFocus: onFocus });
   });
 
-  layout.addEventListener('mouseleave', function () {
+  function onLayoutLeave() {
     clearPreview();
-  });
+  }
 
-  window.addEventListener('resize', function () {
+  function onWindowResize() {
     if (activeCard) setProjectionOrigin(activeCard);
+  }
+
+  layout.addEventListener('mouseleave', onLayoutLeave);
+  window.addEventListener('resize', onWindowResize);
+
+  registerProjectPageCleanup(function () {
+    clearTimeout(beamTimer);
+    clearTimeout(clearTimer);
+    layout.removeEventListener('mouseleave', onLayoutLeave);
+    window.removeEventListener('resize', onWindowResize);
+
+    cardHandlers.forEach(function (entry) {
+      entry.card.removeEventListener('mouseenter', entry.onEnter);
+      entry.card.removeEventListener('mousemove', entry.onMove);
+      entry.card.removeEventListener('focus', entry.onFocus);
+    });
   });
 }
 
 // Initialize all features
 function initProjectPage() {
+  runProjectPageCleanup();
+
   // Clean up previous bar if exists
   var oldBar = document.querySelector('.project-nav-bar');
   if (oldBar) oldBar.remove();
