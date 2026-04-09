@@ -803,7 +803,7 @@ function initProjectsAtlas() {
     }
     var THREE = window.THREE;
     var renderer;
-    var useAntialias = (window.devicePixelRatio || 1) <= 1.5;
+    var useAntialias = true;
 
     try {
       renderer = new THREE.WebGLRenderer({
@@ -862,7 +862,10 @@ function initProjectsAtlas() {
     var tempAnchorWorld = new THREE.Vector3();
     var tempProjectedPoint = new THREE.Vector3();
     var tempProjectedAnchor = new THREE.Vector3();
+    var tempRibbonWorld = new THREE.Vector3();
+    var tempProjectedRibbon = new THREE.Vector3();
     var ribbonTexture = null;
+    var ribbonMeshRef = null;
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -919,9 +922,9 @@ function initProjectsAtlas() {
       var sourceUrls = collectRibbonSources();
       if (sourceUrls.length === 0) return null;
 
-      var frameCount = Math.max(24, Math.min(42, sourceUrls.length * 5));
-      var frameW = 24;
-      var frameH = 15;
+      var frameCount = Math.max(28, Math.min(46, sourceUrls.length * 5));
+      var frameW = 28;
+      var frameH = 18;
       var canvas = document.createElement('canvas');
       var ctx = canvas.getContext('2d');
       if (!ctx) return null;
@@ -965,6 +968,9 @@ function initProjectsAtlas() {
       texture.magFilter = THREE.LinearFilter;
       texture.wrapS = THREE.ClampToEdgeWrapping;
       texture.wrapT = THREE.ClampToEdgeWrapping;
+      if (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) {
+        texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+      }
       if ('colorSpace' in texture && THREE.SRGBColorSpace) {
         texture.colorSpace = THREE.SRGBColorSpace;
       }
@@ -991,6 +997,7 @@ function initProjectsAtlas() {
       var vertexCount = (stripSegments + 1) * 2;
       var positions = new Float32Array(vertexCount * 3);
       var uvs = new Float32Array(vertexCount * 2);
+      var colors = new Float32Array(vertexCount * 3);
       var indices = [];
 
       for (var i = 0; i <= stripSegments; i++) {
@@ -1002,6 +1009,7 @@ function initProjectsAtlas() {
         var centerZ = Math.cos(theta) * config.radius;
         var radialX = Math.sin(theta);
         var radialZ = Math.cos(theta);
+        var edgeTilt = Math.sin(theta * 1.35) * config.tilt;
 
         var leftIndex = i * 2;
         var rightIndex = leftIndex + 1;
@@ -1011,17 +1019,24 @@ function initProjectsAtlas() {
         var rightUvBase = rightIndex * 2;
 
         positions[leftBase] = centerX - radialX * stripWidth * 0.5;
-        positions[leftBase + 1] = centerY;
+        positions[leftBase + 1] = centerY - edgeTilt;
         positions[leftBase + 2] = centerZ - radialZ * stripWidth * 0.5;
 
         positions[rightBase] = centerX + radialX * stripWidth * 0.5;
-        positions[rightBase + 1] = centerY;
+        positions[rightBase + 1] = centerY + edgeTilt;
         positions[rightBase + 2] = centerZ + radialZ * stripWidth * 0.5;
 
         uvs[leftUvBase] = u;
         uvs[leftUvBase + 1] = 0;
         uvs[rightUvBase] = u;
         uvs[rightUvBase + 1] = 1;
+
+        colors[leftBase] = 1;
+        colors[leftBase + 1] = 1;
+        colors[leftBase + 2] = 1;
+        colors[rightBase] = 1;
+        colors[rightBase + 1] = 1;
+        colors[rightBase + 2] = 1;
       }
 
       for (var seg = 0; seg < stripSegments; seg++) {
@@ -1036,31 +1051,56 @@ function initProjectsAtlas() {
       var geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       geometry.setIndex(indices);
 
       var material = new THREE.MeshBasicMaterial({
         map: ribbonTexture,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.74,
         side: THREE.DoubleSide,
-        depthWrite: false
+        depthWrite: true,
+        alphaTest: 0.02,
+        vertexColors: true
       });
 
       return new THREE.Mesh(geometry, material);
     }
 
+    function updateRibbonDepthVisual() {
+      if (!ribbonMeshRef || !ribbonMeshRef.geometry) return;
+      var geometry = ribbonMeshRef.geometry;
+      var positionAttr = geometry.getAttribute('position');
+      var colorAttr = geometry.getAttribute('color');
+      if (!positionAttr || !colorAttr) return;
+
+      for (var i = 0; i < positionAttr.count; i++) {
+        tempRibbonWorld.fromBufferAttribute(positionAttr, i).applyMatrix4(ribbonMeshRef.matrixWorld);
+        tempProjectedRibbon.copy(tempRibbonWorld).project(camera);
+        var depth = clamp(1 - (tempProjectedRibbon.z + 1) * 0.5, 0, 1);
+        var back = depth < 0.5 ? (0.5 - depth) / 0.5 : 0;
+        var tone = clamp(0.62 + depth * 0.48, 0, 1);
+        var r = clamp(tone - back * 0.08, 0, 1);
+        var g = clamp(tone - back * 0.03, 0, 1);
+        var b = clamp(tone + back * 0.01, 0, 1);
+        colorAttr.setXYZ(i, r, g, b);
+      }
+      colorAttr.needsUpdate = true;
+    }
+
     function buildWorld(width) {
       clearGroup();
       nodeData = [];
+      ribbonMeshRef = null;
 
       var total = nodes.length;
       var startAngle = -Math.PI * 0.5;
       var isMobile = width <= 820;
       var helixRadius = isMobile
-        ? Math.max(2.8, Math.min(3.8, 3.2 + (width - 390) / 360))
+        ? Math.max(2.45, Math.min(3.35, 2.85 + (width - 390) / 380))
         : Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
       var ribbonRadius = helixRadius * (isMobile ? 0.78 : 0.72);
-      var helixHeight = isMobile ? 7.2 : 10.2;
+      var helixHeight = isMobile ? 6.7 : 10.2;
       var ringSegments = 56;
       var threadSegments = Math.max(112, total * 16);
       var threadPoints = [];
@@ -1120,10 +1160,12 @@ function initProjectsAtlas() {
         phaseShift: ribbonPhaseShift,
         startT: 0,
         endT: ribbonEndT,
-        width: isMobile ? 0.34 : 0.46,
+        width: isMobile ? 0.38 : 0.46,
+        tilt: isMobile ? 0.045 : 0.068,
         segments: isMobile ? 48 : 64
       });
       if (ribbonMesh) {
+        ribbonMeshRef = ribbonMesh;
         group.add(ribbonMesh);
       }
 
@@ -1157,6 +1199,7 @@ function initProjectsAtlas() {
 
     function syncNodes(width, height) {
       group.updateMatrixWorld(true);
+      updateRibbonDepthVisual();
       nodes.forEach(function (node, index) {
         var data = nodeData[index];
         if (!data) return;
@@ -1217,13 +1260,17 @@ function initProjectsAtlas() {
       var height = Math.max(1, Math.round(rect.height));
       var aspect = width / height;
       var isMobile = width <= 820;
-      var frustumSize = isMobile ? 12.8 : 15.8;
-      var cameraDistance = isMobile ? 11 : 13.6;
-      var cameraElevation = isMobile ? Math.PI * 0.19 : Math.PI * 0.2;
+      var frustumSize = isMobile ? 14.6 : 15.8;
+      var cameraDistance = isMobile ? 11.8 : 13.6;
+      var cameraElevation = isMobile ? Math.PI * 0.185 : Math.PI * 0.2;
+      var deviceRatio = window.devicePixelRatio || 1;
+      var targetPixelRatio = isMobile
+        ? Math.min(2, Math.max(1.35, deviceRatio))
+        : Math.min(1.25, deviceRatio);
       viewportWidth = width;
       viewportHeight = height;
 
-      renderer.setPixelRatio(1);
+      renderer.setPixelRatio(targetPixelRatio);
       renderer.setSize(width, height, false);
 
       // Orthographic top-corner (architectural axonometric) with upright axis.
@@ -1328,9 +1375,9 @@ function initProjectsAtlas() {
     var height = rect.height;
     var isMobile = width <= 820;
     var centerX = width * (isMobile ? 0.5 : fallbackCenterBias);
-    var topY = height * (isMobile ? 0.17 : 0.14);
-    var loopHeight = height * (isMobile ? 0.66 : 0.72);
-    var radiusX = isMobile ? Math.min(width * 0.34, 250) : Math.min(width * 0.47, 560);
+    var topY = height * (isMobile ? 0.19 : 0.14);
+    var loopHeight = height * (isMobile ? 0.62 : 0.72);
+    var radiusX = isMobile ? Math.min(width * 0.3, 220) : Math.min(width * 0.47, 560);
     var orbitRadiusY = isMobile
       ? Math.max(10, Math.min(height * 0.045, 20))
       : Math.max(14, Math.min(height * 0.07, 34));
