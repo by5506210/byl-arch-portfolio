@@ -148,20 +148,56 @@
     var visualState = ensureHelixClone(state);
     if (!visualState || !visualState.cloneEl) return null;
 
+    function waitForIncomingVisual(target) {
+      return new Promise(function (resolve) {
+        if (!target) {
+          resolve();
+          return;
+        }
+        var image = target.querySelector('.project-hero img, .project-gallery__image img, img');
+        if (!image) {
+          resolve();
+          return;
+        }
+        if (image.complete && image.naturalWidth > 0) {
+          resolve();
+          return;
+        }
+
+        var settled = false;
+        function done() {
+          if (settled) return;
+          settled = true;
+          image.removeEventListener('load', done);
+          image.removeEventListener('error', done);
+          resolve();
+        }
+
+        image.addEventListener('load', done, { once: true });
+        image.addEventListener('error', done, { once: true });
+        setTimeout(done, 950);
+      });
+    }
+
     gsap.set(overlay, { opacity: 0 });
     gsap.set(container, { opacity: 1, y: 0 });
 
-    return gsap.timeline({
-      onComplete: function () {
-        clearHelixZoomState(visualState);
-        helixZoomState = null;
-      }
-    })
-      .to(visualState.cloneEl, {
-        opacity: 0,
-        duration: 0.48,
-        ease: 'power2.out'
-      }, 0.08);
+    return waitForIncomingVisual(container).then(function () {
+      return new Promise(function (resolve) {
+        gsap.timeline({
+          onComplete: function () {
+            clearHelixZoomState(visualState);
+            helixZoomState = null;
+            resolve();
+          }
+        })
+          .to(visualState.cloneEl, {
+            opacity: 0,
+            duration: 0.52,
+            ease: 'power2.out'
+          }, 0.02);
+      });
+    });
   }
 
   function playInitialHelixArrivalIfNeeded() {
@@ -194,6 +230,11 @@
         duration: opts.overlayDuration || 0.25,
         ease: 'power1.in',
         onComplete: function () {
+          var shouldHardReload = href.indexOf('index.html') !== -1;
+          if (!shouldHardReload && window.barba && typeof window.barba.go === 'function') {
+            window.barba.go(href);
+            return;
+          }
           window.location.href = href;
         }
       }, '-=0.1');
@@ -298,6 +339,7 @@
         if (cursorEl) cursorEl.classList.add('cursor--dark');
 
         helixZoomState = null;
+        manualNavigationInProgress = false;
         rememberCurrentPage();
       }
     }]
