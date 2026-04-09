@@ -634,7 +634,16 @@ function initProjectsAtlas() {
   function setNodeLayer(node, proximity) {
     var depth = parseFloat(node.dataset.depth || '0.5');
     var strength = isNaN(proximity) ? 0 : proximity;
-    var layer = 2 + Math.round(depth * 24 + strength * 26);
+    var layer;
+
+    // Keep back-side thumbnails under the WebGL strip, front-side over it.
+    // WebGL mount is z-index:2 in CSS.
+    if (depth < 0.5) {
+      layer = 1 + Math.round(strength * 2);
+    } else {
+      layer = 6 + Math.round((depth - 0.5) * 26 + strength * 18);
+    }
+
     node.style.zIndex = String(layer);
   }
 
