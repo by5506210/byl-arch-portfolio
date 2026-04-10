@@ -446,89 +446,77 @@ function initProjectsAtlas() {
   var proximityFrame = null;
   var proximityLast = 0;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
-  var WEBGL_MIN_FRAME_MS = 1000 / 42;
-  var FALLBACK_MIN_FRAME_MS = 1000 / 36;
-  var RIBBON_DEPTH_UPDATE_MS = 120;
+  var HELIX_RIBBON_ATLAS = '../assets/images/ui/helix-ribbon-atlas.svg';
+  var HELIX_RIBBON_ATLAS_MOBILE = '../assets/images/ui/helix-ribbon-atlas-mobile.svg';
+  var performanceProfile = getHelixPerformanceProfile();
+  var WEBGL_MIN_FRAME_MS = performanceProfile.webglMinFrameMs;
+  var FALLBACK_MIN_FRAME_MS = performanceProfile.fallbackMinFrameMs;
+  var RIBBON_DEPTH_UPDATE_MS = performanceProfile.ribbonDepthUpdateMs;
   var disposed = false;
   var pendingThreeLoader = null;
 
   if (!stage || nodes.length === 0) return;
+  helix.classList.remove('projects-helix--ribbon-ready');
   nodes.forEach(function (node, index) {
     node.dataset.nodeIndex = String(index);
   });
 
-  function collectRibbonSources() {
-    var extraRibbonPaths = [
-      '../assets/images/act-before-it-burns/hero.png',
-      '../assets/images/aphelion/hero.jpg',
-      '../assets/images/aphelion/lit-below.jpg',
-      '../assets/images/aphelion/top-view.jpg',
-      '../assets/images/arboretum-shed/exterior-1.png',
-      '../assets/images/arboretum-shed/exterior-2.png',
-      '../assets/images/arboretum-shed/exterior-3.png',
-      '../assets/images/arboretum-shed/hero.png',
-      '../assets/images/arboretum-shed/sequence-1.png',
-      '../assets/images/arboretum-shed/sequence-2.png',
-      '../assets/images/arboretum-shed/sequence-3.png',
-      '../assets/images/arboretum-shed/summer-1.png',
-      '../assets/images/arboretum-shed/summer-2.png',
-      '../assets/images/arboretum-shed/summer-plan.jpg',
-      '../assets/images/arboretum-shed/winter-1.png',
-      '../assets/images/arboretum-shed/winter-2.jpg',
-      '../assets/images/arboretum-shed/winter-plan.jpg',
-      '../assets/images/eden-museum/aerial-plan.png',
-      '../assets/images/eden-museum/hero.jpg',
-      '../assets/images/eden-museum/interior-reception-alt.png',
-      '../assets/images/eden-museum/interior-reception.jpg',
-      '../assets/images/eden-museum/perspective.jpg',
-      '../assets/images/eden-museum/section-cut.png',
-      '../assets/images/eden-museum/waterfall-2.jpg',
-      '../assets/images/maple-xi/hero.png',
-      '../assets/images/marty-supreme/hero.jpg',
-      '../assets/images/modulor/alt.png',
-      '../assets/images/modulor/hero.png',
-      '../assets/images/the-triad/axonometric.jpg',
-      '../assets/images/the-triad/hero.jpg',
-      '../assets/images/the-triad/interior-1.jpg',
-      '../assets/images/the-triad/interior-2.jpg',
-      '../assets/images/tolman/hero.png'
-    ];
+  function getHelixPerformanceProfile() {
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var cores = navigator.hardwareConcurrency || 4;
+    var memory = navigator.deviceMemory || 0;
+    var likelyLowEnd = reducedMotion || cores <= 4 || (memory > 0 && memory <= 4);
+    var likelyHighEnd = !reducedMotion && cores >= 8 && (memory === 0 || memory >= 8);
 
-    var seen = Object.create(null);
-    var sources = nodes
-      .map(function (node) {
-        var img = node.querySelector('.projects-helix__thumb img');
-        if (!img) return null;
-        var src = img.currentSrc || img.src || '';
-        if (!src || seen[src]) return null;
-        seen[src] = true;
-        return src;
-      })
-      .filter(function (item) {
-        return !!item;
-      });
-
-    var extraSources = [];
-    extraRibbonPaths.forEach(function (relativePath) {
-      var absolute = new URL(relativePath, window.location.href).href;
-      if (seen[absolute]) return;
-      seen[absolute] = true;
-      extraSources.push(absolute);
-    });
-
-    for (var i = extraSources.length - 1; i > 0; i--) {
-      var rand = Math.floor(Math.random() * (i + 1));
-      var temp = extraSources[i];
-      extraSources[i] = extraSources[rand];
-      extraSources[rand] = temp;
+    if (likelyLowEnd) {
+      return {
+        webglMinFrameMs: 1000 / 52,
+        fallbackMinFrameMs: 1000 / 42,
+        ribbonDepthUpdateMs: 220,
+        mobilePixelMax: 1.25,
+        desktopPixelMax: 1.05,
+        ringSegments: 40,
+        threadSegmentsMin: 84,
+        threadSegmentsMult: 12,
+        ribbonSegmentsMobile: 34,
+        ribbonSegmentsDesktop: 46,
+        anisotropyCap: 2
+      };
     }
 
-    var extraLimit = window.innerWidth <= 900 ? 2 : 4;
-    extraSources.slice(0, extraLimit).forEach(function (source) {
-      sources.push(source);
-    });
+    if (likelyHighEnd) {
+      return {
+        webglMinFrameMs: 1000 / 60,
+        fallbackMinFrameMs: 1000 / 56,
+        ribbonDepthUpdateMs: 120,
+        mobilePixelMax: 1.65,
+        desktopPixelMax: 1.28,
+        ringSegments: 56,
+        threadSegmentsMin: 112,
+        threadSegmentsMult: 16,
+        ribbonSegmentsMobile: 48,
+        ribbonSegmentsDesktop: 64,
+        anisotropyCap: 4
+      };
+    }
 
-    return sources;
+    return {
+      webglMinFrameMs: 1000 / 58,
+      fallbackMinFrameMs: 1000 / 50,
+      ribbonDepthUpdateMs: 160,
+      mobilePixelMax: 1.45,
+      desktopPixelMax: 1.16,
+      ringSegments: 48,
+      threadSegmentsMin: 96,
+      threadSegmentsMult: 14,
+      ribbonSegmentsMobile: 40,
+      ribbonSegmentsDesktop: 56,
+      anisotropyCap: 3
+    };
+  }
+
+  function getRibbonAtlasPath() {
+    return window.innerWidth <= 900 ? HELIX_RIBBON_ATLAS_MOBILE : HELIX_RIBBON_ATLAS;
   }
 
   function clamp(value, min, max) {
@@ -692,6 +680,11 @@ function initProjectsAtlas() {
     }
   }
 
+  function setRibbonReadyState() {
+    if (disposed || !helix.isConnected) return;
+    helix.classList.add('projects-helix--ribbon-ready');
+  }
+
   function setNodeLayer(node, proximity) {
     var depth = parseFloat(node.dataset.depth || '0.5');
     var strength = isNaN(proximity) ? 0 : proximity;
@@ -700,7 +693,7 @@ function initProjectsAtlas() {
     // Keep back-side thumbnails under the WebGL strip, front-side over it.
     // WebGL mount is z-index:2 in CSS.
     if (depth < 0.5) {
-      layer = 1 + Math.round(strength * 2);
+      layer = 1;
     } else {
       layer = 6 + Math.round((depth - 0.5) * 26 + strength * 18);
     }
@@ -934,8 +927,8 @@ function initProjectsAtlas() {
     var frameId = 0;
     var lastFrameTime = 0;
     var lastRibbonDepthUpdate = 0;
-    var textureRedrawFrame = 0;
     var webglDestroyed = false;
+    var ribbonReadyNotified = false;
     var tempPointWorld = new THREE.Vector3();
     var tempAnchorWorld = new THREE.Vector3();
     var tempProjectedPoint = new THREE.Vector3();
@@ -981,139 +974,73 @@ function initProjectsAtlas() {
       return points;
     }
 
-    function drawCoverImage(ctx, img, x, y, w, h) {
-      if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) return false;
-      var scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-      var srcW = w / scale;
-      var srcH = h / scale;
-      var srcX = (img.naturalWidth - srcW) * 0.5;
-      var srcY = (img.naturalHeight - srcH) * 0.5;
-      try {
-        ctx.drawImage(img, srcX, srcY, srcW, srcH, x, y, w, h);
-        return true;
-      } catch (err) {
-        return false;
+    function markRibbonReady() {
+      if (ribbonReadyNotified) return;
+      ribbonReadyNotified = true;
+      requestAnimationFrame(setRibbonReadyState);
+    }
+
+    function createRibbonFallbackCanvas() {
+      var canvas = document.createElement('canvas');
+      canvas.width = 384;
+      canvas.height = 28;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      var grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      grad.addColorStop(0, '#d1c9bb');
+      grad.addColorStop(0.25, '#e3ddd2');
+      grad.addColorStop(0.5, '#c6bdaf');
+      grad.addColorStop(0.75, '#e8e1d6');
+      grad.addColorStop(1, '#b9b1a4');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (var i = 0; i < 56; i++) {
+        var x = (i / 56) * canvas.width;
+        var alpha = i % 2 === 0 ? 0.13 : 0.06;
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + alpha + ')';
+        ctx.fillRect(x, 0, 3, canvas.height);
       }
+
+      return canvas;
     }
 
     function createRibbonTexture() {
-      var sourceUrls = collectRibbonSources();
-      if (sourceUrls.length === 0) return null;
-
-      var frameCount = Math.max(14, Math.min(24, sourceUrls.length * 2));
-      var frameW = 28;
-      var frameH = 18;
-      var canvas = document.createElement('canvas');
-      var ctx = canvas.getContext('2d');
-      if (!ctx) return null;
-      var texture;
-      var imageCache = Object.create(null);
-      var frameSources = [];
-      var redrawLastTime = 0;
-      var redrawMinInterval = 96;
-      var loadQueue = sourceUrls.slice();
-      var inFlightLoads = 0;
-      var maxConcurrentLoads = window.innerWidth <= 900 ? 1 : 2;
-      var loadIntervalMs = window.innerWidth <= 900 ? 140 : 90;
-
-      var previousSrc = '';
-      for (var i = 0; i < frameCount; i++) {
-        var pick = sourceUrls[Math.floor(Math.random() * sourceUrls.length)];
-        if (sourceUrls.length > 1) {
-          var guard = 0;
-          while (pick === previousSrc && guard < 10) {
-            pick = sourceUrls[Math.floor(Math.random() * sourceUrls.length)];
-            guard++;
+      var atlasUrl = getRibbonAtlasPath();
+      var loader = new THREE.TextureLoader();
+      var texture = loader.load(
+        atlasUrl,
+        function () {
+          if (texture) texture.needsUpdate = true;
+          markRibbonReady();
+        },
+        undefined,
+        function () {
+          var fallbackCanvas = createRibbonFallbackCanvas();
+          if (fallbackCanvas && texture) {
+            texture.image = fallbackCanvas;
+            texture.needsUpdate = true;
           }
+          markRibbonReady();
         }
-        frameSources.push(pick);
-        previousSrc = pick;
-      }
-      canvas.width = frameW * frameCount;
-      canvas.height = frameH;
+      );
 
-      function redrawStrip() {
-        for (var index = 0; index < frameCount; index++) {
-          var offsetX = index * frameW;
-          var src = frameSources[index];
-          var loaded = imageCache[src];
-          var drawn = drawCoverImage(ctx, loaded, offsetX, 0, frameW, frameH);
-          if (!drawn) {
-            ctx.fillStyle = 'rgba(214, 208, 198, 0.7)';
-            ctx.fillRect(offsetX, 0, frameW, frameH);
-          }
-        }
-        if (texture) texture.needsUpdate = true;
-      }
-
-      function scheduleRedraw() {
-        if (textureRedrawFrame) return;
-        textureRedrawFrame = requestAnimationFrame(function (now) {
-          textureRedrawFrame = 0;
-          if (now - redrawLastTime < redrawMinInterval) {
-            scheduleRedraw();
-            return;
-          }
-          redrawLastTime = now;
-          redrawStrip();
-        });
-      }
-
-      texture = new THREE.CanvasTexture(canvas);
       texture.generateMipmaps = false;
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
       texture.wrapS = THREE.ClampToEdgeWrapping;
       texture.wrapT = THREE.ClampToEdgeWrapping;
       if (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) {
-        texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+        texture.anisotropy = Math.min(
+          performanceProfile.anisotropyCap,
+          renderer.capabilities.getMaxAnisotropy()
+        );
       }
       if ('colorSpace' in texture && THREE.SRGBColorSpace) {
         texture.colorSpace = THREE.SRGBColorSpace;
       }
 
-      function queueNextImagePump() {
-        window.setTimeout(pumpImageLoads, loadIntervalMs);
-      }
-
-      function loadImageForRibbon(src) {
-        var image = new Image();
-        image.decoding = 'async';
-        image.fetchPriority = 'low';
-        image.onload = function () {
-          if (typeof image.decode === 'function') {
-            image.decode().catch(function () {}).then(function () {
-              inFlightLoads = Math.max(0, inFlightLoads - 1);
-              scheduleRedraw();
-              queueNextImagePump();
-            });
-            return;
-          }
-          inFlightLoads = Math.max(0, inFlightLoads - 1);
-          scheduleRedraw();
-          queueNextImagePump();
-        };
-        image.onerror = function () {
-          inFlightLoads = Math.max(0, inFlightLoads - 1);
-          scheduleRedraw();
-          queueNextImagePump();
-        };
-        image.src = src;
-        imageCache[src] = image;
-      }
-
-      function pumpImageLoads() {
-        if (webglDestroyed || disposed) return;
-        while (inFlightLoads < maxConcurrentLoads && loadQueue.length) {
-          var src = loadQueue.shift();
-          if (!src || imageCache[src]) continue;
-          inFlightLoads++;
-          loadImageForRibbon(src);
-        }
-      }
-
-      redrawStrip();
-      pumpImageLoads();
       return texture;
     }
 
@@ -1230,8 +1157,8 @@ function initProjectsAtlas() {
         : Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
       var ribbonRadius = helixRadius * (isMobile ? 0.78 : 0.72);
       var helixHeight = isMobile ? 6.7 : 10.2;
-      var ringSegments = 56;
-      var threadSegments = Math.max(112, total * 16);
+      var ringSegments = performanceProfile.ringSegments;
+      var threadSegments = Math.max(performanceProfile.threadSegmentsMin, total * performanceProfile.threadSegmentsMult);
       var threadPoints = [];
       var axisTop = helixHeight * 0.61;
       var axisBottom = -helixHeight * 0.61;
@@ -1291,7 +1218,7 @@ function initProjectsAtlas() {
         endT: ribbonEndT,
         width: isMobile ? 0.38 : 0.46,
         tilt: isMobile ? 0.045 : 0.068,
-        segments: isMobile ? 48 : 64
+        segments: isMobile ? performanceProfile.ribbonSegmentsMobile : performanceProfile.ribbonSegmentsDesktop
       });
       if (ribbonMesh) {
         ribbonMeshRef = ribbonMesh;
@@ -1411,8 +1338,8 @@ function initProjectsAtlas() {
       var cameraElevation = isMobile ? Math.PI * 0.185 : Math.PI * 0.2;
       var deviceRatio = window.devicePixelRatio || 1;
       var targetPixelRatio = isMobile
-        ? Math.min(1.6, Math.max(1.1, deviceRatio))
-        : Math.min(1.25, deviceRatio);
+        ? Math.min(performanceProfile.mobilePixelMax, Math.max(1, deviceRatio))
+        : Math.min(performanceProfile.desktopPixelMax, deviceRatio);
       viewportWidth = width;
       viewportHeight = height;
 
@@ -1441,10 +1368,6 @@ function initProjectsAtlas() {
       if (frameId) {
         cancelAnimationFrame(frameId);
         frameId = 0;
-      }
-      if (textureRedrawFrame) {
-        cancelAnimationFrame(textureRedrawFrame);
-        textureRedrawFrame = 0;
       }
 
       clearGroup();
@@ -1690,6 +1613,7 @@ function initProjectsAtlas() {
       fallbackFrame = null;
     }
     helix.classList.add('projects-helix--webgl-enabled');
+    helix.classList.remove('projects-helix--ribbon-ready');
     if (guides) {
       guides.remove();
       guides = null;
@@ -1713,12 +1637,14 @@ function initProjectsAtlas() {
           ensureSvgFallbackGuides();
           layoutHelix();
           ensureFallbackAnimation();
+          setRibbonReadyState();
           setRenderMode('fallback', webglFailureReason || 'webgl unavailable');
         }
       });
     } else {
       ensureSvgFallbackGuides();
       ensureFallbackAnimation();
+      setRibbonReadyState();
       setRenderMode('fallback', webglFailureReason || 'webgl unavailable');
     }
   }
