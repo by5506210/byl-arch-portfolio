@@ -2161,11 +2161,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   .projects-helix--is-ready .projects-helix__stage {
     transition: none;
   }
-
-  .projects-helix__webgl,
-  .projects-helix__webgl::before {
-    transition: none;
-  }
 }
 
 .projects-helix__webgl {
@@ -2173,27 +2168,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.42s ease;
-}
-
-.projects-helix__webgl::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.34) 38%, rgba(255, 255, 255, 0) 74%),
-    linear-gradient(180deg, rgba(247, 244, 238, 0.84), rgba(247, 244, 238, 0.3));
-  opacity: 1;
-  transition: opacity 0.42s ease;
-}
-
-.projects-helix--ribbon-ready .projects-helix__webgl {
-  opacity: 1;
-}
-
-.projects-helix--ribbon-ready .projects-helix__webgl::before {
-  opacity: 0;
 }
 
 .projects-helix__webgl canvas {

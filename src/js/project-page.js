@@ -446,8 +446,8 @@ function initProjectsAtlas() {
   var proximityFrame = null;
   var proximityLast = 0;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
-  var HELIX_RIBBON_ATLAS = '../assets/images/ui/helix-ribbon-atlas.svg';
-  var HELIX_RIBBON_ATLAS_MOBILE = '../assets/images/ui/helix-ribbon-atlas-mobile.svg';
+  var HELIX_RIBBON_ATLAS = '../docs/projects-helix-thread-2.png';
+  var HELIX_RIBBON_ATLAS_MOBILE = '../docs/projects-helix-thread-mobile-2.png';
   var performanceProfile = getHelixPerformanceProfile();
   var WEBGL_MIN_FRAME_MS = performanceProfile.webglMinFrameMs;
   var FALLBACK_MIN_FRAME_MS = performanceProfile.fallbackMinFrameMs;
