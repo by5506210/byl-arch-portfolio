@@ -446,8 +446,6 @@ function initProjectsAtlas() {
   var proximityFrame = null;
   var proximityLast = 0;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
-  var HELIX_RIBBON_ATLAS = '../docs/projects-helix-thread-2.png';
-  var HELIX_RIBBON_ATLAS_MOBILE = '../docs/projects-helix-thread-mobile-2.png';
   var performanceProfile = getHelixPerformanceProfile();
   var WEBGL_MIN_FRAME_MS = performanceProfile.webglMinFrameMs;
   var FALLBACK_MIN_FRAME_MS = performanceProfile.fallbackMinFrameMs;
@@ -513,10 +511,6 @@ function initProjectsAtlas() {
       ribbonSegmentsDesktop: 56,
       anisotropyCap: 3
     };
-  }
-
-  function getRibbonAtlasPath() {
-    return window.innerWidth <= 900 ? HELIX_RIBBON_ATLAS_MOBILE : HELIX_RIBBON_ATLAS;
   }
 
   function clamp(value, min, max) {
@@ -927,6 +921,7 @@ function initProjectsAtlas() {
     var frameId = 0;
     var lastFrameTime = 0;
     var lastRibbonDepthUpdate = 0;
+    var ribbonTextureRefreshFrame = 0;
     var webglDestroyed = false;
     var ribbonReadyNotified = false;
     var tempPointWorld = new THREE.Vector3();
@@ -1006,25 +1001,82 @@ function initProjectsAtlas() {
       return canvas;
     }
 
+    function drawRibbonImageFrame(ctx, img, x, y, w, h) {
+      if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) return false;
+      var scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+      var srcW = w / scale;
+      var srcH = h / scale;
+      var srcX = (img.naturalWidth - srcW) * 0.5;
+      var srcY = (img.naturalHeight - srcH) * 0.5;
+      try {
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, x, y, w, h);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
     function createRibbonTexture() {
-      var atlasUrl = getRibbonAtlasPath();
-      var loader = new THREE.TextureLoader();
-      var texture = loader.load(
-        atlasUrl,
-        function () {
-          if (texture) texture.needsUpdate = true;
-          markRibbonReady();
-        },
-        undefined,
-        function () {
-          var fallbackCanvas = createRibbonFallbackCanvas();
-          if (fallbackCanvas && texture) {
-            texture.image = fallbackCanvas;
-            texture.needsUpdate = true;
+      var sourceImages = nodes
+        .map(function (node) {
+          var thumbImg = node.querySelector('.projects-helix__thumb img');
+          return thumbImg || null;
+        })
+        .filter(function (img) {
+          return !!img;
+        });
+
+      var frameCount = Math.max(12, sourceImages.length * 2);
+      var frameW = 28;
+      var frameH = 18;
+      var canvas = document.createElement('canvas');
+      canvas.width = frameCount * frameW;
+      canvas.height = frameH;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      var texture = new THREE.CanvasTexture(canvas);
+
+      function redrawFromThumbs() {
+        var anyDrawn = false;
+        for (var i = 0; i < frameCount; i++) {
+          var x = i * frameW;
+          var source = sourceImages.length ? sourceImages[i % sourceImages.length] : null;
+          var drawn = drawRibbonImageFrame(ctx, source, x, 0, frameW, frameH);
+          if (!drawn) {
+            ctx.fillStyle = 'rgba(214, 208, 198, 0.7)';
+            ctx.fillRect(x, 0, frameW, frameH);
+          } else {
+            anyDrawn = true;
           }
+        }
+        texture.needsUpdate = true;
+        if (anyDrawn) markRibbonReady();
+      }
+
+      function scheduleRibbonRefresh() {
+        if (ribbonTextureRefreshFrame) return;
+        ribbonTextureRefreshFrame = requestAnimationFrame(function () {
+          ribbonTextureRefreshFrame = 0;
+          redrawFromThumbs();
+        });
+      }
+
+      sourceImages.forEach(function (img) {
+        if (img.complete && img.naturalWidth && img.naturalHeight) return;
+        img.addEventListener('load', scheduleRibbonRefresh, { once: true });
+        img.addEventListener('error', scheduleRibbonRefresh, { once: true });
+      });
+
+      if (!sourceImages.length) {
+        var fallbackCanvas = createRibbonFallbackCanvas();
+        if (fallbackCanvas) {
+          texture.image = fallbackCanvas;
+          texture.needsUpdate = true;
           markRibbonReady();
         }
-      );
+      } else {
+        redrawFromThumbs();
+      }
 
       texture.generateMipmaps = false;
       texture.minFilter = THREE.LinearFilter;
@@ -1368,6 +1420,10 @@ function initProjectsAtlas() {
       if (frameId) {
         cancelAnimationFrame(frameId);
         frameId = 0;
+      }
+      if (ribbonTextureRefreshFrame) {
+        cancelAnimationFrame(ribbonTextureRefreshFrame);
+        ribbonTextureRefreshFrame = 0;
       }
 
       clearGroup();
