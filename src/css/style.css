@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
 /* ============================================
    RESET & BASE
@@ -16,7 +16,7 @@
   --text-primary: #161412;
   --white: #ffffff;
 
-  --font-primary: 'IBM Plex Mono', monospace;
+  --font-primary: 'Courier Prime', 'Courier New', Courier, monospace;
 }
 
 html {
@@ -47,6 +47,10 @@ a {
 
 button {
   cursor: none;
+}
+
+button, input, textarea, select {
+  font: inherit;
 }
 
 img {
