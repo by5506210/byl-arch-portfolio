@@ -83,8 +83,11 @@ function initVectorField() {
 
   _vfAttachListeners();
 
-  var ctx = canvas.getContext('2d');
+  var ctx = canvas.getContext('2d', { alpha: true, desynchronized: true }) || canvas.getContext('2d');
+  var isContentPage = !isLandingPage;
   var dpr = window.devicePixelRatio || 1;
+  var dprCap = isContentPage ? 1.2 : 1.5;
+  if (dpr > dprCap) dpr = dprCap;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
@@ -93,12 +96,11 @@ function initVectorField() {
   var darkLineColor = '26, 26, 26';
   var lineColor = isDarkLines ? darkLineColor : lightLineColor;
 
-  var isContentPage = !isLandingPage;
   var opacityScale = isContentPage ? 0.18 : 1.0;
 
   var isMobile = window.innerWidth < 768;
 
-  var spacing = isMobile ? 16 : 24;
+  var spacing = isContentPage ? (isMobile ? 20 : 30) : (isMobile ? 16 : 24);
   var lineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
   var lineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
   var mouseInfluence = 220;
@@ -199,7 +201,7 @@ function initVectorField() {
     easterEggX = fieldWidth * 0.82;
     easterEggY = isLandingPage ? fieldHeight * 0.78 : window.innerHeight * 0.78;
     isMobile = fieldWidth < 768;
-    spacing = isMobile ? 16 : 24;
+    spacing = isContentPage ? (isMobile ? 20 : 30) : (isMobile ? 16 : 24);
     lineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
     lineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
@@ -380,8 +382,10 @@ function initVectorField() {
 
     var mouseX = _vfMouseX;
     var mouseY = _vfMouseY;
-    if (!isLandingPage && mouseY > 0) {
-      mouseY += window.scrollY || window.pageYOffset || 0;
+    var pageScrollY = 0;
+    if (!isLandingPage) {
+      pageScrollY = window.scrollY || window.pageYOffset || 0;
+      if (mouseY > 0) mouseY += pageScrollY;
     }
     _vfScrollVelocity *= 0.9;
     _vfScrollKick *= 0.9;
@@ -416,7 +420,16 @@ function initVectorField() {
         portalCentered = _max(0, 1 - portalDist / (portalHoldRadius * 1.2));
       }
 
-    ctx.clearRect(0, 0, fieldWidth, fieldHeight);
+    var visibleTop = 0;
+    var visibleBottom = fieldHeight;
+    if (!isLandingPage) {
+      var visiblePadding = spacing * 3;
+      visibleTop = _max(0, pageScrollY - visiblePadding);
+      visibleBottom = _min(fieldHeight, pageScrollY + window.innerHeight + visiblePadding);
+      ctx.clearRect(0, visibleTop, fieldWidth, _max(1, visibleBottom - visibleTop));
+    } else {
+      ctx.clearRect(0, 0, fieldWidth, fieldHeight);
+    }
 
     if (assembleState && assembleState.active) {
       var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
@@ -694,6 +707,7 @@ function initVectorField() {
     var pLen = particles.length;
     for (var i = 0; i < pLen; i++) {
       var p = particles[i];
+      if (!isLandingPage && (p.y < visibleTop || p.y > visibleBottom)) continue;
       var lc = layerConfig[p.layer];
       var layerSpeedMult = lc[2];
       var lcOpacity = lc[0];
