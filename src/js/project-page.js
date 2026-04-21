@@ -453,9 +453,17 @@ function initProjectsAtlas() {
 
   if (!stage || nodes.length === 0) return;
   helix.classList.remove('projects-helix--ribbon-ready');
+  helix.classList.remove('projects-helix--is-ready');
+  helix.classList.add('projects-helix--is-entering');
   nodes.forEach(function (node, index) {
     node.dataset.nodeIndex = String(index);
   });
+
+  function setHelixReadyState() {
+    if (disposed || !helix.isConnected) return;
+    helix.classList.add('projects-helix--is-ready');
+    helix.classList.remove('projects-helix--is-entering');
+  }
 
   function getHelixPerformanceProfile() {
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1806,6 +1814,9 @@ function initProjectsAtlas() {
   layoutHelix();
   clearVisualState(true);
   ensureFallbackAnimation();
+  requestAnimationFrame(function () {
+    requestAnimationFrame(setHelixReadyState);
+  });
 }
 
 function initProjectsIndexPreview() {
