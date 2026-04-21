@@ -111,10 +111,12 @@ function initNavBar(rootContainer) {
   rememberPageForBackNav();
 
   var hero = scope.querySelector('.project-hero');
+  var isProjectsHelix = !!scope.querySelector('.projects-helix');
 
   // Build the unified bar
   var bar = document.createElement('div');
   bar.classList.add('project-nav-bar');
+  if (isProjectsHelix) bar.classList.add('project-nav-bar--projects-helix');
 
   // Left: back arrow — goes to previous page
   var logo = document.createElement('a');

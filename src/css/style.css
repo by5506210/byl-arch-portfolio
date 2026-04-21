@@ -3513,6 +3513,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   opacity: 0.5;
 }
 
+.project-nav-bar--projects-helix,
+.project-nav-bar--projects-helix.project-nav-bar--solid {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
 .project-nav-bar__links {
   display: flex;
   gap: 1.1rem;
