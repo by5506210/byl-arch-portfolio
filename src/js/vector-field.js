@@ -133,6 +133,11 @@ function initVectorField() {
   var portalChargeDuration = 1.02;
   var portalHoldRadius = 96;
   var portalHoldTriggered = false;
+  var isContactPage = !isLandingPage && !!document.querySelector('.contact-page');
+  var contactPulseAnchor = isContactPage ? document.querySelector('.contact-page__card') : null;
+  var contactPulseInterval = 2.2;
+  var lastContactPulseTime = -10;
+  var contactPulseHoverActive = false;
 
   var easterEggX = 0;
   var easterEggY = 0;
@@ -261,16 +266,34 @@ function initVectorField() {
     return d;
   }
 
-  function spawnRipple() {
+  function spawnRipple(originX, originY, maxRadiusOverride) {
     if (time - lastRippleTime < rippleCooldown) return;
     lastRippleTime = time;
+    var rippleX = typeof originX === 'number' ? originX : centerX;
+    var rippleY = typeof originY === 'number' ? originY : centerY;
+    var rippleRadiusCap = typeof maxRadiusOverride === 'number' ? maxRadiusOverride : rippleMaxRadius;
     ripples.push({
-      x: centerX,
-      y: centerY,
+      x: rippleX,
+      y: rippleY,
       birthTime: time,
       radius: 0,
-      maxRadius: rippleMaxRadius
+      maxRadius: rippleRadiusCap
     });
+  }
+
+  function resolveContactPulseCenter(scrollY) {
+    if (!contactPulseAnchor) {
+      return {
+        x: centerX,
+        y: (scrollY || 0) + window.innerHeight * 0.5
+      };
+    }
+    var rect = contactPulseAnchor.getBoundingClientRect();
+    var pageY = (typeof scrollY === 'number' ? scrollY : (window.scrollY || window.pageYOffset || 0));
+    return {
+      x: rect.left + rect.width * 0.5,
+      y: rect.top + pageY + rect.height * 0.5
+    };
   }
 
   function startAssembleTransition(config) {
@@ -553,6 +576,31 @@ function initVectorField() {
     // Prune old wake points
     while (wakeTrail.length > 0 && time - wakeTrail[0].time > wakeMaxAge) {
       wakeTrail.shift();
+    }
+
+    if (isContactPage) {
+      if (time - lastContactPulseTime > contactPulseInterval) {
+        var pulseCenter = resolveContactPulseCenter(pageScrollY);
+        lastRippleTime = -10;
+        spawnRipple(pulseCenter.x, pulseCenter.y, _max(window.innerWidth, window.innerHeight) * 0.72);
+        lastContactPulseTime = time;
+      }
+
+      if (mouseX > 0 && mouseY > 0) {
+        var hoverCenter = resolveContactPulseCenter(pageScrollY);
+        var hoverDx = mouseX - hoverCenter.x;
+        var hoverDy = mouseY - hoverCenter.y;
+        var isNearContactButton = hoverDx * hoverDx + hoverDy * hoverDy < 150 * 150;
+        if (isNearContactButton && !contactPulseHoverActive) {
+          lastRippleTime = -10;
+          spawnRipple(hoverCenter.x, hoverCenter.y, _max(window.innerWidth, window.innerHeight) * 0.62);
+          contactPulseHoverActive = true;
+        } else if (!isNearContactButton) {
+          contactPulseHoverActive = false;
+        }
+      } else {
+        contactPulseHoverActive = false;
+      }
     }
 
     // --- MOBILE DISCOVERY: first-touch ripple + idle nudges ---
@@ -957,11 +1005,11 @@ function initVectorField() {
     }
 
     // --- DRAW RIPPLE RINGS ---
-    if (isLandingPage) {
+    if (isLandingPage || isContactPage) {
       for (var rk = 0; rk < ripples.length; rk++) {
         var drip = ripples[rk];
         var ripAge = drip.radius / drip.maxRadius;
-        var ripAlpha = (1 - ripAge) * (1 - ripAge) * 0.15;
+        var ripAlpha = (1 - ripAge) * (1 - ripAge) * (isLandingPage ? 0.15 : 0.22);
         if (ripAlpha < 0.005) continue;
 
         ctx.beginPath();
