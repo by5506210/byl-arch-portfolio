@@ -289,13 +289,13 @@
           }, '-=0.12');
       },
 
-      beforeEnter: function () {
+      beforeEnter: function (data) {
         window.scrollTo(0, 0);
         document.body.style.background = DEFAULT_PAGE_BG;
 
         // Initialize page interactivity before reveal to avoid layout flashes.
         if (typeof initProjectPage === 'function') {
-          initProjectPage();
+          initProjectPage(data && data.next ? data.next.container : null);
         }
       },
 

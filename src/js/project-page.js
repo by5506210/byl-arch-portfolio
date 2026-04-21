@@ -102,12 +102,15 @@ function initParallaxHero() {
 }
 
 // Integrated nav bar — contains back, project name, and nav links
-function initNavBar() {
+function initNavBar(rootContainer) {
+  var scope = rootContainer && rootContainer.querySelector
+    ? rootContainer
+    : (document.querySelector('[data-barba="container"]') || document);
   // Skip on slideshow page — it has its own nav bar
-  if (document.querySelector('.slideshow-nav-bar')) return;
+  if (scope.querySelector('.slideshow-nav-bar')) return;
   rememberPageForBackNav();
 
-  var hero = document.querySelector('.project-hero');
+  var hero = scope.querySelector('.project-hero');
 
   // Build the unified bar
   var bar = document.createElement('div');
@@ -1961,7 +1964,7 @@ function initProjectsIndexPreview() {
 }
 
 // Initialize all features
-function initProjectPage() {
+function initProjectPage(rootContainer) {
   runProjectPageCleanup();
 
   // Clean up previous bar if exists
@@ -1972,9 +1975,10 @@ function initProjectPage() {
   initProjectsIndexPreview();
   initGalleryReveals();
   initParallaxHero();
-  initNavBar();
+  initNavBar(rootContainer);
   initSpecCounters();
   initFilmstrip();
 }
 
 initProjectPage();
+
