@@ -926,7 +926,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .slideshow__about-label {
   font-family: var(--font-primary);
-  font-size: 0.65rem;
+  font-size: 0.56rem;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -935,7 +935,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .slideshow__about-name {
   font-family: var(--font-primary);
-  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-size: clamp(1.2rem, 2.35vw, 1.75rem);
   font-weight: 400;
   color: var(--text-primary);
   letter-spacing: 0.05em;
@@ -2711,6 +2711,30 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   font-weight: 400;
   margin-bottom: 1.5rem;
   max-width: 52ch;
+}
+
+.about__actions {
+  margin-bottom: 1.7rem;
+}
+
+.about__cv-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-primary);
+  font-size: 0.66rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  padding: 0.45rem 0.8rem;
+  letter-spacing: 0.03em;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.about__cv-button:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.38);
+  color: var(--text-primary);
 }
 
 .about__name {
