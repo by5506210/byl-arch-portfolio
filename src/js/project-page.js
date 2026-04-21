@@ -445,8 +445,8 @@ function initProjectsAtlas() {
   var proximityLast = 0;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
   var performanceProfile = getHelixPerformanceProfile();
-  var WEBGL_MIN_FRAME_MS = performanceProfile.webglMinFrameMs;
-  var FALLBACK_MIN_FRAME_MS = performanceProfile.fallbackMinFrameMs;
+  var WEBGL_MIN_FRAME_MS = 0;
+  var FALLBACK_MIN_FRAME_MS = 0;
   var RIBBON_DEPTH_UPDATE_MS = performanceProfile.ribbonDepthUpdateMs;
   var disposed = false;
   var pendingThreeLoader = null;
