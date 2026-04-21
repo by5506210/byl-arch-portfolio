@@ -3460,6 +3460,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   z-index: 55;
   background: rgba(244, 242, 236, 0.94);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  opacity: 1;
 }
 
 /* Over hero — transparent with white text */
@@ -3477,9 +3478,10 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   opacity: 0;
 }
 
-/* Scrolled past hero — no bar, just text on the page */
+/* Scrolled past hero or pages without hero */
 .project-nav-bar--solid {
-  background: none;
+  background: rgba(244, 242, 236, 0.94);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .project-nav-bar--solid .project-nav-bar__link {
