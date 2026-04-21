@@ -450,6 +450,7 @@ function initProjectsAtlas() {
   var proximityLast = 0;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
   var performanceProfile = getHelixPerformanceProfile();
+  var isIPhoneDevice = detectIPhoneDevice();
   var WEBGL_MIN_FRAME_MS = 0;
   var FALLBACK_MIN_FRAME_MS = 0;
   var RIBBON_DEPTH_UPDATE_MS = performanceProfile.ribbonDepthUpdateMs;
@@ -530,6 +531,11 @@ function initProjectsAtlas() {
 
   function isCoarsePointer() {
     return window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function detectIPhoneDevice() {
+    var ua = navigator.userAgent || '';
+    return /iPhone/i.test(ua);
   }
 
   function resolveAbsoluteHref(href) {
@@ -1400,8 +1406,13 @@ function initProjectsAtlas() {
       var cameraDistance = isMobile ? 11.8 : 13.6;
       var cameraElevation = isMobile ? Math.PI * 0.185 : Math.PI * 0.2;
       var deviceRatio = window.devicePixelRatio || 1;
-      var targetPixelRatio = isMobile
-        ? Math.min(performanceProfile.mobilePixelMax, Math.max(1, deviceRatio))
+      var mobilePixelCap = performanceProfile.mobilePixelMax;
+      if (isIPhoneDevice) {
+        mobilePixelCap = Math.min(2, mobilePixelCap + 0.35);
+      }
+      var useMobilePixelCap = isMobile || isIPhoneDevice;
+      var targetPixelRatio = useMobilePixelCap
+        ? Math.min(mobilePixelCap, Math.max(1, deviceRatio))
         : Math.min(performanceProfile.desktopPixelMax, deviceRatio);
       viewportWidth = width;
       viewportHeight = height;
