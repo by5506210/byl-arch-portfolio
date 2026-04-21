@@ -5,6 +5,12 @@
 (function () {
   if (typeof barba === 'undefined' || typeof gsap === 'undefined') return;
   var DEFAULT_PAGE_BG = '#f4f2ec';
+  var PROJECTS_PAGE_BG = '#f6f3ee';
+
+  function getPageBackground(namespace) {
+    if (namespace === 'projects') return PROJECTS_PAGE_BG;
+    return DEFAULT_PAGE_BG;
+  }
 
   function rememberCurrentPage() {
     var current = window.location.pathname + window.location.search + window.location.hash;
@@ -262,6 +268,7 @@
       name: 'natural',
 
       leave: function (data) {
+        var nextNamespace = data.next && data.next.namespace ? data.next.namespace : '';
         helixZoomState = resolveHelixZoomState((data.next && data.next.url && (data.next.url.href || data.next.url.path)) || '');
         if (helixZoomState) {
           overlay.style.opacity = '0';
@@ -273,7 +280,7 @@
             });
         }
 
-        overlay.style.background = DEFAULT_PAGE_BG;
+        overlay.style.background = getPageBackground(nextNamespace);
 
         return gsap.timeline()
           .to(data.current.container, {
@@ -290,8 +297,9 @@
       },
 
       beforeEnter: function (data) {
+        var nextNamespace = data.next && data.next.namespace ? data.next.namespace : '';
         window.scrollTo(0, 0);
-        document.body.style.background = DEFAULT_PAGE_BG;
+        document.body.style.background = getPageBackground(nextNamespace);
 
         // Initialize page interactivity before reveal to avoid layout flashes.
         if (typeof initProjectPage === 'function') {
@@ -300,6 +308,8 @@
       },
 
       enter: function (data) {
+        var nextNamespace = data.next && data.next.namespace ? data.next.namespace : '';
+        var isProjectsPage = nextNamespace === 'projects';
         if (helixZoomState) {
           var helixTl = playHelixArrival(data.next.container, helixZoomState);
           if (helixTl) return helixTl;
@@ -307,7 +317,7 @@
           helixZoomState = null;
         }
 
-        gsap.set(data.next.container, { opacity: 0, y: 12 });
+        gsap.set(data.next.container, { opacity: isProjectsPage ? 1 : 0, y: 12 });
 
         return gsap.timeline()
           .to(overlay, {
