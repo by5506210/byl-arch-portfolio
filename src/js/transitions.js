@@ -5,7 +5,7 @@
 (function () {
   if (typeof barba === 'undefined' || typeof gsap === 'undefined') return;
   var DEFAULT_PAGE_BG = '#f4f2ec';
-  var PROJECTS_PAGE_BG = '#f6f3ee';
+  var PROJECTS_PAGE_BG = '#ffffff';
 
   function getPageBackground(namespace) {
     if (namespace === 'projects') return PROJECTS_PAGE_BG;
