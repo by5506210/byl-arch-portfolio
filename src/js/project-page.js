@@ -933,6 +933,7 @@ function initProjectsAtlas() {
 
     var dotGeometry = new THREE.SphereGeometry(0.08, 8, 8);
     var nodeData = [];
+    var nodeScreenState = [];
     var viewportWidth = 1;
     var viewportHeight = 1;
     var frameId = 0;
@@ -949,6 +950,7 @@ function initProjectsAtlas() {
     var tempProjectedRibbon = new THREE.Vector3();
     var ribbonTexture = null;
     var ribbonMeshRef = null;
+    var projectionSmoothing = isIPhoneDevice ? 0.28 : 0.34;
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -1216,6 +1218,7 @@ function initProjectsAtlas() {
     function buildWorld(width) {
       clearGroup();
       nodeData = [];
+      nodeScreenState = [];
       ribbonMeshRef = null;
 
       var total = nodes.length;
@@ -1322,6 +1325,35 @@ function initProjectsAtlas() {
       }
     }
 
+    function snapToDevicePixel(value) {
+      var dpr = Math.max(1, window.devicePixelRatio || 1);
+      return Math.round(value * dpr) / dpr;
+    }
+
+    function smoothProjectedNode(index, pointX, pointY, anchorX, anchorY) {
+      var state = nodeScreenState[index];
+      if (!state) {
+        state = {
+          pointX: pointX,
+          pointY: pointY,
+          anchorX: anchorX,
+          anchorY: anchorY
+        };
+        nodeScreenState[index] = state;
+      } else {
+        state.pointX += (pointX - state.pointX) * projectionSmoothing;
+        state.pointY += (pointY - state.pointY) * projectionSmoothing;
+        state.anchorX += (anchorX - state.anchorX) * projectionSmoothing;
+        state.anchorY += (anchorY - state.anchorY) * projectionSmoothing;
+      }
+
+      state.pointX = snapToDevicePixel(state.pointX);
+      state.pointY = snapToDevicePixel(state.pointY);
+      state.anchorX = snapToDevicePixel(state.anchorX);
+      state.anchorY = snapToDevicePixel(state.anchorY);
+      return state;
+    }
+
     function syncNodes(width, height, now) {
       group.updateMatrixWorld(true);
       if (!lastRibbonDepthUpdate || (now - lastRibbonDepthUpdate) >= RIBBON_DEPTH_UPDATE_MS) {
@@ -1341,6 +1373,11 @@ function initProjectsAtlas() {
         var pointY = (-tempProjectedPoint.y * 0.5 + 0.5) * height;
         var anchorX = (tempProjectedAnchor.x * 0.5 + 0.5) * width;
         var anchorY = (-tempProjectedAnchor.y * 0.5 + 0.5) * height;
+        var smoothedNode = smoothProjectedNode(index, pointX, pointY, anchorX, anchorY);
+        pointX = smoothedNode.pointX;
+        pointY = smoothedNode.pointY;
+        anchorX = smoothedNode.anchorX;
+        anchorY = smoothedNode.anchorY;
         var connectorDx = pointX - anchorX;
         var connectorDy = pointY - anchorY;
         var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
@@ -1449,6 +1486,7 @@ function initProjectsAtlas() {
       }
 
       clearGroup();
+      nodeScreenState = [];
       if (ribbonTexture && ribbonTexture.dispose) ribbonTexture.dispose();
       ribbonTexture = null;
       ribbonMeshRef = null;
