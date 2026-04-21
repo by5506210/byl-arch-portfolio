@@ -1767,6 +1767,18 @@ function initProjectsAtlas() {
 
   var nodeHandlers = [];
   nodes.forEach(function (node) {
+    var onMouseEnter = function (evt) {
+      if (disposed || isCoarsePointer()) return;
+      pointerClientX = evt.clientX;
+      pointerClientY = evt.clientY;
+      setTargetProximity(node, 1);
+      ensureProximityAnimation();
+    };
+    var onMouseLeave = function () {
+      if (disposed || isCoarsePointer()) return;
+      updateProximity(pointerClientX, pointerClientY);
+      ensureProximityAnimation();
+    };
     var onFocus = function () {
       if (disposed) return;
       activateSelection(node);
@@ -1781,9 +1793,17 @@ function initProjectsAtlas() {
       beginHelixThumbNavigation(node, evt);
     };
 
+    node.addEventListener('mouseenter', onMouseEnter);
+    node.addEventListener('mouseleave', onMouseLeave);
     node.addEventListener('focus', onFocus);
     node.addEventListener('click', onClick);
-    nodeHandlers.push({ node: node, onFocus: onFocus, onClick: onClick });
+    nodeHandlers.push({
+      node: node,
+      onMouseEnter: onMouseEnter,
+      onMouseLeave: onMouseLeave,
+      onFocus: onFocus,
+      onClick: onClick
+    });
   });
 
   function handleResize() {
@@ -1852,6 +1872,8 @@ function initProjectsAtlas() {
     stage.removeEventListener('mouseleave', handleStageMouseLeave);
 
     nodeHandlers.forEach(function (entry) {
+      entry.node.removeEventListener('mouseenter', entry.onMouseEnter);
+      entry.node.removeEventListener('mouseleave', entry.onMouseLeave);
       entry.node.removeEventListener('focus', entry.onFocus);
       entry.node.removeEventListener('click', entry.onClick);
     });
