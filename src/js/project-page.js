@@ -443,6 +443,7 @@ function initProjectsAtlas() {
   var nodeHitCache = [];
   var pointerClientX = 0;
   var pointerClientY = 0;
+  var pointerHoverNode = null;
   var pointerFrame = null;
   var proximityTarget = new WeakMap();
   var proximityCurrent = new WeakMap();
@@ -1695,7 +1696,7 @@ function initProjectsAtlas() {
     fallbackFrame = requestAnimationFrame(runFallbackFrame);
   }
 
-  function updateProximity(clientX, clientY) {
+  function updateProximity(clientX, clientY, hoveredNode) {
     if (disposed || !stage.isConnected) return;
     var stageRect = stage.getBoundingClientRect();
     var localX = clientX - stageRect.left;
@@ -1711,6 +1712,9 @@ function initProjectsAtlas() {
       var threshold = hit.threshold || 140;
       var proximity = Math.max(0, 1 - dist / threshold);
       proximity = proximity * proximity;
+      if (hoveredNode && hoveredNode === node) {
+        proximity = 1;
+      }
 
       setTargetProximity(node, proximity);
     });
@@ -1825,11 +1829,12 @@ function initProjectsAtlas() {
     if (isCoarsePointer()) return;
     pointerClientX = evt.clientX;
     pointerClientY = evt.clientY;
+    pointerHoverNode = evt.target && evt.target.closest ? evt.target.closest('.projects-helix__node') : null;
     if (pointerFrame) return;
     pointerFrame = requestAnimationFrame(function () {
       pointerFrame = null;
       selectedNode = null;
-      updateProximity(pointerClientX, pointerClientY);
+      updateProximity(pointerClientX, pointerClientY, pointerHoverNode);
     });
   }
 
@@ -1839,6 +1844,7 @@ function initProjectsAtlas() {
       cancelAnimationFrame(pointerFrame);
       pointerFrame = null;
     }
+    pointerHoverNode = null;
     if (selectedNode) {
       activateSelection(selectedNode);
       return;
