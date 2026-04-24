@@ -85,9 +85,8 @@ function initVectorField() {
 
   var ctx = canvas.getContext('2d', { alpha: true, desynchronized: true }) || canvas.getContext('2d');
   var isContentPage = !isLandingPage;
-  var dpr = window.devicePixelRatio || 1;
-  var dprCap = isContentPage ? 1.2 : 1.5;
-  if (dpr > dprCap) dpr = dprCap;
+  var dpr = 1;
+  var backingScale = 1;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
@@ -149,6 +148,7 @@ function initVectorField() {
   var easterEggVisible = false;
   var portalStyleCache = {};
   var portalClassState = {};
+  var portalStyleElapsed = 0;
 
   function setPortalVar(name, value) {
     if (!portal || portalStyleCache[name] === value) return;
@@ -205,27 +205,56 @@ function initVectorField() {
     setPortalVar('--portal-sweep-ring', '0deg');
   }
 
+  function applyResponsiveFieldSizing() {
+    var baseSpacing = isContentPage ? (isMobile ? 20 : 30) : (isMobile ? 16 : 24);
+    var baseLineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
+    var baseLineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
+
+    spacing = baseSpacing;
+    if (!isMobile) {
+      var particleBudget = isLandingPage ? 4200 : 3000;
+      var budgetSpacing = Math.sqrt((fieldWidth * fieldHeight) / particleBudget);
+      if (budgetSpacing > spacing) spacing = budgetSpacing;
+    }
+
+    var spacingScale = spacing / baseSpacing;
+    var visualScale = !isMobile ? Math.sqrt(spacingScale) : 1;
+    lineLen = baseLineLen * _min(1.18, visualScale);
+    lineWidth = baseLineWidth * _min(1.1, visualScale);
+  }
+
   function resize() {
     var parent = canvas.parentElement;
     fieldWidth = window.innerWidth;
     fieldHeight = isLandingPage
       ? window.innerHeight
       : _max(window.innerHeight, parent ? parent.scrollHeight : window.innerHeight);
+    isMobile = fieldWidth < 768;
 
-    canvas.width = fieldWidth * dpr;
-    canvas.height = fieldHeight * dpr;
+    var rawDpr = window.devicePixelRatio || 1;
+    var dprCap = isContentPage
+      ? (isMobile ? 1.2 : 1)
+      : (isMobile ? 1.5 : 1);
+    dpr = rawDpr > dprCap ? dprCap : rawDpr;
+    backingScale = dpr;
+    if (!isMobile) {
+      var pixelBudget = isLandingPage ? 2073600 : 1800000;
+      var scaledPixels = fieldWidth * fieldHeight * dpr * dpr;
+      if (scaledPixels > pixelBudget) {
+        backingScale = dpr * Math.sqrt(pixelBudget / scaledPixels);
+      }
+    }
+
+    canvas.width = Math.ceil(fieldWidth * backingScale);
+    canvas.height = Math.ceil(fieldHeight * backingScale);
     canvas.style.width = fieldWidth + 'px';
     canvas.style.height = fieldHeight + 'px';
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(backingScale, 0, 0, backingScale, 0, 0);
     centerX = fieldWidth / 2;
     centerY = fieldHeight / 2;
     easterEggX = fieldWidth * 0.82;
     easterEggY = isLandingPage ? fieldHeight * 0.78 : window.innerHeight * 0.78;
-    isMobile = fieldWidth < 768;
-    spacing = isContentPage ? (isMobile ? 20 : 30) : (isMobile ? 16 : 24);
-    lineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
-    lineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
+    applyResponsiveFieldSizing();
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
     maxGravityDistance = _max(fieldWidth, window.innerHeight) * 0.6;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
@@ -425,7 +454,7 @@ function initVectorField() {
     }
   }
 
-  var OPACITY_BUCKETS = 50;
+  var OPACITY_BUCKETS = 36;
   var rippleRingWidth = 120;
 
   function createStrokeBuckets(count) {
@@ -738,22 +767,36 @@ function initVectorField() {
         portalPulse = 0;
       }
 
-      portalSweep = time * (34 + portalCentered * 90 + portalCharge * 140);
+      var portalLive = portalProximity > 0.06 || portalCentered > 0.08 || portalCharge > 0.01;
 
       setPortalClass('is-near', portalProximity > 0.06 || portalCharge > 0.01);
       setPortalClass('is-centered', portalCentered > 0.08 || portalCharge > 0.03);
-      setPortalVar('--portal-proximity', portalProximity.toFixed(3));
-      setPortalVar('--portal-presence', portalPresence.toFixed(3));
-      setPortalVar('--portal-centered', portalCentered.toFixed(3));
-      setPortalVar('--portal-pulse', portalPulse.toFixed(3));
-      setPortalVar('--portal-idle', portalIdle.toFixed(3));
-      setPortalVar('--portal-breath', portalBreath.toFixed(3));
-      setPortalVar('--portal-idle-glow', portalIdleGlow.toFixed(3));
-      var portalSweepDeg = portalSweep * 57.2958;
-      setPortalVar('--portal-sweep', portalSweepDeg.toFixed(2) + 'deg');
-      setPortalVar('--portal-sweep-soft', (portalSweepDeg * 0.62).toFixed(2) + 'deg');
-      setPortalVar('--portal-sweep-reverse', (-portalSweepDeg * 0.88).toFixed(2) + 'deg');
-      setPortalVar('--portal-sweep-ring', (portalSweepDeg * 1.12).toFixed(2) + 'deg');
+
+      portalStyleElapsed += dt;
+      if (portalLive || portalStyleElapsed > 0.045) {
+        portalStyleElapsed = 0;
+        setPortalVar('--portal-proximity', portalProximity.toFixed(3));
+        setPortalVar('--portal-presence', portalPresence.toFixed(3));
+        setPortalVar('--portal-centered', portalCentered.toFixed(3));
+        setPortalVar('--portal-pulse', portalPulse.toFixed(3));
+        setPortalVar('--portal-idle', portalIdle.toFixed(3));
+        setPortalVar('--portal-breath', portalBreath.toFixed(3));
+        setPortalVar('--portal-idle-glow', portalIdleGlow.toFixed(3));
+
+        if (portalLive) {
+          portalSweep = time * (34 + portalCentered * 90 + portalCharge * 140);
+          var portalSweepDeg = portalSweep * 57.2958;
+          setPortalVar('--portal-sweep', portalSweepDeg.toFixed(2) + 'deg');
+          setPortalVar('--portal-sweep-soft', (portalSweepDeg * 0.62).toFixed(2) + 'deg');
+          setPortalVar('--portal-sweep-reverse', (-portalSweepDeg * 0.88).toFixed(2) + 'deg');
+          setPortalVar('--portal-sweep-ring', (portalSweepDeg * 1.12).toFixed(2) + 'deg');
+        } else {
+          setPortalVar('--portal-sweep', '0deg');
+          setPortalVar('--portal-sweep-soft', '0deg');
+          setPortalVar('--portal-sweep-reverse', '0deg');
+          setPortalVar('--portal-sweep-ring', '0deg');
+        }
+      }
     }
 
     // Update ripples
