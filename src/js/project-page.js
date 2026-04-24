@@ -452,11 +452,19 @@ function initProjectsAtlas() {
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
   var performanceProfile = getHelixPerformanceProfile();
   var isIPhoneDevice = detectIPhoneDevice();
-  var WEBGL_MIN_FRAME_MS = 0;
-  var FALLBACK_MIN_FRAME_MS = 0;
+  var WEBGL_MIN_FRAME_MS = performanceProfile.webglMinFrameMs;
+  var FALLBACK_MIN_FRAME_MS = performanceProfile.fallbackMinFrameMs;
   var RIBBON_DEPTH_UPDATE_MS = performanceProfile.ribbonDepthUpdateMs;
   var disposed = false;
   var pendingThreeLoader = null;
+  var activeSeriesValue = null;
+  var focusContextNode;
+  var stageRectCache = null;
+  var lastPointerLocalX = null;
+  var lastPointerLocalY = null;
+  var lastPointerHoverNode = null;
+  var readyRectTimer = null;
+  var proximityNeedsStep = true;
 
   if (!stage || nodes.length === 0) return;
   helix.classList.remove('projects-helix--ribbon-ready');
@@ -470,6 +478,12 @@ function initProjectsAtlas() {
     if (disposed || !helix.isConnected) return;
     helix.classList.add('projects-helix--is-ready');
     helix.classList.remove('projects-helix--is-entering');
+    invalidateStageRect();
+    if (readyRectTimer) window.clearTimeout(readyRectTimer);
+    readyRectTimer = window.setTimeout(function () {
+      readyRectTimer = null;
+      if (!disposed) invalidateStageRect();
+    }, 640);
   }
 
   function getHelixPerformanceProfile() {
@@ -697,6 +711,62 @@ function initProjectsAtlas() {
     helix.classList.add('projects-helix--ribbon-ready');
   }
 
+  function getStageRect() {
+    if (!stageRectCache) stageRectCache = stage.getBoundingClientRect();
+    return stageRectCache;
+  }
+
+  function invalidateStageRect() {
+    stageRectCache = null;
+    lastPointerLocalX = null;
+    lastPointerLocalY = null;
+    lastPointerHoverNode = null;
+  }
+
+  function setElementAttribute(element, name, value) {
+    if (!element) return;
+    if (!element.__helixAttrCache) element.__helixAttrCache = Object.create(null);
+    if (element.__helixAttrCache[name] === value) return;
+    element.__helixAttrCache[name] = value;
+    element.setAttribute(name, value);
+  }
+
+  function setNodeStyleValue(node, name, value) {
+    if (!node.__helixStyleCache) node.__helixStyleCache = Object.create(null);
+    if (node.__helixStyleCache[name] === value) return false;
+    node.__helixStyleCache[name] = value;
+    node.style.setProperty(name, value);
+    return true;
+  }
+
+  function setNodeDatasetValue(node, name, value) {
+    if (node.dataset[name] === value) return;
+    node.dataset[name] = value;
+  }
+
+  function setHitCache(index, x, y, threshold) {
+    var hit = nodeHitCache[index];
+    if (!hit) {
+      nodeHitCache[index] = { x: x, y: y, threshold: threshold };
+      return;
+    }
+    hit.x = x;
+    hit.y = y;
+    hit.threshold = threshold;
+  }
+
+  function setActiveSeries(value) {
+    var nextValue = value || '';
+    if (activeSeriesValue === nextValue) return;
+    activeSeriesValue = nextValue;
+    stage.setAttribute('data-active-series', nextValue);
+  }
+
+  function setFocusMode(value) {
+    if (stage.dataset.focusMode === value) return;
+    stage.dataset.focusMode = value;
+  }
+
   function setNodeLayer(node, proximity) {
     var depth = parseFloat(node.dataset.depth || '0.5');
     var strength = isNaN(proximity) ? 0 : proximity;
@@ -710,7 +780,10 @@ function initProjectsAtlas() {
       layer = 6 + Math.round((depth - 0.5) * 26 + strength * 18);
     }
 
-    node.style.zIndex = String(layer);
+    layer = String(layer);
+    if (node.__helixZIndex === layer) return;
+    node.__helixZIndex = layer;
+    node.style.zIndex = layer;
   }
 
   function setPrimaryNode(node) {
@@ -722,32 +795,50 @@ function initProjectsAtlas() {
   }
 
   function applyFocusContext(centerNode) {
-    if (!centerNode) {
-      stage.dataset.focusMode = 'off';
+    var nextCenter = centerNode || null;
+    if (focusContextNode === nextCenter) return;
+    focusContextNode = nextCenter;
+
+    if (!nextCenter) {
+      setFocusMode('off');
       nodes.forEach(function (node) {
-        node.style.setProperty('--focus-dim', '1');
+        setNodeStyleValue(node, '--focus-dim', '1');
       });
       return;
     }
 
-    stage.dataset.focusMode = 'on';
-    var centerIndex = parseInt(centerNode.dataset.nodeIndex || '-1', 10);
+    setFocusMode('on');
+    var centerIndex = parseInt(nextCenter.dataset.nodeIndex || '-1', 10);
     nodes.forEach(function (node, index) {
       var distance = Math.abs(index - centerIndex);
       var dim = distance === 0 ? 1 : distance === 1 ? 0.72 : 0.28;
-      node.style.setProperty('--focus-dim', dim.toFixed(3));
+      setNodeStyleValue(node, '--focus-dim', dim.toFixed(3));
     });
   }
 
   function setTargetProximity(node, value) {
-    proximityTarget.set(node, clamp(value, 0, 1));
+    var nextValue = clamp(value, 0, 1);
+    if ((proximityTarget.get(node) || 0) === nextValue) return false;
+    proximityTarget.set(node, nextValue);
+    proximityNeedsStep = true;
+    return true;
   }
 
   function applyNodeProximity(node, value) {
     var clamped = clamp(value, 0, 1);
-    node.style.setProperty('--proximity', clamped.toFixed(3));
-    node.classList.toggle('is-active', clamped > 0.22);
+    var isActive = clamped > 0.22;
+    setNodeStyleValue(node, '--proximity', clamped.toFixed(3));
+    if (node.__helixIsActive !== isActive) {
+      node.__helixIsActive = isActive;
+      node.classList.toggle('is-active', isActive);
+    }
     setNodeLayer(node, clamped);
+  }
+
+  function setActiveFocusNode(node) {
+    setPrimaryNode(node || null);
+    setActiveSeries(node ? node.dataset.series || '' : '');
+    applyFocusContext(node || null);
   }
 
   function stepProximity(deltaMs) {
@@ -774,21 +865,13 @@ function initProjectsAtlas() {
     });
 
     if (selectedNode) {
-      setPrimaryNode(selectedNode);
-      stage.setAttribute('data-active-series', selectedNode.dataset.series || '');
-      applyFocusContext(selectedNode);
+      setActiveFocusNode(selectedNode);
     } else if (bestNode && bestValue > 0.14) {
-      setPrimaryNode(bestNode);
-      stage.setAttribute('data-active-series', bestNode.dataset.series || '');
-      applyFocusContext(bestNode);
+      setActiveFocusNode(bestNode);
     } else if (primaryNode && (proximityCurrent.get(primaryNode) || 0) > 0.09) {
-      setPrimaryNode(primaryNode);
-      stage.setAttribute('data-active-series', primaryNode.dataset.series || '');
-      applyFocusContext(primaryNode);
+      setActiveFocusNode(primaryNode);
     } else {
-      setPrimaryNode(null);
-      stage.setAttribute('data-active-series', '');
-      applyFocusContext(null);
+      setActiveFocusNode(null);
     }
 
     return moving;
@@ -803,6 +886,7 @@ function initProjectsAtlas() {
     var delta = Math.min(48, now - proximityLast);
     proximityLast = now;
     var moving = stepProximity(delta || 16);
+    proximityNeedsStep = moving;
 
     if (moving) {
       proximityFrame = requestAnimationFrame(runProximityAnimation);
@@ -813,6 +897,7 @@ function initProjectsAtlas() {
 
   function ensureProximityAnimation() {
     if (disposed || !stage.isConnected) return;
+    if (document.hidden) return;
     if (webglHelix || fallbackFrame) return;
     if (proximityFrame) return;
     proximityLast = 0;
@@ -854,9 +939,7 @@ function initProjectsAtlas() {
         applyNodeProximity(node, 0);
       }
     });
-    setPrimaryNode(null);
-    applyFocusContext(null);
-    stage.setAttribute('data-active-series', '');
+    setActiveFocusNode(null);
     if (!immediate) ensureProximityAnimation();
   }
 
@@ -866,9 +949,7 @@ function initProjectsAtlas() {
       var isActive = item === node;
       setTargetProximity(item, isActive ? 1 : 0);
     });
-    setPrimaryNode(node);
-    applyFocusContext(node);
-    stage.setAttribute('data-active-series', node ? node.dataset.series : '');
+    setActiveFocusNode(node);
     ensureProximityAnimation();
   }
 
@@ -1387,16 +1468,18 @@ function initProjectsAtlas() {
         var fog = clamp(1 - depth, 0, 1);
         var hitThreshold = (width <= 820 ? 126 : 148) * (0.9 + depth * 0.7);
 
-        node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
-        node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
-        node.style.setProperty('--depth', depth.toFixed(3));
-        node.style.setProperty('--fog', fog.toFixed(3));
-        node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
-        node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
-        node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
-        node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
-        node.dataset.depth = depth.toFixed(3);
-        nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
+        var depthValue = depth.toFixed(3);
+        setNodeStyleValue(node, '--x', anchorX.toFixed(2) + 'px');
+        setNodeStyleValue(node, '--y', anchorY.toFixed(2) + 'px');
+        setNodeStyleValue(node, '--depth', depthValue);
+        setNodeStyleValue(node, '--fog', fog.toFixed(3));
+        setNodeStyleValue(node, '--arm-length', connectorLength.toFixed(2) + 'px');
+        setNodeStyleValue(node, '--arm-angle', connectorAngle.toFixed(2));
+        setNodeStyleValue(node, '--helix-dx', connectorDx.toFixed(2) + 'px');
+        setNodeStyleValue(node, '--helix-dy', connectorDy.toFixed(2) + 'px');
+        setNodeDatasetValue(node, 'depth', depthValue);
+        setHitCache(index, anchorX, anchorY, hitThreshold);
+        setNodeLayer(node, proximityCurrent.get(node) || 0);
       });
     }
 
@@ -1406,28 +1489,32 @@ function initProjectsAtlas() {
         return;
       }
       if (document.hidden) {
-        frameId = requestAnimationFrame(renderFrame);
+        frameId = 0;
+        lastFrameTime = 0;
         return;
       }
-      if (!lastFrameTime) lastFrameTime = now;
+      if (!lastFrameTime) lastFrameTime = now - WEBGL_MIN_FRAME_MS;
       var elapsed = now - lastFrameTime;
-      if (elapsed < WEBGL_MIN_FRAME_MS) {
+      if (WEBGL_MIN_FRAME_MS > 0 && elapsed < WEBGL_MIN_FRAME_MS) {
         frameId = requestAnimationFrame(renderFrame);
         return;
       }
       var delta = Math.min(64, elapsed);
-      lastFrameTime = now;
+      lastFrameTime = WEBGL_MIN_FRAME_MS > 0 ? now - (elapsed % WEBGL_MIN_FRAME_MS) : now;
 
       // Slow, clearly visible rotation.
       group.rotation.y += delta * 0.00006;
 
       renderer.render(scene, camera);
       syncNodes(viewportWidth, viewportHeight, now);
-      stepProximity(delta || 16);
+      if (proximityNeedsStep) {
+        proximityNeedsStep = stepProximity(delta || 16);
+      }
       frameId = requestAnimationFrame(renderFrame);
     }
 
     function ensureAnimation() {
+      if (document.hidden) return;
       if (frameId) return;
       lastFrameTime = 0;
       frameId = requestAnimationFrame(renderFrame);
@@ -1435,7 +1522,7 @@ function initProjectsAtlas() {
 
     function layout() {
       if (webglDestroyed || disposed || !stage.isConnected) return;
-      var rect = stage.getBoundingClientRect();
+      var rect = getStageRect();
       var width = Math.max(1, Math.round(rect.width));
       var height = Math.max(1, Math.round(rect.height));
       var aspect = width / height;
@@ -1452,6 +1539,13 @@ function initProjectsAtlas() {
       var targetPixelRatio = useMobilePixelCap
         ? Math.min(mobilePixelCap, Math.max(1, deviceRatio))
         : Math.min(performanceProfile.desktopPixelMax, deviceRatio);
+      var viewportPixels = width * height;
+      if (!useMobilePixelCap && viewportPixels > 1100000) {
+        targetPixelRatio = Math.min(targetPixelRatio, 1);
+      }
+      if (!useMobilePixelCap && viewportPixels > 1800000) {
+        targetPixelRatio = Math.min(targetPixelRatio, 0.9);
+      }
       viewportWidth = width;
       viewportHeight = height;
 
@@ -1500,7 +1594,7 @@ function initProjectsAtlas() {
     }
 
     webglFailureReason = '';
-    return { layout: layout, destroy: destroy };
+    return { layout: layout, destroy: destroy, resume: ensureAnimation };
   }
 
   function loadThreeFromCdn(onReady) {
@@ -1585,14 +1679,14 @@ function initProjectsAtlas() {
 
   function setOrbitGeometry(orbit, cx, cy, rx, ry) {
     if (!orbit) return;
-    orbit.setAttribute('cx', cx.toFixed(2));
-    orbit.setAttribute('cy', cy.toFixed(2));
-    orbit.setAttribute('rx', rx.toFixed(2));
-    orbit.setAttribute('ry', ry.toFixed(2));
+    setElementAttribute(orbit, 'cx', cx.toFixed(2));
+    setElementAttribute(orbit, 'cy', cy.toFixed(2));
+    setElementAttribute(orbit, 'rx', rx.toFixed(2));
+    setElementAttribute(orbit, 'ry', ry.toFixed(2));
   }
 
   function layoutHelixFallback() {
-    var rect = stage.getBoundingClientRect();
+    var rect = getStageRect();
     var width = rect.width;
     var height = rect.height;
     var isMobile = width <= 820;
@@ -1608,7 +1702,8 @@ function initProjectsAtlas() {
     var total = nodes.length;
 
     if (axisPath) {
-      axisPath.setAttribute(
+      setElementAttribute(
+        axisPath,
         'd',
         'M' + centerX.toFixed(2) + ' ' + (topY - orbitRadiusY * 1.35).toFixed(2) +
         ' L' + centerX.toFixed(2) + ' ' + (topY + loopHeight + orbitRadiusY * 1.35).toFixed(2)
@@ -1620,7 +1715,7 @@ function initProjectsAtlas() {
     setOrbitGeometry(orbitBottom, centerX, topY + loopHeight, radiusX, orbitRadiusY);
 
     if (threadPath) {
-      threadPath.setAttribute('d', buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle, viewAngle));
+      setElementAttribute(threadPath, 'd', buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle, viewAngle));
     }
 
     nodes.forEach(function (node, index) {
@@ -1641,16 +1736,18 @@ function initProjectsAtlas() {
       var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
       var hitThreshold = (isMobile ? 126 : 148) * (0.9 + depth * 0.7);
 
-      node.style.setProperty('--x', anchorX.toFixed(2) + 'px');
-      node.style.setProperty('--y', anchorY.toFixed(2) + 'px');
-      node.style.setProperty('--depth', depth.toFixed(3));
-      node.style.setProperty('--fog', fog.toFixed(3));
-      node.style.setProperty('--arm-length', connectorLength.toFixed(2) + 'px');
-      node.style.setProperty('--arm-angle', connectorAngle.toFixed(2));
-      node.style.setProperty('--helix-dx', connectorDx.toFixed(2) + 'px');
-      node.style.setProperty('--helix-dy', connectorDy.toFixed(2) + 'px');
-      node.dataset.depth = depth.toFixed(3);
-      nodeHitCache[index] = { x: anchorX, y: anchorY, threshold: hitThreshold };
+      var depthValue = depth.toFixed(3);
+      setNodeStyleValue(node, '--x', anchorX.toFixed(2) + 'px');
+      setNodeStyleValue(node, '--y', anchorY.toFixed(2) + 'px');
+      setNodeStyleValue(node, '--depth', depthValue);
+      setNodeStyleValue(node, '--fog', fog.toFixed(3));
+      setNodeStyleValue(node, '--arm-length', connectorLength.toFixed(2) + 'px');
+      setNodeStyleValue(node, '--arm-angle', connectorAngle.toFixed(2));
+      setNodeStyleValue(node, '--helix-dx', connectorDx.toFixed(2) + 'px');
+      setNodeStyleValue(node, '--helix-dy', connectorDy.toFixed(2) + 'px');
+      setNodeDatasetValue(node, 'depth', depthValue);
+      setHitCache(index, anchorX, anchorY, hitThreshold);
+      setNodeLayer(node, proximityCurrent.get(node) || 0);
     });
   }
 
@@ -1669,27 +1766,31 @@ function initProjectsAtlas() {
       return;
     }
     if (document.hidden) {
-      fallbackFrame = requestAnimationFrame(runFallbackFrame);
+      fallbackFrame = null;
+      fallbackLast = 0;
       return;
     }
-    if (!fallbackLast) fallbackLast = now;
+    if (!fallbackLast) fallbackLast = now - FALLBACK_MIN_FRAME_MS;
     var elapsed = now - fallbackLast;
-    if (elapsed < FALLBACK_MIN_FRAME_MS) {
+    if (FALLBACK_MIN_FRAME_MS > 0 && elapsed < FALLBACK_MIN_FRAME_MS) {
       fallbackFrame = requestAnimationFrame(runFallbackFrame);
       return;
     }
     var delta = Math.min(80, elapsed);
-    fallbackLast = now;
+    fallbackLast = FALLBACK_MIN_FRAME_MS > 0 ? now - (elapsed % FALLBACK_MIN_FRAME_MS) : now;
 
     fallbackRotation += delta * 0.00006;
     layoutHelixFallback();
-    stepProximity(delta || 16);
+    if (proximityNeedsStep) {
+      proximityNeedsStep = stepProximity(delta || 16);
+    }
 
     fallbackFrame = requestAnimationFrame(runFallbackFrame);
   }
 
   function ensureFallbackAnimation() {
     if (disposed || !stage.isConnected) return;
+    if (document.hidden) return;
     if (webglHelix) return;
     if (fallbackFrame) return;
     fallbackLast = 0;
@@ -1698,9 +1799,25 @@ function initProjectsAtlas() {
 
   function updateProximity(clientX, clientY, hoveredNode) {
     if (disposed || !stage.isConnected) return;
-    var stageRect = stage.getBoundingClientRect();
+    var stageRect = getStageRect();
     var localX = clientX - stageRect.left;
     var localY = clientY - stageRect.top;
+    var nextHoverNode = hoveredNode || null;
+    var targetChanged = false;
+
+    if (
+      lastPointerLocalX !== null &&
+      lastPointerLocalY !== null &&
+      lastPointerHoverNode === nextHoverNode &&
+      Math.abs(localX - lastPointerLocalX) < 0.75 &&
+      Math.abs(localY - lastPointerLocalY) < 0.75
+    ) {
+      return;
+    }
+
+    lastPointerLocalX = localX;
+    lastPointerLocalY = localY;
+    lastPointerHoverNode = nextHoverNode;
 
     nodes.forEach(function (node, index) {
       var hit = nodeHitCache[index];
@@ -1708,18 +1825,25 @@ function initProjectsAtlas() {
 
       var dx = localX - hit.x;
       var dy = localY - hit.y;
-      var dist = Math.sqrt(dx * dx + dy * dy);
       var threshold = hit.threshold || 140;
-      var proximity = Math.max(0, 1 - dist / threshold);
-      proximity = proximity * proximity;
-      if (hoveredNode && hoveredNode === node) {
+      var thresholdSq = threshold * threshold;
+      var distSq = dx * dx + dy * dy;
+      var proximity = 0;
+
+      if (distSq < thresholdSq) {
+        var dist = Math.sqrt(distSq);
+        proximity = Math.max(0, 1 - dist / threshold);
+        proximity = proximity * proximity;
+      }
+
+      if (nextHoverNode && nextHoverNode === node) {
         proximity = 1;
       }
 
-      setTargetProximity(node, proximity);
+      if (setTargetProximity(node, proximity)) targetChanged = true;
     });
 
-    ensureProximityAnimation();
+    if (targetChanged) ensureProximityAnimation();
   }
 
   function enableWebglIfPossible() {
@@ -1812,6 +1936,7 @@ function initProjectsAtlas() {
 
   function handleResize() {
     if (disposed) return;
+    invalidateStageRect();
     if (resizeFrame) cancelAnimationFrame(resizeFrame);
     resizeFrame = requestAnimationFrame(function () {
       if (disposed) return;
@@ -1822,6 +1947,35 @@ function initProjectsAtlas() {
         clearVisualState();
       }
     });
+  }
+
+  function handleScroll() {
+    if (disposed) return;
+    invalidateStageRect();
+  }
+
+  function handleVisibilityChange() {
+    if (disposed) return;
+    if (document.hidden) {
+      if (fallbackFrame) {
+        cancelAnimationFrame(fallbackFrame);
+        fallbackFrame = null;
+      }
+      if (proximityFrame) {
+        cancelAnimationFrame(proximityFrame);
+        proximityFrame = null;
+      }
+      fallbackLast = 0;
+      proximityLast = 0;
+      return;
+    }
+
+    invalidateStageRect();
+    if (webglHelix && typeof webglHelix.resume === 'function') {
+      webglHelix.resume();
+      return;
+    }
+    ensureFallbackAnimation();
   }
 
   function handleStageMouseMove(evt) {
@@ -1852,9 +2006,11 @@ function initProjectsAtlas() {
     clearVisualState();
   }
 
-  stage.addEventListener('mousemove', handleStageMouseMove);
+  stage.addEventListener('mousemove', handleStageMouseMove, { passive: true });
   stage.addEventListener('mouseleave', handleStageMouseLeave);
   window.addEventListener('resize', handleResize);
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   function cleanupAtlas() {
     if (disposed) return;
@@ -1864,16 +2020,20 @@ function initProjectsAtlas() {
 
     if (pendingThreeLoader) pendingThreeLoader.cancelled = true;
     if (resizeFrame) cancelAnimationFrame(resizeFrame);
+    if (readyRectTimer) window.clearTimeout(readyRectTimer);
     if (pointerFrame) cancelAnimationFrame(pointerFrame);
     if (proximityFrame) cancelAnimationFrame(proximityFrame);
     if (fallbackFrame) cancelAnimationFrame(fallbackFrame);
 
     resizeFrame = null;
+    readyRectTimer = null;
     pointerFrame = null;
     proximityFrame = null;
     fallbackFrame = null;
 
     window.removeEventListener('resize', handleResize);
+    window.removeEventListener('scroll', handleScroll);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
     stage.removeEventListener('mousemove', handleStageMouseMove);
     stage.removeEventListener('mouseleave', handleStageMouseLeave);
 
