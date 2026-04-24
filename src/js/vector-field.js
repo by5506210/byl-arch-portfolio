@@ -112,6 +112,9 @@ function initVectorField() {
   var centerY = 0;
   var fieldWidth = 0;
   var fieldHeight = 0;
+  var gridCols = 0;
+  var gridRows = 0;
+  var maxGravityDistance = 0;
   var particles = [];
   var time = 0;
   var lastFrameTime = 0;
@@ -144,6 +147,20 @@ function initVectorField() {
   var easterEggRadius = 200;
   var easterEgg = isLandingPage ? document.getElementById('easter-egg-portal') : null;
   var easterEggVisible = false;
+  var portalStyleCache = {};
+  var portalClassState = {};
+
+  function setPortalVar(name, value) {
+    if (!portal || portalStyleCache[name] === value) return;
+    portalStyleCache[name] = value;
+    portal.style.setProperty(name, value);
+  }
+
+  function setPortalClass(name, active) {
+    if (!portal || portalClassState[name] === active) return;
+    portalClassState[name] = active;
+    portal.classList.toggle(name, active);
+  }
 
   // --- RIPPLE SYSTEM ---
   var ripples = [];
@@ -174,18 +191,18 @@ function initVectorField() {
 
   if (portal) {
     portal.classList.add('is-visible');
-    portal.style.setProperty('--portal-proximity', '0');
-    portal.style.setProperty('--portal-charge', '0');
-    portal.style.setProperty('--portal-presence', '0');
-    portal.style.setProperty('--portal-centered', '0');
-    portal.style.setProperty('--portal-pulse', '0');
-    portal.style.setProperty('--portal-idle', '1');
-    portal.style.setProperty('--portal-breath', '0.5');
-    portal.style.setProperty('--portal-idle-glow', '0.08');
-    portal.style.setProperty('--portal-sweep', '0deg');
-    portal.style.setProperty('--portal-sweep-soft', '0deg');
-    portal.style.setProperty('--portal-sweep-reverse', '0deg');
-    portal.style.setProperty('--portal-sweep-ring', '0deg');
+    setPortalVar('--portal-proximity', '0');
+    setPortalVar('--portal-charge', '0');
+    setPortalVar('--portal-presence', '0');
+    setPortalVar('--portal-centered', '0');
+    setPortalVar('--portal-pulse', '0');
+    setPortalVar('--portal-idle', '1');
+    setPortalVar('--portal-breath', '0.5');
+    setPortalVar('--portal-idle-glow', '0.08');
+    setPortalVar('--portal-sweep', '0deg');
+    setPortalVar('--portal-sweep-soft', '0deg');
+    setPortalVar('--portal-sweep-reverse', '0deg');
+    setPortalVar('--portal-sweep-ring', '0deg');
   }
 
   function resize() {
@@ -210,6 +227,7 @@ function initVectorField() {
     lineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
     lineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
+    maxGravityDistance = _max(fieldWidth, window.innerHeight) * 0.6;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
     buildGrid();
   }
@@ -218,21 +236,36 @@ function initVectorField() {
     particles = [];
     var cols = Math.ceil(fieldWidth / spacing) + 1;
     var rows = Math.ceil(fieldHeight / spacing) + 1;
+    gridCols = cols;
+    gridRows = rows;
 
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
         // --- DEPTH LAYERS: 0=front, 1=mid, 2=back ---
         var layerRand = Math.random();
         var layer = layerRand < 0.6 ? 0 : (layerRand < 0.85 ? 1 : 2);
+        var px = col * spacing + spacing * 0.5;
+        var py = row * spacing + spacing * 0.5;
+        var seed1 = Math.random() * 100;
+        var seed2 = Math.random() * 100;
+        var seed3 = Math.random() * 100;
 
         particles.push({
-          x: col * spacing + spacing * 0.5,
-          y: row * spacing + spacing * 0.5,
+          x: px,
+          y: py,
           currentAngle: startAngle, // start aligned for awakening
           baseOpacity: (0.24 + Math.random() * 0.12) * opacityScale,
-          seed1: Math.random() * 100,
-          seed2: Math.random() * 100,
-          seed3: Math.random() * 100,
+          seed1: seed1,
+          seed2: seed2,
+          seed3: seed3,
+          waveX: px * 0.006,
+          waveXY: px * 0.004 + py * 0.008,
+          waveY: py * 0.01,
+          waveFastX: px * 0.012,
+          waveDiag: (px + py) * 0.003,
+          seed2Wave: seed2 * 5,
+          seed3Wave: seed3 * 3,
+          mouseWaveSeed: seed1 * 5,
           drift: (Math.random() - 0.5) * 1.0,
           mouseRadiusOffset: (Math.random() - 0.5) * 80,
           layer: layer
@@ -392,6 +425,42 @@ function initVectorField() {
     }
   }
 
+  var OPACITY_BUCKETS = 50;
+  var rippleRingWidth = 120;
+
+  function createStrokeBuckets(count) {
+    var bucketLines = new Array(count);
+    var bucketWidthSums = new Array(count);
+    var bucketCounts = new Array(count);
+
+    for (var bi = 0; bi < count; bi++) {
+      bucketLines[bi] = [];
+      bucketWidthSums[bi] = 0;
+      bucketCounts[bi] = 0;
+    }
+
+    return {
+      lines: bucketLines,
+      widthSums: bucketWidthSums,
+      counts: bucketCounts
+    };
+  }
+
+  function resetStrokeBuckets(buckets) {
+    var lines = buckets.lines;
+    var widthSums = buckets.widthSums;
+    var counts = buckets.counts;
+
+    for (var bi = 0; bi < lines.length; bi++) {
+      lines[bi].length = 0;
+      widthSums[bi] = 0;
+      counts[bi] = 0;
+    }
+  }
+
+  var fieldBuckets = createStrokeBuckets(OPACITY_BUCKETS);
+  var fieldBucketsDark = createStrokeBuckets(OPACITY_BUCKETS);
+
   window.setVectorFieldTransition = setTransitionState;
 
   function animate(timestamp) {
@@ -410,6 +479,7 @@ function initVectorField() {
       pageScrollY = window.scrollY || window.pageYOffset || 0;
       if (mouseY > 0) mouseY += pageScrollY;
     }
+    var mouseActive = mouseX > 0 && mouseY > 0;
     _vfScrollVelocity *= 0.9;
     _vfScrollKick *= 0.9;
     if (_abs(_vfScrollVelocity) < 0.001) _vfScrollVelocity = 0;
@@ -434,7 +504,7 @@ function initVectorField() {
       var portalIdleGlow = 0.08;
       var portalSweep = 0;
 
-      if (isLandingPage && mouseX > 0) {
+      if (isLandingPage && mouseActive) {
         var portalDx = mouseX - centerX;
         var portalDy = mouseY - centerY;
         portalDist = _sqrt(portalDx * portalDx + portalDy * portalDy);
@@ -458,24 +528,8 @@ function initVectorField() {
       var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
       var a1 = 1 - assembleProgress;
       var meltProgress = assembleProgress < 0.78 ? 0 : ((assembleProgress - 0.78) / 0.22);
-      var ASSEMBLE_BUCKETS = 50;
-      var assembleLines = new Array(ASSEMBLE_BUCKETS);
-      var assembleWidthSums = new Array(ASSEMBLE_BUCKETS);
-      var assembleCounts = new Array(ASSEMBLE_BUCKETS);
-      var assembleLinesDark = revealActive ? new Array(ASSEMBLE_BUCKETS) : null;
-      var assembleWidthSumsDark = revealActive ? new Array(ASSEMBLE_BUCKETS) : null;
-      var assembleCountsDark = revealActive ? new Array(ASSEMBLE_BUCKETS) : null;
-
-      for (var ab = 0; ab < ASSEMBLE_BUCKETS; ab++) {
-        assembleLines[ab] = [];
-        assembleWidthSums[ab] = 0;
-        assembleCounts[ab] = 0;
-        if (revealActive) {
-          assembleLinesDark[ab] = [];
-          assembleWidthSumsDark[ab] = 0;
-          assembleCountsDark[ab] = 0;
-        }
-      }
+      resetStrokeBuckets(fieldBuckets);
+      if (revealActive) resetStrokeBuckets(fieldBucketsDark);
 
       var assembleCount = assembleState.sortedParticles.length;
       for (var ai = 0; ai < assembleCount; ai++) {
@@ -527,27 +581,23 @@ function initVectorField() {
         var angleFactorAssemble = sinAssemble < 0 ? -sinAssemble : sinAssemble;
         var lineWidthAssemble = (lineWidth * alc[1]) * (0.65 + angleFactorAssemble * 0.55) * widthScaleAssemble;
         var clampedAssembleOpacity = drawOpacityAssemble < 0 ? 0 : (drawOpacityAssemble > 1 ? 1 : drawOpacityAssemble);
-        var assembleBucketIdx = (clampedAssembleOpacity * (ASSEMBLE_BUCKETS - 1) + 0.5) | 0;
+        var assembleBucketIdx = (clampedAssembleOpacity * (OPACITY_BUCKETS - 1) + 0.5) | 0;
         var insideReveal = revealActive && ((centerX - drawX) * (centerX - drawX) + (centerY - drawY) * (centerY - drawY)) <= revealRadiusSq;
-        var assembleBucket = insideReveal ? assembleLinesDark[assembleBucketIdx] : assembleLines[assembleBucketIdx];
+        var assembleBucketSet = insideReveal ? fieldBucketsDark : fieldBuckets;
+        var assembleBucket = assembleBucketSet.lines[assembleBucketIdx];
         assembleBucket.push(
           drawX - cosAssemble * halfLenAssemble,
           drawY - sinAssemble * halfLenAssemble,
           drawX + cosAssemble * halfLenAssemble,
           drawY + sinAssemble * halfLenAssemble
         );
-        if (insideReveal) {
-          assembleWidthSumsDark[assembleBucketIdx] += lineWidthAssemble;
-          assembleCountsDark[assembleBucketIdx]++;
-        } else {
-          assembleWidthSums[assembleBucketIdx] += lineWidthAssemble;
-          assembleCounts[assembleBucketIdx]++;
-        }
+        assembleBucketSet.widthSums[assembleBucketIdx] += lineWidthAssemble;
+        assembleBucketSet.counts[assembleBucketIdx]++;
       }
 
-      strokeBuckets(assembleLines, assembleWidthSums, assembleCounts, revealActive ? lightLineColor : lineColor);
+      strokeBuckets(fieldBuckets.lines, fieldBuckets.widthSums, fieldBuckets.counts, revealActive ? lightLineColor : lineColor);
       if (revealActive) {
-        strokeBuckets(assembleLinesDark, assembleWidthSumsDark, assembleCountsDark, darkLineColor);
+        strokeBuckets(fieldBucketsDark.lines, fieldBucketsDark.widthSums, fieldBucketsDark.counts, darkLineColor);
         if (revealRadius > 8) {
           ctx.beginPath();
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
@@ -562,7 +612,7 @@ function initVectorField() {
     }
 
     // --- WAKE TRAIL: record cursor path ---
-    if (mouseX > 0 && mouseY > 0) {
+    if (mouseActive) {
       var wdx = mouseX - lastWakeX;
       var wdy = mouseY - lastWakeY;
       if (wdx * wdx + wdy * wdy > 900) { // 30*30 = 900, skip sqrt
@@ -586,7 +636,7 @@ function initVectorField() {
         lastContactPulseTime = time;
       }
 
-      if (mouseX > 0 && mouseY > 0) {
+      if (mouseActive) {
         var hoverCenter = resolveContactPulseCenter(pageScrollY);
         var hoverDx = mouseX - hoverCenter.x;
         var hoverDy = mouseY - hoverCenter.y;
@@ -605,7 +655,7 @@ function initVectorField() {
 
     // --- MOBILE DISCOVERY: first-touch ripple + idle nudges ---
     if (isLandingPage) {
-      var isTouching = mouseX > 0 && mouseY > 0;
+      var isTouching = mouseActive;
 
       // #4: First touch anywhere → ripple from center
       if (isTouching && !hasEverTouched) {
@@ -641,8 +691,8 @@ function initVectorField() {
       var dxP = mouseX - centerX;
       var dyP = mouseY - centerY;
       var distToCenterSq = dxP * dxP + dyP * dyP;
-      var fingerInHoldZone = isMobile && mouseX > 0 && distToCenterSq < portalHoldRadius * portalHoldRadius;
-      var portalNear = mouseX > 0 && distToCenterSq < portalRevealDist * portalRevealDist;
+      var fingerInHoldZone = isMobile && mouseActive && distToCenterSq < portalHoldRadius * portalHoldRadius;
+      var portalNear = mouseActive && distToCenterSq < portalRevealDist * portalRevealDist;
 
       if (portalNear) {
         if (!wasNearPortal) {
@@ -658,8 +708,8 @@ function initVectorField() {
 
       if (fingerInHoldZone && !portalHoldTriggered) {
         portalCharge = _min(1, portalCharge + dt / portalChargeDuration);
-        portal.classList.add('is-charging');
-        portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
+        setPortalClass('is-charging', true);
+        setPortalVar('--portal-charge', portalCharge.toFixed(3));
         if (portalCharge >= 1 && typeof window.triggerLandingTransition === 'function') {
           portalHoldTriggered = true;
           window.triggerLandingTransition();
@@ -668,9 +718,9 @@ function initVectorField() {
         portalCharge = _max(0, portalCharge - dt * 1.8);
         if (portalCharge <= 0.001) {
           portalCharge = 0;
-          portal.classList.remove('is-charging');
         }
-        portal.style.setProperty('--portal-charge', portalCharge.toFixed(3));
+        setPortalClass('is-charging', portalCharge > 0.001);
+        setPortalVar('--portal-charge', portalCharge.toFixed(3));
       }
 
       portalPresence = portalProximity > 0
@@ -690,20 +740,20 @@ function initVectorField() {
 
       portalSweep = time * (34 + portalCentered * 90 + portalCharge * 140);
 
-      portal.classList.toggle('is-near', portalProximity > 0.06 || portalCharge > 0.01);
-      portal.classList.toggle('is-centered', portalCentered > 0.08 || portalCharge > 0.03);
-      portal.style.setProperty('--portal-proximity', portalProximity.toFixed(3));
-      portal.style.setProperty('--portal-presence', portalPresence.toFixed(3));
-      portal.style.setProperty('--portal-centered', portalCentered.toFixed(3));
-      portal.style.setProperty('--portal-pulse', portalPulse.toFixed(3));
-      portal.style.setProperty('--portal-idle', portalIdle.toFixed(3));
-      portal.style.setProperty('--portal-breath', portalBreath.toFixed(3));
-      portal.style.setProperty('--portal-idle-glow', portalIdleGlow.toFixed(3));
+      setPortalClass('is-near', portalProximity > 0.06 || portalCharge > 0.01);
+      setPortalClass('is-centered', portalCentered > 0.08 || portalCharge > 0.03);
+      setPortalVar('--portal-proximity', portalProximity.toFixed(3));
+      setPortalVar('--portal-presence', portalPresence.toFixed(3));
+      setPortalVar('--portal-centered', portalCentered.toFixed(3));
+      setPortalVar('--portal-pulse', portalPulse.toFixed(3));
+      setPortalVar('--portal-idle', portalIdle.toFixed(3));
+      setPortalVar('--portal-breath', portalBreath.toFixed(3));
+      setPortalVar('--portal-idle-glow', portalIdleGlow.toFixed(3));
       var portalSweepDeg = portalSweep * 57.2958;
-      portal.style.setProperty('--portal-sweep', portalSweepDeg.toFixed(2) + 'deg');
-      portal.style.setProperty('--portal-sweep-soft', (portalSweepDeg * 0.62).toFixed(2) + 'deg');
-      portal.style.setProperty('--portal-sweep-reverse', (-portalSweepDeg * 0.88).toFixed(2) + 'deg');
-      portal.style.setProperty('--portal-sweep-ring', (portalSweepDeg * 1.12).toFixed(2) + 'deg');
+      setPortalVar('--portal-sweep', portalSweepDeg.toFixed(2) + 'deg');
+      setPortalVar('--portal-sweep-soft', (portalSweepDeg * 0.62).toFixed(2) + 'deg');
+      setPortalVar('--portal-sweep-reverse', (-portalSweepDeg * 0.88).toFixed(2) + 'deg');
+      setPortalVar('--portal-sweep-ring', (portalSweepDeg * 1.12).toFixed(2) + 'deg');
     }
 
     // Update ripples
@@ -712,13 +762,18 @@ function initVectorField() {
       rip.radius += rippleSpeed * dt;
       if (rip.radius > rip.maxRadius) {
         ripples.splice(ri, 1);
+      } else {
+        rip.outer = rip.radius + rippleRingWidth;
+        rip.inner = rip.radius - rippleRingWidth;
+        var ripAgeFade = _max(0, 1 - rip.radius / rip.maxRadius);
+        rip.ageFadeSq = ripAgeFade * ripAgeFade;
       }
     }
 
     // --- Pre-compute per-frame easter egg cursor distance (invariant across particles) ---
     var eeSuppression = 0;
     var cursorNearEECached = 0;
-    if (isLandingPage) {
+    if (isLandingPage && mouseActive) {
       var _dceX = mouseX - easterEggX;
       var _dceY = mouseY - easterEggY;
       var _dceSq = _dceX * _dceX + _dceY * _dceY;
@@ -734,26 +789,30 @@ function initVectorField() {
 
     // --- Draw buffers: quantize opacity into buckets for batched drawing ---
     // Each bucket stores line segments as flat arrays: [x1, y1, x2, y2, x1, y1, x2, y2, ...]
-    var OPACITY_BUCKETS = 50;
-    var bucketLines = new Array(OPACITY_BUCKETS);
-    var bucketWidthSums = new Array(OPACITY_BUCKETS);
-    var bucketCounts = new Array(OPACITY_BUCKETS);
-    var bucketLinesDark = revealActive ? new Array(OPACITY_BUCKETS) : null;
-    var bucketWidthSumsDark = revealActive ? new Array(OPACITY_BUCKETS) : null;
-    var bucketCountsDark = revealActive ? new Array(OPACITY_BUCKETS) : null;
-    for (var bi = 0; bi < OPACITY_BUCKETS; bi++) {
-      bucketLines[bi] = [];
-      bucketWidthSums[bi] = 0;
-      bucketCounts[bi] = 0;
-      if (revealActive) {
-        bucketLinesDark[bi] = [];
-        bucketWidthSumsDark[bi] = 0;
-        bucketCountsDark[bi] = 0;
-      }
-    }
+    resetStrokeBuckets(fieldBuckets);
+    if (revealActive) resetStrokeBuckets(fieldBucketsDark);
 
     var pLen = particles.length;
-    for (var i = 0; i < pLen; i++) {
+    var particleStart = 0;
+    var particleEnd = pLen;
+    if (!isLandingPage && gridCols > 0) {
+      var firstVisibleRow = _max(0, ((visibleTop - spacing * 0.5) / spacing) | 0);
+      var lastVisibleRow = _min(gridRows - 1, ((visibleBottom - spacing * 0.5) / spacing + 1) | 0);
+      particleStart = firstVisibleRow * gridCols;
+      particleEnd = _min(pLen, (lastVisibleRow + 1) * gridCols);
+    }
+
+    var maxMouseRadius = mouseInfluence + 65;
+    var maxMouseRadiusSq = maxMouseRadius * maxMouseRadius;
+    var wakeRadiusSq = wakeRadius * wakeRadius;
+    var wakeLen = wakeTrail.length;
+    for (var wf = 0; wf < wakeLen; wf++) {
+      var wakePoint = wakeTrail[wf];
+      var wakeAge = (time - wakePoint.time) / wakeMaxAge;
+      wakePoint.fade = (1 - wakeAge) * (1 - wakeAge);
+    }
+
+    for (var i = particleStart; i < particleEnd; i++) {
       var p = particles[i];
       if (!isLandingPage && (p.y < visibleTop || p.y > visibleBottom)) continue;
       var lc = layerConfig[p.layer];
@@ -767,14 +826,14 @@ function initVectorField() {
 
       // Waves with layer-specific speed
       var waveTime = time * layerSpeedMult;
-      var wavePhase = p.x * 0.006 + waveTime * 1.6;
-      var swell = _sin(wavePhase) * 1.8 + _sin(p.x * 0.004 + p.y * 0.008 + waveTime * 1.15) * 1.3;
-      var cross = _cos(p.y * 0.01 + waveTime * 0.9) * 0.9 + _sin(p.x * 0.012 - waveTime * 1.25) * 0.65;
-      var deep = _sin((p.x + p.y) * 0.003 + waveTime * 0.45) * 1.0;
+      var wavePhase = p.waveX + waveTime * 1.6;
+      var swell = _sin(wavePhase) * 1.8 + _sin(p.waveXY + waveTime * 1.15) * 1.3;
+      var cross = _cos(p.waveY + waveTime * 0.9) * 0.9 + _sin(p.waveFastX - waveTime * 1.25) * 0.65;
+      var deep = _sin(p.waveDiag + waveTime * 0.45) * 1.0;
 
       var random = p.drift * _sin(waveTime * 0.7 + p.seed1) * 0.08
-                 + _sin(waveTime * 1.3 + p.seed2 * 5) * 0.05
-                 + _cos(waveTime * 0.9 + p.seed3 * 3) * 0.04;
+                 + _sin(waveTime * 1.3 + p.seed2Wave) * 0.05
+                 + _cos(waveTime * 0.9 + p.seed3Wave) * 0.04;
 
       var liveAngle = swell + cross + deep + random;
 
@@ -792,8 +851,7 @@ function initVectorField() {
           var gDiff = angleDiff(liveAngle, gSpiral);
           // Stronger pull closer to center, fades at edges
           var gDist = _sqrt(gDistSq);
-          var maxGravDist = _max(window.innerWidth, window.innerHeight) * 0.6;
-          var gFalloff = _max(0, 1 - gDist / maxGravDist);
+          var gFalloff = _max(0, 1 - gDist / maxGravityDistance);
           liveAngle += gDiff * gravityStrength * gFalloff;
         }
       }
@@ -805,23 +863,20 @@ function initVectorField() {
       var rippleAngleOffset = 0;
       var rippleOpacityBoost = 0;
       var rippleLenBoost = 0;
-      var ringWidth = 120;
       for (var rj = 0; rj < ripples.length; rj++) {
         var rp = ripples[rj];
         var rdx = p.x - rp.x;
         var rdy = p.y - rp.y;
         // Fast bounding-box reject before sqrt
-        var ringOuter = rp.radius + 120;
-        var ringInner = rp.radius - 120;
+        var ringOuter = rp.outer;
+        var ringInner = rp.inner;
         if (rdx > ringOuter || rdx < -ringOuter || rdy > ringOuter || rdy < -ringOuter) continue;
         var rDist = _sqrt(rdx * rdx + rdy * rdy);
         if (rDist > ringOuter || (ringInner > 0 && rDist < ringInner)) continue;
         var distFromRing = _abs(rDist - rp.radius);
 
-        if (distFromRing < ringWidth) {
-          var ageFade = _max(0, 1 - rp.radius / rp.maxRadius);
-          ageFade = ageFade * ageFade;
-          var ringStrength = (1 - distFromRing / ringWidth) * ageFade;
+        if (distFromRing < rippleRingWidth) {
+          var ringStrength = (1 - distFromRing / rippleRingWidth) * rp.ageFadeSq;
 
           var radialAngle = _atan2(rdy, rdx);
           var tangentAngle = radialAngle + PI * 0.5;
@@ -837,8 +892,7 @@ function initVectorField() {
       // --- WAKE TRAIL INFLUENCE ---
       var wakeAngleOffset = 0;
       var wakeOpacityBoost = 0;
-      var wakeRadiusSq = wakeRadius * wakeRadius;
-      for (var wi = 0; wi < wakeTrail.length; wi++) {
+      for (var wi = 0; wi < wakeLen; wi++) {
         var wp = wakeTrail[wi];
         var wdx2 = p.x - wp.x;
         var wdy2 = p.y - wp.y;
@@ -847,9 +901,7 @@ function initVectorField() {
         var wDistSq2 = wdx2 * wdx2 + wdy2 * wdy2;
         if (wDistSq2 < wakeRadiusSq) {
           var wDist2 = _sqrt(wDistSq2);
-          var wAge = (time - wp.time) / wakeMaxAge; // 0→1
-          var wFade = (1 - wAge) * (1 - wAge); // quadratic fadeout
-          var wStrength = (1 - wDist2 / wakeRadius) * wFade;
+          var wStrength = (1 - wDist2 / wakeRadius) * wp.fade;
           // Push outward from wake point
           var wAngle = _atan2(wdy2, wdx2);
           wakeAngleOffset += angleDiff(0, wAngle) * wStrength * 0.4;
@@ -922,40 +974,45 @@ function initVectorField() {
         }
       }
 
-      var dxM = mouseX - p.x;
-      var dyM = mouseY - p.y;
-      var distMSq = dxM * dxM + dyM * dyM;
-      var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset + _sin(time * 3 + p.seed1 * 5) * 25;
-      var particleMouseRadiusSq = particleMouseRadius * particleMouseRadius;
+      if (mouseActive) {
+        var dxM = mouseX - p.x;
+        var dyM = mouseY - p.y;
+        var distMSq = dxM * dxM + dyM * dyM;
 
-      var particleNearEE = 0;
-      if (isLandingPage) {
-        var _dpeX = p.x - easterEggX;
-        var _dpeY = p.y - easterEggY;
-        var _dpeSq = _dpeX * _dpeX + _dpeY * _dpeY;
-        if (_dpeSq < easterEggRadiusSq) {
-          particleNearEE = _max(0, 1 - _sqrt(_dpeSq) / easterEggRadius);
+        if (distMSq < maxMouseRadiusSq) {
+          var particleMouseRadius = mouseInfluence + p.mouseRadiusOffset + _sin(time * 3 + p.mouseWaveSeed) * 25;
+          var particleMouseRadiusSq = particleMouseRadius * particleMouseRadius;
+
+          if (distMSq < particleMouseRadiusSq) {
+            var particleNearEE = 0;
+            if (isLandingPage) {
+              var _dpeX = p.x - easterEggX;
+              var _dpeY = p.y - easterEggY;
+              var _dpeSq = _dpeX * _dpeX + _dpeY * _dpeY;
+              if (_dpeSq < easterEggRadiusSq) {
+                particleNearEE = _max(0, 1 - _sqrt(_dpeSq) / easterEggRadius);
+              }
+            }
+
+            var distM = _sqrt(distMSq);
+            var mStrength = (1 - distM / particleMouseRadius);
+            mStrength = mStrength * mStrength;
+            var mouseEffect = mStrength * (1 - bhResistance * 0.85);
+
+            if (particleNearEE > 0) {
+              var dimFactor = particleNearEE * mouseEffect;
+              drawOpacity *= _max(0.02, 1 - dimFactor * 3);
+            } else {
+              var brightenAmount = mouseEffect * 0.3 * opacityScale;
+              drawOpacity = _max(drawOpacity, p.baseOpacity * lcOpacity + brightenAmount);
+            }
+
+            var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
+            targetAngle += mouseDiff * mouseEffect * 0.9;
+            drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
+            speed = _max(speed, followSpeed + mouseEffect * 0.4);
+          }
         }
-      }
-
-      if (distMSq < particleMouseRadiusSq) {
-        var distM = _sqrt(distMSq);
-        var mStrength = (1 - distM / particleMouseRadius);
-        mStrength = mStrength * mStrength;
-        var mouseEffect = mStrength * (1 - bhResistance * 0.85);
-
-        if (particleNearEE > 0) {
-          var dimFactor = particleNearEE * mouseEffect;
-          drawOpacity *= _max(0.02, 1 - dimFactor * 3);
-        } else {
-          var brightenAmount = mouseEffect * 0.3 * opacityScale;
-          drawOpacity = _max(drawOpacity, p.baseOpacity * lcOpacity + brightenAmount);
-        }
-
-        var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
-        targetAngle += mouseDiff * mouseEffect * 0.9;
-        drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
-        speed = _max(speed, followSpeed + mouseEffect * 0.4);
       }
 
       if (bhResistance > 0.1) speed = _max(speed, returnSpeed + bhResistance * 0.35);
@@ -981,27 +1038,24 @@ function initVectorField() {
       // Width based on rotation: more rotated from horizontal = thicker
       var angleFactor = sinA < 0 ? -sinA : sinA; // abs without function call
       var angleWidth = (lineWidth * lcWidth) * (0.6 + angleFactor * 0.6) * widthScale;
+      if (drawOpacity <= 0.001 || drawLen <= 0.2 || angleWidth <= 0.02) continue;
 
       // Quantize opacity into bucket for batched drawing
       // Clamp to [0, 1] and map to bucket index
       var clampedOpacity = drawOpacity < 0 ? 0 : (drawOpacity > 1 ? 1 : drawOpacity);
       var bucketIdx = (clampedOpacity * (OPACITY_BUCKETS - 1) + 0.5) | 0;
       var useDarkBucket = revealActive && distCenterSq <= revealRadiusSq;
-      var bucket = useDarkBucket ? bucketLinesDark[bucketIdx] : bucketLines[bucketIdx];
+      var bucketSet = useDarkBucket ? fieldBucketsDark : fieldBuckets;
+      var bucket = bucketSet.lines[bucketIdx];
       bucket.push(p.x - cosA * halfLen, p.y - sinA * halfLen, p.x + cosA * halfLen, p.y + sinA * halfLen);
-      if (useDarkBucket) {
-        bucketWidthSumsDark[bucketIdx] += angleWidth;
-        bucketCountsDark[bucketIdx]++;
-      } else {
-        bucketWidthSums[bucketIdx] += angleWidth;
-        bucketCounts[bucketIdx]++;
-      }
+      bucketSet.widthSums[bucketIdx] += angleWidth;
+      bucketSet.counts[bucketIdx]++;
     }
 
     // --- BATCHED DRAW: one beginPath/stroke per opacity bucket ---
-    strokeBuckets(bucketLines, bucketWidthSums, bucketCounts, revealActive ? lightLineColor : lineColor);
+    strokeBuckets(fieldBuckets.lines, fieldBuckets.widthSums, fieldBuckets.counts, revealActive ? lightLineColor : lineColor);
     if (revealActive) {
-      strokeBuckets(bucketLinesDark, bucketWidthSumsDark, bucketCountsDark, darkLineColor);
+      strokeBuckets(fieldBucketsDark.lines, fieldBucketsDark.widthSums, fieldBucketsDark.counts, darkLineColor);
     }
 
     // --- DRAW RIPPLE RINGS ---
@@ -1077,9 +1131,12 @@ function initVectorField() {
         }
       }
 
-      var dxEEm = mouseX - easterEggX;
-      var dyEEm = mouseY - easterEggY;
-      var distToEE = _sqrt(dxEEm * dxEEm + dyEEm * dyEEm);
+      var distToEE = 100000;
+      if (mouseActive) {
+        var dxEEm = mouseX - easterEggX;
+        var dyEEm = mouseY - easterEggY;
+        distToEE = _sqrt(dxEEm * dxEEm + dyEEm * dyEEm);
+      }
       var cursorProximity = _max(0, 1 - distToEE / 200);
       var darkCenter = 0.25 + cursorProximity * 0.3;
       var darkMid = 0.08 + cursorProximity * 0.15;
@@ -1093,7 +1150,7 @@ function initVectorField() {
       ctx.fillRect(easterEggX - darkRadius, easterEggY - darkRadius, darkRadius * 2, darkRadius * 2);
 
       if (easterEgg) {
-        if (distToEE < 100 && mouseX > 0) {
+        if (distToEE < 100 && mouseActive) {
           if (!easterEggVisible) { easterEgg.classList.add('is-visible'); easterEggVisible = true; }
         } else {
           if (easterEggVisible) { easterEgg.classList.remove('is-visible'); easterEggVisible = false; }
