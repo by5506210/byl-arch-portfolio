@@ -3161,23 +3161,34 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .contact-page {
   background: var(--concrete);
   min-height: 100vh;
+  min-height: 100svh;
+  height: 100vh;
+  height: 100svh;
+  max-height: 100vh;
+  max-height: 100svh;
   color: var(--text-primary);
   position: relative;
   display: grid;
   place-items: center;
   isolation: isolate;
   overflow: hidden;
-  padding: 4rem 2rem;
+  overscroll-behavior: none;
+  padding: 42px 2rem 0;
+}
+
+body:has(.contact-page) {
+  overflow: hidden;
 }
 
 .contact-page .vector-field-bg {
-  opacity: 0.72;
+  opacity: 1;
   mix-blend-mode: multiply;
 }
 
 .contact-page__grid {
   width: 100%;
-  min-height: calc(100vh - 44px);
+  min-height: 0;
+  height: 100%;
   display: grid;
   place-items: center;
   position: relative;

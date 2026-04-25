@@ -88,6 +88,7 @@ function initVectorField() {
     canvas.getContext('2d', { alpha: true }) ||
     canvas.getContext('2d');
   var isContentPage = !isLandingPage;
+  var isContactPage = isContentPage && !!document.querySelector('.contact-page');
   var dpr = 1;
   var backingScale = 1;
   var resizeFrame = null;
@@ -104,13 +105,38 @@ function initVectorField() {
   var darkLineColor = '26, 26, 26';
   var lineColor = isDarkLines ? darkLineColor : lightLineColor;
 
-  var opacityScale = isContentPage ? 0.18 : 1.0;
+  var opacityScale = isContentPage ? (isContactPage ? 0.52 : 0.18) : 1.0;
 
   var isMobile = window.innerWidth < 768;
 
-  var spacing = isContentPage ? (isMobile ? 20 : 30) : (isMobile ? 16 : 24);
-  var lineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
-  var lineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
+  function resolveFieldMetrics() {
+    if (isContactPage) {
+      return {
+        spacing: isMobile ? 18 : 24,
+        lineLen: isMobile ? 11 : 14,
+        lineWidth: isMobile ? 1.15 : 1.35
+      };
+    }
+
+    if (isContentPage) {
+      return {
+        spacing: isMobile ? 20 : 30,
+        lineLen: 9,
+        lineWidth: 0.8
+      };
+    }
+
+    return {
+      spacing: isMobile ? 16 : 24,
+      lineLen: isMobile ? 11 : 16,
+      lineWidth: isMobile ? 1.2 : 1.7
+    };
+  }
+
+  var fieldMetrics = resolveFieldMetrics();
+  var spacing = fieldMetrics.spacing;
+  var lineLen = fieldMetrics.lineLen;
+  var lineWidth = fieldMetrics.lineWidth;
   var mouseInfluence = 220;
   var returnSpeed = 0.08;
   var followSpeed = 0.25;
@@ -144,7 +170,6 @@ function initVectorField() {
   var portalChargeDuration = 1.02;
   var portalHoldRadius = 96;
   var portalHoldTriggered = false;
-  var isContactPage = !isLandingPage && !!document.querySelector('.contact-page');
   var contactPulseAnchor = isContactPage ? document.querySelector('.contact-page__card') : null;
   var contactPulseInterval = 2.2;
   var lastContactPulseTime = -10;
@@ -215,13 +240,14 @@ function initVectorField() {
   }
 
   function applyResponsiveFieldSizing() {
-    var baseSpacing = isContentPage ? (isMobile ? 20 : 30) : (isMobile ? 16 : 24);
-    var baseLineLen = isContentPage ? 9 : (isMobile ? 11 : 16);
-    var baseLineWidth = isContentPage ? 0.8 : (isMobile ? 1.2 : 1.7);
+    var baseMetrics = resolveFieldMetrics();
+    var baseSpacing = baseMetrics.spacing;
+    var baseLineLen = baseMetrics.lineLen;
+    var baseLineWidth = baseMetrics.lineWidth;
 
     spacing = baseSpacing;
     if (!isMobile) {
-      var particleBudget = isLandingPage ? 4200 : 3000;
+      var particleBudget = isLandingPage ? 4200 : (isContactPage ? 3600 : 3000);
       var budgetSpacing = Math.sqrt((fieldWidth * fieldHeight) / particleBudget);
       if (budgetSpacing > spacing) spacing = budgetSpacing;
     }
