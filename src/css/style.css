@@ -587,6 +587,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   z-index: 55;
   background: rgba(244, 242, 236, 0.94);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(17, 17, 15, 0.06);
   opacity: 0;
 }
 
@@ -1127,7 +1128,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .project-hero__title {
   font-family: var(--font-primary);
   font-size: clamp(2rem, 5vw, 4rem);
-  font-weight: 700;
+  font-weight: 300;
   color: var(--white);
   overflow: hidden;
 }
@@ -3231,10 +3232,10 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .project-details__title {
   font-family: var(--font-primary);
   font-size: clamp(1.5rem, 2.5vw, 2.2rem);
-  font-weight: 700;
+  font-weight: 300;
   color: var(--text-primary);
   margin-bottom: 2rem;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .project-details__meta {
@@ -3491,15 +3492,19 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   z-index: 55;
   background: rgba(244, 242, 236, 0.94);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(17, 17, 15, 0.06);
   opacity: 1;
 }
 
-/* Over hero — transparent with white text */
+/* Over hero — translucent enough to keep the navigation readable over full-bleed images */
 .project-nav-bar--over-hero {
-  background: transparent;
+  background: rgba(244, 242, 236, 0.86);
+  border-bottom: 1px solid rgba(17, 17, 15, 0.12);
+  box-shadow: 0 8px 24px rgba(17, 17, 15, 0.12);
 }
 
-.project-nav-bar--over-hero .project-nav-bar__link {
+.project-nav-bar--over-hero .project-nav-bar__link,
+.project-nav-bar--over-hero .project-nav-bar__logo {
   color: var(--text-primary);
   text-shadow: none;
 }
@@ -3650,23 +3655,26 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   position: absolute;
   top: 45%;
   transform: translateY(-50%);
-  background: none;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(244, 242, 236, 0.9);
+  border: 1px solid rgba(17, 17, 15, 0.32);
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--text-primary);
-  transition: border-color 0.2s ease, opacity 0.2s ease;
+  font-size: 1rem;
+  color: rgba(17, 17, 15, 0.92);
+  box-shadow: 0 8px 24px rgba(17, 17, 15, 0.14);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
   border-radius: 0;
   z-index: 2;
 }
 
 .project-filmstrip__arrow:hover {
-  border-color: rgba(0, 0, 0, 0.35);
+  background: rgba(17, 17, 15, 0.9);
+  border-color: rgba(17, 17, 15, 0.9);
+  color: var(--white);
 }
 
 .project-filmstrip__arrow--disabled {
