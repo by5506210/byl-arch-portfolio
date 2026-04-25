@@ -32,6 +32,7 @@
   var snapRadiusFactor = 0.2;
   var snapActiveUntil = 0;
   var snapDirty = true;
+  var snapFollowTarget = false;
   var frameRequested = false;
   var hasInlineSize = false;
   var currentState = 'default';
@@ -124,7 +125,7 @@
 
   function updateSnapTargetRect(force) {
     if (!snapping || !snapTarget || !snapTarget.isConnected) return false;
-    if (!force && !snapDirty) return true;
+    if (!force && !snapDirty && !snapFollowTarget) return true;
     snapDirty = false;
     var rect = snapTarget.getBoundingClientRect();
     if (!rect || rect.width < 0.5 || rect.height < 0.5) return false;
@@ -135,10 +136,12 @@
   function beginSnap(targetEl, config) {
     if (!targetEl) return;
 
-    var nextKey = config.padX + ':' + config.padY + ':' + config.radiusCap + ':' + config.radiusFactor;
+    var shouldFollowTarget = !!config.followTarget;
+    var nextKey = config.padX + ':' + config.padY + ':' + config.radiusCap + ':' + config.radiusFactor + ':' + shouldFollowTarget;
     if (snapping && snapTarget === targetEl && lastSnapKey === nextKey) {
       enterSnapState();
       snapDirty = true;
+      snapFollowTarget = shouldFollowTarget;
       snapActiveUntil = performance.now() + 320;
       requestCursorFrame();
       return;
@@ -150,6 +153,7 @@
     snapPadY = config.padY;
     snapRadiusCap = config.radiusCap;
     snapRadiusFactor = config.radiusFactor;
+    snapFollowTarget = shouldFollowTarget;
     snapActiveUntil = performance.now() + 320;
     snapDirty = true;
     lastSnapKey = nextKey;
@@ -165,6 +169,7 @@
   function endSnap() {
     snapping = false;
     snapTarget = null;
+    snapFollowTarget = false;
     lastSnapKey = '';
     snapDirty = true;
   }
@@ -197,11 +202,11 @@
     var keepAnimating = false;
 
     if (snapping) {
-      var forceSnapMeasure = snapDirty || now < snapActiveUntil;
+      var forceSnapMeasure = snapDirty || snapFollowTarget || now < snapActiveUntil;
       if (!updateSnapTargetRect(forceSnapMeasure)) {
         setDefaultState();
       } else {
-        keepAnimating = now < snapActiveUntil;
+        keepAnimating = snapFollowTarget || now < snapActiveUntil;
       }
     }
 
@@ -263,7 +268,8 @@
         padX: 18,
         padY: 18,
         radiusCap: 8,
-        radiusFactor: 0.06
+        radiusFactor: 0.06,
+        followTarget: projectCard.classList.contains('projects-helix__node')
       });
       return;
     }

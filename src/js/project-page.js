@@ -444,6 +444,7 @@ function initProjectsAtlas() {
   var pointerClientX = 0;
   var pointerClientY = 0;
   var pointerHoverNode = null;
+  var pointerEventTarget = null;
   var pointerFrame = null;
   var proximityTarget = new WeakMap();
   var proximityCurrent = new WeakMap();
@@ -465,6 +466,7 @@ function initProjectsAtlas() {
   var lastPointerHoverNode = null;
   var readyRectTimer = null;
   var proximityNeedsStep = true;
+  var PROXIMITY_TARGET_STEPS = 80;
 
   if (!stage || nodes.length === 0) return;
   helix.classList.remove('projects-helix--ribbon-ready');
@@ -544,8 +546,10 @@ function initProjectsAtlas() {
     return Math.max(min, Math.min(max, value));
   }
 
+  var coarsePointerQuery = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+
   function isCoarsePointer() {
-    return window.matchMedia('(pointer: coarse)').matches;
+    return coarsePointerQuery ? coarsePointerQuery.matches : false;
   }
 
   function detectIPhoneDevice() {
@@ -818,6 +822,9 @@ function initProjectsAtlas() {
 
   function setTargetProximity(node, value) {
     var nextValue = clamp(value, 0, 1);
+    if (nextValue > 0 && nextValue < 1) {
+      nextValue = Math.round(nextValue * PROXIMITY_TARGET_STEPS) / PROXIMITY_TARGET_STEPS;
+    }
     if ((proximityTarget.get(node) || 0) === nextValue) return false;
     proximityTarget.set(node, nextValue);
     proximityNeedsStep = true;
@@ -852,11 +859,17 @@ function initProjectsAtlas() {
       var target = proximityTarget.get(node) || 0;
       var next = current + (target - current) * ease;
 
-      if (Math.abs(target - next) < 0.001) next = target;
-      if (Math.abs(next - current) > 0.0008) moving = true;
+      var changed = Math.abs(next - current) > 0.0008;
+      if (Math.abs(target - next) < 0.001) {
+        next = target;
+        changed = changed || next !== current;
+      }
+      if (changed) moving = true;
 
-      proximityCurrent.set(node, next);
-      applyNodeProximity(node, next);
+      if (changed) {
+        proximityCurrent.set(node, next);
+        applyNodeProximity(node, next);
+      }
 
       if (next > bestValue) {
         bestValue = next;
@@ -866,9 +879,11 @@ function initProjectsAtlas() {
 
     if (selectedNode) {
       setActiveFocusNode(selectedNode);
-    } else if (bestNode && bestValue > 0.14) {
+    } else if (pointerHoverNode && pointerHoverNode.isConnected) {
+      setActiveFocusNode(pointerHoverNode);
+    } else if (bestNode && bestValue > 0.28) {
       setActiveFocusNode(bestNode);
-    } else if (primaryNode && (proximityCurrent.get(primaryNode) || 0) > 0.09) {
+    } else if (primaryNode && (proximityCurrent.get(primaryNode) || 0) > 0.16) {
       setActiveFocusNode(primaryNode);
     } else {
       setActiveFocusNode(null);
@@ -1809,8 +1824,8 @@ function initProjectsAtlas() {
       lastPointerLocalX !== null &&
       lastPointerLocalY !== null &&
       lastPointerHoverNode === nextHoverNode &&
-      Math.abs(localX - lastPointerLocalX) < 0.75 &&
-      Math.abs(localY - lastPointerLocalY) < 0.75
+      Math.abs(localX - lastPointerLocalX) < 1.4 &&
+      Math.abs(localY - lastPointerLocalY) < 1.4
     ) {
       return;
     }
@@ -1818,6 +1833,14 @@ function initProjectsAtlas() {
     lastPointerLocalX = localX;
     lastPointerLocalY = localY;
     lastPointerHoverNode = nextHoverNode;
+
+    if (nextHoverNode) {
+      nodes.forEach(function (node) {
+        if (setTargetProximity(node, node === nextHoverNode ? 1 : 0)) targetChanged = true;
+      });
+      if (targetChanged) ensureProximityAnimation();
+      return;
+    }
 
     nodes.forEach(function (node, index) {
       var hit = nodeHitCache[index];
@@ -1835,10 +1858,7 @@ function initProjectsAtlas() {
         proximity = Math.max(0, 1 - dist / threshold);
         proximity = proximity * proximity;
       }
-
-      if (nextHoverNode && nextHoverNode === node) {
-        proximity = 1;
-      }
+      if (proximity < 0.02) proximity = 0;
 
       if (setTargetProximity(node, proximity)) targetChanged = true;
     });
@@ -1899,11 +1919,13 @@ function initProjectsAtlas() {
       if (disposed || isCoarsePointer()) return;
       pointerClientX = evt.clientX;
       pointerClientY = evt.clientY;
+      pointerHoverNode = node;
       setTargetProximity(node, 1);
       ensureProximityAnimation();
     };
     var onMouseLeave = function () {
       if (disposed || isCoarsePointer()) return;
+      if (pointerHoverNode === node) pointerHoverNode = null;
       updateProximity(pointerClientX, pointerClientY);
       ensureProximityAnimation();
     };
@@ -1983,11 +2005,14 @@ function initProjectsAtlas() {
     if (isCoarsePointer()) return;
     pointerClientX = evt.clientX;
     pointerClientY = evt.clientY;
-    pointerHoverNode = evt.target && evt.target.closest ? evt.target.closest('.projects-helix__node') : null;
+    pointerEventTarget = evt.target;
     if (pointerFrame) return;
     pointerFrame = requestAnimationFrame(function () {
+      var target = pointerEventTarget;
       pointerFrame = null;
+      pointerEventTarget = null;
       selectedNode = null;
+      pointerHoverNode = target && target.closest ? target.closest('.projects-helix__node') : null;
       updateProximity(pointerClientX, pointerClientY, pointerHoverNode);
     });
   }

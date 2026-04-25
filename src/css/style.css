@@ -2409,7 +2409,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   border: 1px solid rgba(17, 17, 15, 0.18);
   opacity: calc(0.34 + var(--focus-dim) * 0.66);
   box-shadow:
-    0 0 0 calc(1px + var(--proximity) * 3px) rgba(255, 255, 255, calc(0.1 + var(--proximity) * 0.1)),
+    0 0 0 1px rgba(255, 255, 255, 0.12),
     0 0 0 1px rgba(17, 17, 15, 0.04);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -2421,7 +2421,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   transform: translate3d(-50%, -50%, 0) scale(calc(1 + var(--depth) * 0.15 + var(--proximity) * var(--thumb-proximity-scale)));
   transform-origin: center center;
   overflow: hidden;
-  border: 1px solid rgba(17, 17, 15, calc(0.1 + var(--proximity) * 0.18));
+  border: 1px solid rgba(17, 17, 15, 0.12);
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.95);
   opacity: calc(0.26 + var(--focus-dim) * 0.74);
@@ -2492,6 +2492,17 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__node.is-active {
   opacity: 1;
   z-index: 8;
+}
+
+.projects-helix__node.is-active .projects-helix__thumb {
+  border-color: rgba(17, 17, 15, 0.28);
+}
+
+.projects-helix__node.is-active .projects-helix__core,
+.projects-helix__node.is-primary .projects-helix__core {
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.18),
+    0 0 0 1px rgba(17, 17, 15, 0.05);
 }
 
 .projects-helix__node:focus-visible {
