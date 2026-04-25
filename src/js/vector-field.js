@@ -83,10 +83,19 @@ function initVectorField() {
 
   _vfAttachListeners();
 
-  var ctx = canvas.getContext('2d', { alpha: true, desynchronized: true }) || canvas.getContext('2d');
+  var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  var ctx = canvas.getContext('2d', { alpha: true, desynchronized: coarsePointer }) ||
+    canvas.getContext('2d', { alpha: true }) ||
+    canvas.getContext('2d');
   var isContentPage = !isLandingPage;
   var dpr = 1;
   var backingScale = 1;
+  var resizeFrame = null;
+  var lastCanvasWidth = 0;
+  var lastCanvasHeight = 0;
+  var lastFieldWidth = 0;
+  var lastFieldHeight = 0;
+  var lastSpacing = 0;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
@@ -225,40 +234,81 @@ function initVectorField() {
 
   function resize() {
     var parent = canvas.parentElement;
-    fieldWidth = window.innerWidth;
-    fieldHeight = isLandingPage
+    var nextFieldWidth = window.innerWidth;
+    var nextFieldHeight = isLandingPage
       ? window.innerHeight
       : _max(window.innerHeight, parent ? parent.scrollHeight : window.innerHeight);
-    isMobile = fieldWidth < 768;
+    var nextIsMobile = nextFieldWidth < 768;
+    if (
+      !nextIsMobile &&
+      lastFieldHeight > 0 &&
+      nextFieldWidth === lastFieldWidth &&
+      Math.abs(nextFieldHeight - lastFieldHeight) <= 12
+    ) {
+      nextFieldHeight = lastFieldHeight;
+    }
 
     var rawDpr = window.devicePixelRatio || 1;
     var dprCap = isContentPage
-      ? (isMobile ? 1.2 : 1)
-      : (isMobile ? 1.5 : 1);
-    dpr = rawDpr > dprCap ? dprCap : rawDpr;
-    backingScale = dpr;
-    if (!isMobile) {
+      ? (nextIsMobile ? 1.2 : 1)
+      : (nextIsMobile ? 1.5 : 1);
+    var nextDpr = rawDpr > dprCap ? dprCap : rawDpr;
+    var nextBackingScale = nextDpr;
+    if (!nextIsMobile) {
       var pixelBudget = isLandingPage ? 2073600 : 1800000;
-      var scaledPixels = fieldWidth * fieldHeight * dpr * dpr;
+      var scaledPixels = nextFieldWidth * nextFieldHeight * nextDpr * nextDpr;
       if (scaledPixels > pixelBudget) {
-        backingScale = dpr * Math.sqrt(pixelBudget / scaledPixels);
+        nextBackingScale = nextDpr * Math.sqrt(pixelBudget / scaledPixels);
       }
     }
 
-    canvas.width = Math.ceil(fieldWidth * backingScale);
-    canvas.height = Math.ceil(fieldHeight * backingScale);
-    canvas.style.width = fieldWidth + 'px';
-    canvas.style.height = fieldHeight + 'px';
+    fieldWidth = nextFieldWidth;
+    fieldHeight = nextFieldHeight;
+    isMobile = nextIsMobile;
+    dpr = nextDpr;
+    backingScale = nextBackingScale;
+    applyResponsiveFieldSizing();
+
+    var canvasWidth = Math.ceil(fieldWidth * backingScale);
+    var canvasHeight = Math.ceil(fieldHeight * backingScale);
+    var sizeChanged = canvasWidth !== lastCanvasWidth ||
+      canvasHeight !== lastCanvasHeight ||
+      fieldWidth !== lastFieldWidth ||
+      fieldHeight !== lastFieldHeight;
+    var gridChanged = sizeChanged || Math.abs(spacing - lastSpacing) > 0.01;
+
+    if (sizeChanged) {
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      canvas.style.width = fieldWidth + 'px';
+      canvas.style.height = fieldHeight + 'px';
+      lastCanvasWidth = canvasWidth;
+      lastCanvasHeight = canvasHeight;
+      lastFieldWidth = fieldWidth;
+      lastFieldHeight = fieldHeight;
+    }
+
     ctx.setTransform(backingScale, 0, 0, backingScale, 0, 0);
     centerX = fieldWidth / 2;
     centerY = fieldHeight / 2;
     easterEggX = fieldWidth * 0.82;
     easterEggY = isLandingPage ? fieldHeight * 0.78 : window.innerHeight * 0.78;
-    applyResponsiveFieldSizing();
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
     maxGravityDistance = _max(fieldWidth, window.innerHeight) * 0.6;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
-    buildGrid();
+
+    if (gridChanged) {
+      buildGrid();
+      lastSpacing = spacing;
+    }
+  }
+
+  function scheduleResize() {
+    if (resizeFrame) cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(function () {
+      resizeFrame = null;
+      resize();
+    });
   }
 
   function buildGrid() {
@@ -454,7 +504,7 @@ function initVectorField() {
     }
   }
 
-  var OPACITY_BUCKETS = 36;
+  var OPACITY_BUCKETS = 64;
   var rippleRingWidth = 120;
 
   function createStrokeBuckets(count) {
@@ -1204,8 +1254,8 @@ function initVectorField() {
     requestAnimationFrame(animate);
   }
 
-  _vfResizeHandler = resize;
-  window.addEventListener('resize', resize);
+  _vfResizeHandler = scheduleResize;
+  window.addEventListener('resize', scheduleResize);
   resize();
   requestAnimationFrame(animate);
 
