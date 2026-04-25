@@ -3165,7 +3165,14 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   position: relative;
   display: grid;
   place-items: center;
+  isolation: isolate;
+  overflow: hidden;
   padding: 4rem 2rem;
+}
+
+.contact-page .vector-field-bg {
+  opacity: 0.72;
+  mix-blend-mode: multiply;
 }
 
 .contact-page__grid {
@@ -3200,7 +3207,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   letter-spacing: 0;
   line-height: 1;
   text-align: center;
-  text-shadow: none;
+  text-shadow: 0 1px 18px rgba(244, 242, 236, 0.88);
 }
 
 /* ============================================
