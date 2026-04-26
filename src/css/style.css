@@ -2255,6 +2255,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   contain: layout style;
   transform-origin: 50% 8%;
   will-change: transform, opacity;
+  touch-action: none;
 }
 
 .projects-helix--is-entering .projects-helix__stage {
@@ -2654,6 +2655,24 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 
   .projects-helix__label {
+    display: block;
+    min-width: 0;
+    max-width: min(72vw, 270px);
+    white-space: normal;
+    text-align: center;
+    opacity: 0;
+    padding-left: 0;
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.76),
+      0 8px 18px rgba(44, 36, 30, 0.12);
+  }
+
+  .projects-helix__node.is-active .projects-helix__label,
+  .projects-helix__node.is-primary .projects-helix__label {
+    opacity: calc((0.82 + var(--proximity) * 0.18) * var(--focus-dim));
+  }
+
+  .projects-helix__label::before {
     display: none;
   }
 }
@@ -2679,11 +2698,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   .projects-helix__label {
     font-size: 0.5rem;
     letter-spacing: 0.06em;
-    padding-left: 0.78rem;
-  }
-
-  .projects-helix__label::before {
-    font-size: 0.4rem;
   }
 
   .projects-helix__axis-note {

@@ -446,6 +446,13 @@ function initProjectsAtlas() {
   var pointerHoverNode = null;
   var pointerEventTarget = null;
   var pointerFrame = null;
+  var touchHoverNode = null;
+  var touchStartX = 0;
+  var touchStartY = 0;
+  var touchInteractionMoved = false;
+  var suppressNextCoarseClickNode = null;
+  var lastTouchInteractionTime = 0;
+  var touchSelectedNode = null;
   var proximityTarget = new WeakMap();
   var proximityCurrent = new WeakMap();
   var proximityFrame = null;
@@ -470,6 +477,7 @@ function initProjectsAtlas() {
   var entryReadyScheduled = false;
   var proximityNeedsStep = true;
   var PROXIMITY_TARGET_STEPS = 80;
+  var hasTouchInput = 'ontouchstart' in window || !!(navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
 
   if (!stage || nodes.length === 0) return;
   helix.classList.remove('projects-helix--ribbon-ready');
@@ -598,6 +606,10 @@ function initProjectsAtlas() {
 
   function isCoarsePointer() {
     return coarsePointerQuery ? coarsePointerQuery.matches : false;
+  }
+
+  function isTouchNavigationClick() {
+    return isCoarsePointer() || (hasTouchInput && Date.now() - lastTouchInteractionTime < 1200);
   }
 
   function detectIPhoneDevice() {
@@ -1048,6 +1060,7 @@ function initProjectsAtlas() {
 
   function clearVisualState(immediate) {
     selectedNode = null;
+    touchSelectedNode = null;
     nodes.forEach(function (node) {
       setTargetProximity(node, 0);
       if (immediate) {
@@ -1981,6 +1994,60 @@ function initProjectsAtlas() {
     if (targetChanged) ensureProximityAnimation();
   }
 
+  function findTouchNode(clientX, clientY) {
+    var stageRect = getStageRect();
+    var localX = clientX - stageRect.left;
+    var localY = clientY - stageRect.top;
+    var bestNode = null;
+    var bestValue = 0;
+
+    nodes.forEach(function (node, index) {
+      var hit = nodeHitCache[index];
+      if (!hit) return;
+
+      var dx = localX - hit.x;
+      var dy = localY - hit.y;
+      var threshold = (hit.threshold || 140) * 1.06;
+      var distSq = dx * dx + dy * dy;
+      var thresholdSq = threshold * threshold;
+      if (distSq >= thresholdSq) return;
+
+      var dist = Math.sqrt(distSq);
+      var proximity = Math.max(0, 1 - dist / threshold);
+      proximity = proximity * proximity;
+      if (proximity > bestValue) {
+        bestValue = proximity;
+        bestNode = node;
+      }
+    });
+
+    return bestValue > 0.045 ? bestNode : null;
+  }
+
+  function updateTouchHover(clientX, clientY, moved) {
+    var nextNode = findTouchNode(clientX, clientY);
+    pointerClientX = clientX;
+    pointerClientY = clientY;
+    pointerHoverNode = nextNode;
+    touchHoverNode = nextNode;
+
+    if (nextNode) {
+      var alreadyTouchSelected = selectedNode === nextNode && touchSelectedNode === nextNode;
+      if (moved || !alreadyTouchSelected) {
+        suppressNextCoarseClickNode = nextNode;
+      } else if (suppressNextCoarseClickNode === nextNode) {
+        suppressNextCoarseClickNode = null;
+      }
+      touchSelectedNode = nextNode;
+      activateSelection(nextNode);
+      return;
+    }
+
+    selectedNode = null;
+    touchSelectedNode = null;
+    updateProximity(clientX, clientY);
+  }
+
   function enableWebglIfPossible() {
     if (disposed || !stage.isConnected) return false;
     if (!webglMount || webglHelix || !window.THREE) return false;
@@ -2051,14 +2118,24 @@ function initProjectsAtlas() {
     };
     var onFocus = function () {
       if (disposed) return;
+      if (hasTouchInput && Date.now() - lastTouchInteractionTime < 800) return;
+      touchSelectedNode = null;
       activateSelection(node);
     };
     var onClick = function (evt) {
       if (disposed) return;
-      if (isCoarsePointer() && selectedNode !== node) {
-        evt.preventDefault();
-        activateSelection(node);
-        return;
+      if (isTouchNavigationClick()) {
+        if (suppressNextCoarseClickNode === node) {
+          evt.preventDefault();
+          suppressNextCoarseClickNode = null;
+          return;
+        }
+        if (selectedNode !== node) {
+          evt.preventDefault();
+          touchSelectedNode = node;
+          activateSelection(node);
+          return;
+        }
       }
       beginHelixThumbNavigation(node, evt);
     };
@@ -2132,6 +2209,7 @@ function initProjectsAtlas() {
       pointerFrame = null;
       pointerEventTarget = null;
       selectedNode = null;
+      touchSelectedNode = null;
       pointerHoverNode = target && target.closest ? target.closest('.projects-helix__node') : null;
       updateProximity(pointerClientX, pointerClientY, pointerHoverNode);
     });
@@ -2151,8 +2229,53 @@ function initProjectsAtlas() {
     clearVisualState();
   }
 
+  function getPrimaryTouch(evt) {
+    if (evt.touches && evt.touches.length) return evt.touches[0];
+    if (evt.changedTouches && evt.changedTouches.length) return evt.changedTouches[0];
+    return null;
+  }
+
+  function handleStageTouchStart(evt) {
+    if (disposed || !hasTouchInput) return;
+    var touch = getPrimaryTouch(evt);
+    if (!touch) return;
+    lastTouchInteractionTime = Date.now();
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchInteractionMoved = false;
+    updateTouchHover(touch.clientX, touch.clientY, false);
+  }
+
+  function handleStageTouchMove(evt) {
+    if (disposed || !hasTouchInput) return;
+    var touch = getPrimaryTouch(evt);
+    if (!touch) return;
+    if (evt.cancelable) evt.preventDefault();
+    lastTouchInteractionTime = Date.now();
+    var dx = touch.clientX - touchStartX;
+    var dy = touch.clientY - touchStartY;
+    touchInteractionMoved = touchInteractionMoved || (dx * dx + dy * dy > 36);
+    updateTouchHover(touch.clientX, touch.clientY, touchInteractionMoved);
+  }
+
+  function handleStageTouchEnd(evt) {
+    if (disposed || !hasTouchInput) return;
+    lastTouchInteractionTime = Date.now();
+    if (touchInteractionMoved && touchHoverNode) {
+      suppressNextCoarseClickNode = touchHoverNode;
+    }
+    if (suppressNextCoarseClickNode && evt && evt.cancelable) {
+      evt.preventDefault();
+    }
+    touchInteractionMoved = false;
+  }
+
   stage.addEventListener('mousemove', handleStageMouseMove, { passive: true });
   stage.addEventListener('mouseleave', handleStageMouseLeave);
+  stage.addEventListener('touchstart', handleStageTouchStart, { passive: true });
+  stage.addEventListener('touchmove', handleStageTouchMove, { passive: false });
+  stage.addEventListener('touchend', handleStageTouchEnd, { passive: false });
+  stage.addEventListener('touchcancel', handleStageTouchEnd, { passive: true });
   window.addEventListener('resize', handleResize);
   window.addEventListener('scroll', handleScroll, { passive: true });
   document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -2190,6 +2313,10 @@ function initProjectsAtlas() {
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     stage.removeEventListener('mousemove', handleStageMouseMove);
     stage.removeEventListener('mouseleave', handleStageMouseLeave);
+    stage.removeEventListener('touchstart', handleStageTouchStart);
+    stage.removeEventListener('touchmove', handleStageTouchMove);
+    stage.removeEventListener('touchend', handleStageTouchEnd);
+    stage.removeEventListener('touchcancel', handleStageTouchEnd);
 
     nodeHandlers.forEach(function (entry) {
       entry.node.removeEventListener('mouseenter', entry.onMouseEnter);
