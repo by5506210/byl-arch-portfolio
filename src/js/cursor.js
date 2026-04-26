@@ -36,6 +36,7 @@
   var navPreviewX = -140;
   var navPreviewY = -160;
   var navPreviewVisible = false;
+  var navPreviewAnchor = null;
   var navPreviewSrc = '';
   var lastNavPreviewTransform = '';
   var snapping = false;
@@ -265,13 +266,51 @@
     navPreview.style.transform = value;
   }
 
-  function showNavPreview(data) {
+  function getNavPreviewPosition(link) {
+    if (!link || !link.isConnected) return null;
+
+    var rect = link.getBoundingClientRect();
+    if (!rect || rect.width < 0.5 || rect.height < 0.5) return null;
+
+    var width = navPreview.offsetWidth || 112;
+    var height = navPreview.offsetHeight || 140;
+    var margin = 10;
+    var gap = 12;
+    var x = rect.left + rect.width * 0.5 - width * 0.5;
+    var y = rect.bottom + gap;
+
+    if (y + height > window.innerHeight - margin) {
+      y = Math.max(margin, rect.top - height - gap);
+    }
+
+    return {
+      x: x,
+      y: y
+    };
+  }
+
+  function setNavPreviewPositionFromLink(link) {
+    var position = getNavPreviewPosition(link);
+    if (!position) return false;
+
+    navPreviewX = position.x;
+    navPreviewY = position.y;
+    setNavPreviewTransform('translate3d(' + navPreviewX + 'px,' + navPreviewY + 'px,0)');
+    return true;
+  }
+
+  function showNavPreview(link, data) {
     if (!data || !data.src) return;
     endSnap();
+    navPreviewAnchor = link || null;
     if (navPreviewSrc !== data.src) {
       navPreviewSrc = data.src;
       navPreviewImg.src = data.src;
       navPreviewImg.alt = data.alt || '';
+    }
+    if (!setNavPreviewPositionFromLink(navPreviewAnchor)) {
+      navPreviewAnchor = null;
+      return;
     }
     navPreviewVisible = true;
     navPreview.classList.add('is-visible');
@@ -287,27 +326,19 @@
   function hideNavPreview() {
     if (!navPreviewVisible) return;
     navPreviewVisible = false;
+    navPreviewAnchor = null;
     navPreview.classList.remove('is-visible');
   }
 
   function updateNavPreviewPosition() {
     if (!navPreviewVisible) return false;
-
-    var width = navPreview.offsetWidth || 112;
-    var height = navPreview.offsetHeight || 140;
-    var targetX = mouseX + 16;
-    var targetY = mouseY + 20;
-    var margin = 10;
-
-    targetX = Math.max(margin, Math.min(window.innerWidth - width - margin, targetX));
-    if (targetY + height > window.innerHeight - margin) {
-      targetY = Math.max(margin, mouseY - height - 18);
+    if (!navPreviewAnchor || !navPreviewAnchor.isConnected) {
+      hideNavPreview();
+      return false;
     }
 
-    navPreviewX += (targetX - navPreviewX) * 0.34;
-    navPreviewY += (targetY - navPreviewY) * 0.34;
-    setNavPreviewTransform('translate3d(' + navPreviewX + 'px,' + navPreviewY + 'px,0)');
-    return _abs(targetX - navPreviewX) > 0.15 || _abs(targetY - navPreviewY) > 0.15;
+    setNavPreviewPositionFromLink(navPreviewAnchor);
+    return false;
   }
 
   function updateCursor(now) {
@@ -377,7 +408,7 @@
     var navPreviewLink = target.closest('.slideshow-nav-bar__link, .project-nav-bar__link, .nav__link');
     var navPreviewData = getNavPreviewData(navPreviewLink);
     if (navPreviewData) {
-      showNavPreview(navPreviewData);
+      showNavPreview(navPreviewLink, navPreviewData);
       return;
     }
 
