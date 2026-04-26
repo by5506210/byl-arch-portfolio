@@ -123,11 +123,22 @@
     setTransform('translate3d(' + left + 'px,' + top + 'px,0)');
   }
 
+  function getCachedSnapRect() {
+    if (!snapTarget) return null;
+    var rect = snapTarget.__cursorSnapRect || null;
+    if (!rect && snapTarget.closest) {
+      var helixNode = snapTarget.closest('.projects-helix__node');
+      rect = helixNode ? helixNode.__cursorSnapRect : null;
+    }
+    if (!rect || rect.width < 0.5 || rect.height < 0.5) return null;
+    return rect;
+  }
+
   function updateSnapTargetRect(force) {
     if (!snapping || !snapTarget || !snapTarget.isConnected) return false;
     if (!force && !snapDirty && !snapFollowTarget) return true;
     snapDirty = false;
-    var rect = snapTarget.getBoundingClientRect();
+    var rect = getCachedSnapRect() || snapTarget.getBoundingClientRect();
     if (!rect || rect.width < 0.5 || rect.height < 0.5) return false;
     applySnapRect(rect);
     return true;

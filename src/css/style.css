@@ -2440,7 +2440,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     0 2px 0 rgba(255, 255, 255, 0.42) inset,
     0 10px 18px rgba(44, 36, 30, 0.14);
   transition: none;
-  contain: layout style;
+  contain: layout style paint;
+  isolation: isolate;
   will-change: transform;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -2494,13 +2495,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   color: rgba(17, 17, 15, 0.54);
 }
 
-.projects-helix__stage[data-focus-mode='on'] .projects-helix__node:not(.is-primary) .projects-helix__thumb {
-  box-shadow:
-    0 2px 8px rgba(44, 36, 30, 0.1),
-    0 8px 18px rgba(44, 36, 30, 0.08);
-}
-
-.projects-helix__node:hover,
 .projects-helix__node:focus-visible,
 .projects-helix__node.is-active {
   opacity: 1;
@@ -2532,9 +2526,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix__node.is-primary .projects-helix__thumb {
   animation: none;
   border-color: rgba(17, 17, 15, 0.34);
-  box-shadow:
-    0 4px 10px rgba(44, 36, 30, 0.14),
-    0 12px 24px rgba(44, 36, 30, 0.2);
 }
 
 @keyframes helix-node-pulse {
