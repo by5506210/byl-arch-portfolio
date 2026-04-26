@@ -834,14 +834,14 @@ function initProjectsAtlas() {
 
   function applyThumbAxon(node, proximity) {
     var faceAmount = 1 - clamp(proximity || 0, 0, 1);
-    var baseSkewY = typeof node.__thumbAxonSkewY === 'number' ? node.__thumbAxonSkewY : 60;
+    var baseSkewY = typeof node.__thumbAxonSkewY === 'number' ? node.__thumbAxonSkewY : -30;
     var skewY = baseSkewY * faceAmount;
 
     setNodeStyleValue(node, '--thumb-skew-y', skewY.toFixed(2) + 'deg');
   }
 
   function updateThumbAxonBase(node, connectorDx, depth, proximity) {
-    node.__thumbAxonSkewY = 60;
+    node.__thumbAxonSkewY = -30;
     applyThumbAxon(node, proximity || 0);
   }
 

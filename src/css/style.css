@@ -2357,7 +2357,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --thumb-base-scale: 0.88;
   --thumb-proximity-scale: 0.74;
   --thumb-image-proximity-scale: 0.34;
-  --thumb-skew-y: 60deg;
+  --thumb-skew-y: -30deg;
   --arm-length: 0px;
   --arm-angle: 0;
   --helix-dx: 0px;
