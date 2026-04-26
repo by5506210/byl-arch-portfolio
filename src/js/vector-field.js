@@ -182,6 +182,11 @@ function initVectorField() {
   var easterEggRadius = 200;
   var easterEgg = isLandingPage ? document.getElementById('easter-egg-portal') : null;
   var easterEggVisible = false;
+  var easterEggCharge = 0;
+  var easterEggChargeDuration = 4;
+  var easterEggHoldRadius = touchCapable ? 128 : 108;
+  var easterEggHoldTriggered = false;
+  var easterEggStyleCache = {};
   var portalStyleCache = {};
   var portalClassState = {};
   var portalStyleElapsed = 0;
@@ -196,6 +201,20 @@ function initVectorField() {
     if (!portal || portalClassState[name] === active) return;
     portalClassState[name] = active;
     portal.classList.toggle(name, active);
+  }
+
+  function setEasterEggVar(name, value) {
+    if (!easterEgg || easterEggStyleCache[name] === value) return;
+    easterEggStyleCache[name] = value;
+    easterEgg.style.setProperty(name, value);
+  }
+
+  function openEasterEgg() {
+    if (!easterEgg || easterEggHoldTriggered) return;
+    easterEggHoldTriggered = true;
+    easterEgg.classList.add('is-opening');
+    var href = easterEgg.getAttribute('href');
+    if (href) window.location.href = href;
   }
 
   // --- RIPPLE SYSTEM ---
@@ -239,6 +258,10 @@ function initVectorField() {
     setPortalVar('--portal-sweep-soft', '0deg');
     setPortalVar('--portal-sweep-reverse', '0deg');
     setPortalVar('--portal-sweep-ring', '0deg');
+  }
+
+  if (easterEgg) {
+    setEasterEggVar('--easter-charge', '0');
   }
 
   function applyResponsiveFieldSizing() {
@@ -1271,10 +1294,24 @@ function initVectorField() {
       ctx.fillRect(easterEggX - darkRadius, easterEggY - darkRadius, darkRadius * 2, darkRadius * 2);
 
       if (easterEgg) {
-        if (distToEE < 100 && mouseActive) {
+        var easterEggNear = mouseActive && distToEE < easterEggHoldRadius;
+        if (easterEggNear) {
           if (!easterEggVisible) { easterEgg.classList.add('is-visible'); easterEggVisible = true; }
+          if (!easterEggHoldTriggered) {
+            easterEggCharge = _min(1, easterEggCharge + dt / easterEggChargeDuration);
+            easterEgg.classList.toggle('is-charging', easterEggCharge > 0.001);
+            setEasterEggVar('--easter-charge', easterEggCharge.toFixed(3));
+            if (easterEggCharge >= 1) openEasterEgg();
+          }
         } else {
-          if (easterEggVisible) { easterEgg.classList.remove('is-visible'); easterEggVisible = false; }
+          easterEggCharge = _max(0, easterEggCharge - dt * 1.15);
+          easterEgg.classList.toggle('is-charging', easterEggCharge > 0.001);
+          setEasterEggVar('--easter-charge', easterEggCharge.toFixed(3));
+          if (distToEE < 100 && mouseActive) {
+            if (!easterEggVisible) { easterEgg.classList.add('is-visible'); easterEggVisible = true; }
+          } else if (easterEggCharge <= 0.001) {
+            if (easterEggVisible) { easterEgg.classList.remove('is-visible'); easterEggVisible = false; }
+          }
         }
       }
     }
