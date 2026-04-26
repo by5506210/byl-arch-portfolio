@@ -804,6 +804,27 @@ function initProjectsAtlas() {
     node.style.zIndex = layer;
   }
 
+  function applyThumbAxon(node, proximity) {
+    var faceAmount = 1 - clamp(proximity || 0, 0, 1);
+    var rotateX = (node.__thumbAxonX || 48) * faceAmount;
+    var rotateY = (node.__thumbAxonY || 0) * faceAmount;
+    var rotateZ = (node.__thumbAxonZ || 0) * faceAmount;
+
+    setNodeStyleValue(node, '--thumb-rotate-x', rotateX.toFixed(2) + 'deg');
+    setNodeStyleValue(node, '--thumb-rotate-y', rotateY.toFixed(2) + 'deg');
+    setNodeStyleValue(node, '--thumb-rotate-z', rotateZ.toFixed(2) + 'deg');
+  }
+
+  function updateThumbAxonBase(node, connectorDx, depth, proximity) {
+    var normalizedDepth = clamp(depth, 0, 1);
+    var sideFactor = clamp(connectorDx / 140, -1, 1);
+
+    node.__thumbAxonX = 38 + (1 - normalizedDepth) * 16;
+    node.__thumbAxonY = sideFactor * (18 + (1 - normalizedDepth) * 10);
+    node.__thumbAxonZ = sideFactor * (7 + normalizedDepth * 6);
+    applyThumbAxon(node, proximity || 0);
+  }
+
   function setPrimaryNode(node) {
     if (primaryNode === node) return;
     primaryNode = node || null;
@@ -849,6 +870,7 @@ function initProjectsAtlas() {
     var clamped = clamp(value, 0, 1);
     var isActive = clamped > 0.22;
     setNodeStyleValue(node, '--proximity', clamped.toFixed(3));
+    applyThumbAxon(node, clamped);
     if (node.__helixIsActive !== isActive) {
       node.__helixIsActive = isActive;
       node.classList.toggle('is-active', isActive);
@@ -1507,6 +1529,7 @@ function initProjectsAtlas() {
         setNodeStyleValue(node, '--helix-dx', connectorDx.toFixed(2) + 'px');
         setNodeStyleValue(node, '--helix-dy', connectorDy.toFixed(2) + 'px');
         setNodeDatasetValue(node, 'depth', depthValue);
+        updateThumbAxonBase(node, connectorDx, depth, proximityCurrent.get(node) || 0);
         setHitCache(index, anchorX, anchorY, hitThreshold);
         setNodeLayer(node, proximityCurrent.get(node) || 0);
       });
@@ -1775,6 +1798,7 @@ function initProjectsAtlas() {
       setNodeStyleValue(node, '--helix-dx', connectorDx.toFixed(2) + 'px');
       setNodeStyleValue(node, '--helix-dy', connectorDy.toFixed(2) + 'px');
       setNodeDatasetValue(node, 'depth', depthValue);
+      updateThumbAxonBase(node, connectorDx, depth, proximityCurrent.get(node) || 0);
       setHitCache(index, anchorX, anchorY, hitThreshold);
       setNodeLayer(node, proximityCurrent.get(node) || 0);
     });
@@ -1940,8 +1964,10 @@ function initProjectsAtlas() {
       setTargetProximity(node, 1);
       ensureProximityAnimation();
     };
-    var onMouseLeave = function () {
+    var onMouseLeave = function (evt) {
       if (disposed || isCoarsePointer()) return;
+      pointerClientX = evt.clientX;
+      pointerClientY = evt.clientY;
       if (pointerHoverNode === node) pointerHoverNode = null;
       updateProximity(pointerClientX, pointerClientY);
       ensureProximityAnimation();
