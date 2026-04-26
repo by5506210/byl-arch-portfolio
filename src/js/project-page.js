@@ -863,16 +863,41 @@ function initProjectsAtlas() {
     applyThumbAxon(node, proximity || 0);
   }
 
+  function getThumbScaleProfile() {
+    var width = window.innerWidth || 0;
+    if (width <= 640) {
+      return {
+        base: 0.76,
+        responsive: 0.94,
+        depth: 0.09,
+        proximity: 0.48
+      };
+    }
+    if (width <= 900) {
+      return {
+        base: 0.82,
+        responsive: 1,
+        depth: 0.11,
+        proximity: 0.54
+      };
+    }
+    return {
+      base: 0.88,
+      responsive: 1,
+      depth: 0.15,
+      proximity: 0.74
+    };
+  }
+
   function cacheCursorSnapRect(node, centerX, centerY, depth, proximity) {
     var thumb = node.__helixThumbEl;
     if (!thumb) return;
 
-    var baseScale = 0.88;
-    var responsiveScale = window.innerWidth <= 900 ? 0.88 : 1;
+    var scaleProfile = getThumbScaleProfile();
     var proximityValue = clamp(proximity || 0, 0, 1);
-    var visualScale = 1 + clamp(depth || 0, 0, 1) * 0.15 + proximityValue * 0.74;
-    var width = node.__helixThumbW * baseScale * responsiveScale * visualScale;
-    var height = node.__helixThumbH * baseScale * responsiveScale * visualScale;
+    var visualScale = 1 + clamp(depth || 0, 0, 1) * scaleProfile.depth + proximityValue * scaleProfile.proximity;
+    var width = node.__helixThumbW * scaleProfile.base * scaleProfile.responsive * visualScale;
+    var height = node.__helixThumbH * scaleProfile.base * scaleProfile.responsive * visualScale;
     var skewY = typeof node.__thumbCurrentSkewY === 'number'
       ? node.__thumbCurrentSkewY
       : -30 * (1 - proximityValue);

@@ -2454,7 +2454,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --depth: 0.5;
   --fog: 0;
   --focus-dim: 1;
+  --node-base-scale: 0.82;
+  --node-depth-scale: 0.34;
+  --node-proximity-scale: 0.48;
   --thumb-base-scale: 0.88;
+  --thumb-responsive-scale: 1;
+  --thumb-depth-scale: 0.15;
   --thumb-proximity-scale: 0.74;
   --thumb-image-proximity-scale: 0.34;
   --thumb-skew-y: -30deg;
@@ -2470,7 +2475,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 0;
   display: block;
   color: inherit;
-  transform: translate3d(var(--x), var(--y), 0) translate(-50%, -50%) scale(calc(0.82 + var(--depth) * 0.34 + var(--proximity) * 0.48));
+  transform: translate3d(var(--x), var(--y), 0) translate(-50%, -50%) scale(calc(var(--node-base-scale) + var(--depth) * var(--node-depth-scale) + var(--proximity) * var(--node-proximity-scale)));
   transform-origin: center center;
   opacity: calc((0.24 + var(--depth) * 0.6 + var(--proximity) * 0.36) * (1 - var(--fog) * 0.34) * var(--focus-dim));
   transition: none;
@@ -2524,12 +2529,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__thumb {
-  width: calc(var(--thumb-w, 72px) * var(--thumb-base-scale));
-  height: calc(var(--thumb-h, 52px) * var(--thumb-base-scale));
+  width: calc(var(--thumb-w, 72px) * var(--thumb-base-scale) * var(--thumb-responsive-scale));
+  height: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * var(--thumb-responsive-scale));
   transform:
     translate3d(-50%, -50%, 0)
     skewY(var(--thumb-skew-y))
-    scale(calc(1 + var(--depth) * 0.15 + var(--proximity) * var(--thumb-proximity-scale)));
+    scale(calc(1 + var(--depth) * var(--thumb-depth-scale) + var(--proximity) * var(--thumb-proximity-scale)));
   transform-origin: center center;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, 0.12);
@@ -2561,7 +2566,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__label {
   min-width: max-content;
-  top: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * 0.5 + 12px);
+  top: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * var(--thumb-responsive-scale) * 0.5 + 12px);
   transform: translate3d(-50%, calc(6px + (1 - var(--proximity)) * 4px), 0);
   font-family: var(--font-primary);
   font-size: 0.54rem;
@@ -2648,6 +2653,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     padding-top: 4rem;
   }
 
+  .projects-helix__node {
+    --node-base-scale: 0.8;
+    --node-depth-scale: 0.3;
+    --node-proximity-scale: 0.38;
+    --thumb-base-scale: 0.82;
+    --thumb-depth-scale: 0.11;
+    --thumb-proximity-scale: 0.54;
+    --thumb-image-proximity-scale: 0.2;
+  }
+
   .projects-helix__viewport {
     width: min(99.4vw, 1080px);
     height: calc(100dvh - 4.65rem);
@@ -2690,9 +2705,15 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     min-height: 500px;
   }
 
-  .projects-helix__thumb {
-    width: calc(var(--thumb-w) * var(--thumb-base-scale) * 0.88);
-    height: calc(var(--thumb-h) * var(--thumb-base-scale) * 0.88);
+  .projects-helix__node {
+    --node-base-scale: 0.78;
+    --node-depth-scale: 0.27;
+    --node-proximity-scale: 0.34;
+    --thumb-base-scale: 0.76;
+    --thumb-responsive-scale: 0.94;
+    --thumb-depth-scale: 0.09;
+    --thumb-proximity-scale: 0.48;
+    --thumb-image-proximity-scale: 0.14;
   }
 
   .projects-helix__label {
