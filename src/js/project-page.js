@@ -465,6 +465,8 @@ function initProjectsAtlas() {
   var lastPointerLocalY = null;
   var lastPointerHoverNode = null;
   var readyRectTimer = null;
+  var entryReadyTimer = null;
+  var entryReadyScheduled = false;
   var proximityNeedsStep = true;
   var PROXIMITY_TARGET_STEPS = 80;
 
@@ -485,7 +487,19 @@ function initProjectsAtlas() {
     readyRectTimer = window.setTimeout(function () {
       readyRectTimer = null;
       if (!disposed) invalidateStageRect();
-    }, 640);
+    }, 1040);
+  }
+
+  function scheduleHelixReadyState() {
+    if (disposed || entryReadyScheduled) return;
+    entryReadyScheduled = true;
+    entryReadyTimer = window.setTimeout(function () {
+      entryReadyTimer = null;
+      if (disposed || !helix.isConnected) return;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(setHelixReadyState);
+      });
+    }, 70);
   }
 
   function getHelixPerformanceProfile() {
@@ -1889,6 +1903,7 @@ function initProjectsAtlas() {
     }
     layoutHelix();
     setRenderMode('webgl', 'three.js renderer active');
+    scheduleHelixReadyState();
     return true;
   }
 
@@ -1903,6 +1918,7 @@ function initProjectsAtlas() {
           ensureFallbackAnimation();
           setRibbonReadyState();
           setRenderMode('fallback', webglFailureReason || 'webgl unavailable');
+          scheduleHelixReadyState();
         }
       });
     } else {
@@ -1910,6 +1926,7 @@ function initProjectsAtlas() {
       ensureFallbackAnimation();
       setRibbonReadyState();
       setRenderMode('fallback', webglFailureReason || 'webgl unavailable');
+      scheduleHelixReadyState();
     }
   }
 
@@ -2046,12 +2063,14 @@ function initProjectsAtlas() {
     if (pendingThreeLoader) pendingThreeLoader.cancelled = true;
     if (resizeFrame) cancelAnimationFrame(resizeFrame);
     if (readyRectTimer) window.clearTimeout(readyRectTimer);
+    if (entryReadyTimer) window.clearTimeout(entryReadyTimer);
     if (pointerFrame) cancelAnimationFrame(pointerFrame);
     if (proximityFrame) cancelAnimationFrame(proximityFrame);
     if (fallbackFrame) cancelAnimationFrame(fallbackFrame);
 
     resizeFrame = null;
     readyRectTimer = null;
+    entryReadyTimer = null;
     pointerFrame = null;
     proximityFrame = null;
     fallbackFrame = null;
@@ -2080,10 +2099,6 @@ function initProjectsAtlas() {
 
   layoutHelix();
   clearVisualState(true);
-  ensureFallbackAnimation();
-  requestAnimationFrame(function () {
-    requestAnimationFrame(setHelixReadyState);
-  });
 }
 
 function initProjectsIndexPreview() {

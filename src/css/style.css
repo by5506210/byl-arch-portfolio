@@ -2154,17 +2154,23 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 100%;
   counter-reset: helix-node;
   contain: layout style;
+  transform-origin: 50% 8%;
+  will-change: transform, opacity;
 }
 
 .projects-helix--is-entering .projects-helix__stage {
   opacity: 0;
-  transform: translate3d(0, 18px, 0);
+  pointer-events: none;
+  transform: translate3d(0, -52px, 0) scale(0.985);
 }
 
 .projects-helix--is-ready .projects-helix__stage {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition: opacity 0.42s ease, transform 0.56s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    opacity 0.62s ease,
+    transform 0.92s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
