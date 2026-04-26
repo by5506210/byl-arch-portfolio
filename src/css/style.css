@@ -2459,6 +2459,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --node-proximity-scale: 0.48;
   --thumb-base-scale: 0.88;
   --thumb-responsive-scale: 1;
+  --thumb-raster-scale: 1;
+  --thumb-raster-compensation: 1;
   --thumb-depth-scale: 0.15;
   --thumb-proximity-scale: 0.74;
   --thumb-image-proximity-scale: 0.34;
@@ -2529,12 +2531,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__thumb {
-  width: calc(var(--thumb-w, 72px) * var(--thumb-base-scale) * var(--thumb-responsive-scale));
-  height: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * var(--thumb-responsive-scale));
+  width: calc(var(--thumb-w, 72px) * var(--thumb-base-scale) * var(--thumb-responsive-scale) * var(--thumb-raster-scale));
+  height: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * var(--thumb-responsive-scale) * var(--thumb-raster-scale));
   transform:
     translate3d(-50%, -50%, 0)
     skewY(var(--thumb-skew-y))
-    scale(calc(1 + var(--depth) * var(--thumb-depth-scale) + var(--proximity) * var(--thumb-proximity-scale)));
+    scale(calc((1 + var(--depth) * var(--thumb-depth-scale) + var(--proximity) * var(--thumb-proximity-scale)) * var(--thumb-raster-compensation)));
   transform-origin: center center;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, 0.12);
@@ -2648,6 +2650,13 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 }
 
+@media (any-pointer: coarse) {
+  .projects-helix__node {
+    --thumb-raster-scale: 1.06;
+    --thumb-raster-compensation: 0.943;
+  }
+}
+
 @media (max-width: 900px) {
   .projects-index.projects-helix {
     padding-top: 4rem;
@@ -2658,6 +2667,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     --node-depth-scale: 0.3;
     --node-proximity-scale: 0.38;
     --thumb-base-scale: 0.82;
+    --thumb-raster-scale: 1.08;
+    --thumb-raster-compensation: 0.926;
     --thumb-depth-scale: 0.11;
     --thumb-proximity-scale: 0.54;
     --thumb-image-proximity-scale: 0.2;
@@ -2711,6 +2722,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     --node-proximity-scale: 0.34;
     --thumb-base-scale: 0.76;
     --thumb-responsive-scale: 0.94;
+    --thumb-raster-scale: 1.12;
+    --thumb-raster-compensation: 0.893;
     --thumb-depth-scale: 0.09;
     --thumb-proximity-scale: 0.48;
     --thumb-image-proximity-scale: 0.14;

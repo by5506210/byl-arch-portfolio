@@ -1283,13 +1283,16 @@ function initProjectsAtlas() {
         });
 
       var frameCount = Math.max(12, sourceImages.length * 2);
-      var frameW = 28;
-      var frameH = 18;
+      var isTouchSizedTexture = hasTouchInput || (window.innerWidth || 0) <= 900;
+      var frameW = isTouchSizedTexture ? 34 : 28;
+      var frameH = isTouchSizedTexture ? 22 : 18;
       var canvas = document.createElement('canvas');
       canvas.width = frameCount * frameW;
       canvas.height = frameH;
       var ctx = canvas.getContext('2d');
       if (!ctx) return null;
+      ctx.imageSmoothingEnabled = true;
+      if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = isTouchSizedTexture ? 'high' : 'medium';
       var texture = new THREE.CanvasTexture(canvas);
 
       function redrawFromThumbs() {
