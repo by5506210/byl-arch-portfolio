@@ -84,6 +84,7 @@ function initVectorField() {
   _vfAttachListeners();
 
   var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  var touchCapable = coarsePointer || !!(navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
   var ctx = canvas.getContext('2d', { alpha: true, desynchronized: coarsePointer }) ||
     canvas.getContext('2d', { alpha: true }) ||
     canvas.getContext('2d');
@@ -168,7 +169,8 @@ function initVectorField() {
   var portalGlowDist = 390;
   var portalCharge = 0;
   var portalChargeDuration = 1.02;
-  var portalHoldRadius = 96;
+  var portalHoldRadius = touchCapable ? (isMobile ? 104 : 124) : 96;
+  var portalHoldEnabled = touchCapable || isMobile;
   var portalHoldTriggered = false;
   var contactPulseAnchor = isContactPage ? document.querySelector('.contact-page__card') : null;
   var contactPulseInterval = 2.2;
@@ -796,7 +798,7 @@ function initVectorField() {
       var dxP = mouseX - centerX;
       var dyP = mouseY - centerY;
       var distToCenterSq = dxP * dxP + dyP * dyP;
-      var fingerInHoldZone = isMobile && mouseActive && distToCenterSq < portalHoldRadius * portalHoldRadius;
+      var fingerInHoldZone = portalHoldEnabled && mouseActive && distToCenterSq < portalHoldRadius * portalHoldRadius;
       var portalNear = mouseActive && distToCenterSq < portalRevealDist * portalRevealDist;
 
       if (portalNear) {

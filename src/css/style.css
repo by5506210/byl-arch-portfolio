@@ -141,6 +141,9 @@ img {
   overflow: hidden;
   contain: layout style;
   isolation: isolate;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .landing::before,
