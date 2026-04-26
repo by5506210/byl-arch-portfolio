@@ -771,7 +771,15 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 /* Title — fixed overlay, separate from slides */
 .slideshow__title-wrapper {
-  display: none;
+  position: relative;
+  z-index: 2;
+  display: block;
+  overflow: visible;
+  margin-top: clamp(0.65rem, 1.8vh, 1rem);
+  min-height: 1.2rem;
+  opacity: 0;
+  transform: none;
+  transition: opacity 0.16s ease;
 }
 
 .slideshow__title {
@@ -788,33 +796,11 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 /* Fixed current project label */
 .slideshow__current-title {
-  position: fixed;
-  left: 50%;
-  top: clamp(4.8rem, 9vh, 6.2rem);
-  z-index: 46;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.75rem;
-  max-width: min(72vw, 560px);
-  padding: 0.48rem 0.68rem;
-  border: 1px solid rgba(17, 17, 15, 0.11);
-  background: rgba(244, 242, 236, 0.82);
-  color: var(--text-primary);
-  text-align: center;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate3d(-50%, 6px, 0);
-  box-shadow: 0 10px 26px rgba(48, 42, 35, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  display: none;
 }
 
 .slideshow__current-title.is-visible {
-  opacity: 1;
-  transform: translate3d(-50%, 0, 0);
+  display: none;
 }
 
 .slideshow__current-name {
@@ -4037,14 +4023,12 @@ body:has(.contact-page) {
   }
 
   .slideshow__current-title {
-    top: clamp(4.4rem, 9vh, 5.4rem);
-    bottom: auto;
-    left: 50%;
-    max-width: min(82vw, 360px);
+    display: none;
   }
 
   .slideshow__title-wrapper {
-    display: none;
+    display: block;
+    margin-top: clamp(0.75rem, 1.6vh, 1rem);
   }
 
   .slideshow__coming-soon-card {
