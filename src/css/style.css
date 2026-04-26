@@ -2456,16 +2456,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --focus-dim: 1;
   --node-base-scale: 0.82;
   --node-depth-scale: 0.34;
-  --node-proximity-scale: 0.48;
+  --node-proximity-scale: 0.1;
   --thumb-base-scale: 0.88;
   --thumb-responsive-scale: 1;
   --thumb-raster-scale: 1.12;
   --thumb-raster-compensation: 0.893;
   --thumb-depth-scale: 0.15;
-  --thumb-proximity-scale: 0.74;
-  --thumb-image-proximity-scale: 0.34;
-  --thumb-image-raster-size: 240%;
-  --thumb-image-raster-compensation: 0.417;
+  --thumb-proximity-scale: 0.14;
+  --thumb-image-proximity-scale: 0.05;
+  --thumb-image-raster-size: 320%;
+  --thumb-image-raster-compensation: 0.313;
   --thumb-skew-y: -30deg;
   --arm-length: 0px;
   --arm-angle: 0;
@@ -2660,10 +2660,13 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 @media (any-pointer: coarse) {
   .projects-helix__node {
+    --node-proximity-scale: 0.09;
     --thumb-raster-scale: 1.12;
     --thumb-raster-compensation: 0.893;
-    --thumb-image-raster-size: 300%;
-    --thumb-image-raster-compensation: 0.333;
+    --thumb-proximity-scale: 0.12;
+    --thumb-image-proximity-scale: 0.04;
+    --thumb-image-raster-size: 360%;
+    --thumb-image-raster-compensation: 0.278;
   }
 }
 
@@ -2675,15 +2678,15 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   .projects-helix__node {
     --node-base-scale: 0.8;
     --node-depth-scale: 0.3;
-    --node-proximity-scale: 0.38;
+    --node-proximity-scale: 0.09;
     --thumb-base-scale: 0.82;
     --thumb-raster-scale: 1.16;
     --thumb-raster-compensation: 0.862;
     --thumb-depth-scale: 0.11;
-    --thumb-proximity-scale: 0.54;
-    --thumb-image-proximity-scale: 0.2;
-    --thumb-image-raster-size: 260%;
-    --thumb-image-raster-compensation: 0.385;
+    --thumb-proximity-scale: 0.13;
+    --thumb-image-proximity-scale: 0.04;
+    --thumb-image-raster-size: 360%;
+    --thumb-image-raster-compensation: 0.278;
   }
 
   .projects-helix__viewport {
@@ -2731,16 +2734,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   .projects-helix__node {
     --node-base-scale: 0.78;
     --node-depth-scale: 0.27;
-    --node-proximity-scale: 0.34;
+    --node-proximity-scale: 0.07;
     --thumb-base-scale: 0.76;
     --thumb-responsive-scale: 0.94;
     --thumb-raster-scale: 1.24;
     --thumb-raster-compensation: 0.806;
     --thumb-depth-scale: 0.09;
-    --thumb-proximity-scale: 0.48;
-    --thumb-image-proximity-scale: 0.14;
-    --thumb-image-raster-size: 260%;
-    --thumb-image-raster-compensation: 0.385;
+    --thumb-proximity-scale: 0.1;
+    --thumb-image-proximity-scale: 0.035;
+    --thumb-image-raster-size: 360%;
+    --thumb-image-raster-compensation: 0.278;
   }
 
   .projects-helix__label {

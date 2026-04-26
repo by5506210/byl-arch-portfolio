@@ -870,7 +870,7 @@ function initProjectsAtlas() {
         base: 0.76,
         responsive: 0.94,
         depth: 0.09,
-        proximity: 0.48
+        proximity: 0.1
       };
     }
     if (width <= 900) {
@@ -878,14 +878,14 @@ function initProjectsAtlas() {
         base: 0.82,
         responsive: 1,
         depth: 0.11,
-        proximity: 0.54
+        proximity: 0.13
       };
     }
     return {
       base: 0.88,
       responsive: 1,
       depth: 0.15,
-      proximity: 0.74
+      proximity: hasTouchInput ? 0.12 : 0.14
     };
   }
 
