@@ -2459,11 +2459,13 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --node-proximity-scale: 0.48;
   --thumb-base-scale: 0.88;
   --thumb-responsive-scale: 1;
-  --thumb-raster-scale: 1;
-  --thumb-raster-compensation: 1;
+  --thumb-raster-scale: 1.12;
+  --thumb-raster-compensation: 0.893;
   --thumb-depth-scale: 0.15;
   --thumb-proximity-scale: 0.74;
   --thumb-image-proximity-scale: 0.34;
+  --thumb-image-raster-size: 240%;
+  --thumb-image-raster-compensation: 0.417;
   --thumb-skew-y: -30deg;
   --arm-length: 0px;
   --arm-angle: 0;
@@ -2555,10 +2557,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__thumb img {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--thumb-image-raster-size);
+  height: var(--thumb-image-raster-size);
+  max-width: none;
+  max-height: none;
   object-fit: cover;
-  transform: translate3d(0, 0, 0) scale(calc(1.03 + var(--proximity) * var(--thumb-image-proximity-scale)));
+  transform: translate3d(-50%, -50%, 0) scale(calc((1.03 + var(--proximity) * var(--thumb-image-proximity-scale)) * var(--thumb-image-raster-compensation)));
+  transform-origin: center center;
   filter: none;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -2654,6 +2662,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   .projects-helix__node {
     --thumb-raster-scale: 1.12;
     --thumb-raster-compensation: 0.893;
+    --thumb-image-raster-size: 300%;
+    --thumb-image-raster-compensation: 0.333;
   }
 }
 
@@ -2672,6 +2682,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     --thumb-depth-scale: 0.11;
     --thumb-proximity-scale: 0.54;
     --thumb-image-proximity-scale: 0.2;
+    --thumb-image-raster-size: 260%;
+    --thumb-image-raster-compensation: 0.385;
   }
 
   .projects-helix__viewport {
@@ -2727,6 +2739,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     --thumb-depth-scale: 0.09;
     --thumb-proximity-scale: 0.48;
     --thumb-image-proximity-scale: 0.14;
+    --thumb-image-raster-size: 260%;
+    --thumb-image-raster-compensation: 0.385;
   }
 
   .projects-helix__label {
