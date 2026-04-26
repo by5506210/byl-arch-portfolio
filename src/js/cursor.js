@@ -20,10 +20,24 @@
   }
   document.body.appendChild(cursor);
 
+  var navPreview = document.createElement('div');
+  navPreview.classList.add('nav-hover-preview');
+  navPreview.setAttribute('aria-hidden', 'true');
+  var navPreviewImg = document.createElement('img');
+  navPreviewImg.decoding = 'async';
+  navPreviewImg.loading = 'eager';
+  navPreview.appendChild(navPreviewImg);
+  document.body.appendChild(navPreview);
+
   var mouseX = -100;
   var mouseY = -100;
   var cursorX = -100;
   var cursorY = -100;
+  var navPreviewX = -140;
+  var navPreviewY = -160;
+  var navPreviewVisible = false;
+  var navPreviewSrc = '';
+  var lastNavPreviewTransform = '';
   var snapping = false;
   var snapTarget = null;
   var snapPadX = 0;
@@ -50,6 +64,40 @@
 
   function isLandingVisible() {
     return isLanding && isLanding.style.display !== 'none' && window.location.hash !== '#portfolio';
+  }
+
+  function getAssetPath(path) {
+    var prefix = window.location.pathname.indexOf('/pages/') !== -1 ? '../' : '';
+    return prefix + path;
+  }
+
+  function getNavPreviewData(link) {
+    if (!link) return null;
+    var label = (link.textContent || '').trim().toLowerCase();
+    var href = ((link.getAttribute('href') || link.href || '') + '').toLowerCase();
+
+    if (href.indexOf('projects') !== -1 || label.indexOf('project') !== -1) {
+      return {
+        src: getAssetPath('assets/images/eden-museum/hero.jpg'),
+        alt: 'Projects preview'
+      };
+    }
+
+    if (href.indexOf('about') !== -1 || label.indexOf('about') !== -1) {
+      return {
+        src: getAssetPath('assets/images/profile/bryan.jpg'),
+        alt: 'About preview'
+      };
+    }
+
+    if (href.indexOf('contact') !== -1 || label.indexOf('contact') !== -1) {
+      return {
+        src: getAssetPath('assets/images/eden-museum/waterfall-2.jpg'),
+        alt: 'Contact preview'
+      };
+    }
+
+    return null;
   }
 
   function requestCursorFrame() {
@@ -88,6 +136,7 @@
       cursor.classList.toggle('cursor--dark', !isLandingVisible());
       currentState = 'snap';
     }
+    hideNavPreview();
   }
 
   function applySnapRect(rect) {
@@ -187,6 +236,7 @@
 
   function setDefaultState() {
     endSnap();
+    hideNavPreview();
     if (currentState !== 'default') {
       cursor.classList.remove('cursor--snap', 'cursor--hover-image');
       cursor.classList.toggle('cursor--dark', !isLandingVisible());
@@ -198,6 +248,7 @@
 
   function setHoverImageState() {
     endSnap();
+    hideNavPreview();
     if (currentState !== 'hover-image') {
       cursor.classList.remove('cursor--snap');
       cursor.classList.add('cursor--hover-image');
@@ -206,6 +257,57 @@
     }
     resetInlineSize();
     requestCursorFrame();
+  }
+
+  function setNavPreviewTransform(value) {
+    if (lastNavPreviewTransform === value) return;
+    lastNavPreviewTransform = value;
+    navPreview.style.transform = value;
+  }
+
+  function showNavPreview(data) {
+    if (!data || !data.src) return;
+    endSnap();
+    if (navPreviewSrc !== data.src) {
+      navPreviewSrc = data.src;
+      navPreviewImg.src = data.src;
+      navPreviewImg.alt = data.alt || '';
+    }
+    navPreviewVisible = true;
+    navPreview.classList.add('is-visible');
+    if (currentState !== 'nav-preview') {
+      cursor.classList.remove('cursor--snap', 'cursor--hover-image');
+      cursor.classList.toggle('cursor--dark', !isLandingVisible());
+      currentState = 'nav-preview';
+    }
+    resetInlineSize();
+    requestCursorFrame();
+  }
+
+  function hideNavPreview() {
+    if (!navPreviewVisible) return;
+    navPreviewVisible = false;
+    navPreview.classList.remove('is-visible');
+  }
+
+  function updateNavPreviewPosition() {
+    if (!navPreviewVisible) return false;
+
+    var width = navPreview.offsetWidth || 112;
+    var height = navPreview.offsetHeight || 140;
+    var targetX = mouseX + 16;
+    var targetY = mouseY + 20;
+    var margin = 10;
+
+    targetX = Math.max(margin, Math.min(window.innerWidth - width - margin, targetX));
+    if (targetY + height > window.innerHeight - margin) {
+      targetY = Math.max(margin, mouseY - height - 18);
+    }
+
+    navPreviewX += (targetX - navPreviewX) * 0.34;
+    navPreviewY += (targetY - navPreviewY) * 0.34;
+    setNavPreviewTransform('translate3d(' + navPreviewX + 'px,' + navPreviewY + 'px,0)');
+    return _abs(targetX - navPreviewX) > 0.15 || _abs(targetY - navPreviewY) > 0.15;
   }
 
   function updateCursor(now) {
@@ -253,6 +355,10 @@
       setTransform('translate3d(' + (cursorX - 7) + 'px,' + (cursorY - 7) + 'px,0)');
     }
 
+    if (updateNavPreviewPosition()) {
+      keepAnimating = true;
+    }
+
     if (keepAnimating) {
       requestCursorFrame();
     }
@@ -267,6 +373,13 @@
   document.addEventListener('mouseover', function (e) {
     var target = e.target;
     if (!target || !target.closest) return;
+
+    var navPreviewLink = target.closest('.slideshow-nav-bar__link, .project-nav-bar__link, .nav__link');
+    var navPreviewData = getNavPreviewData(navPreviewLink);
+    if (navPreviewData) {
+      showNavPreview(navPreviewData);
+      return;
+    }
 
     var projectCard = target.closest('.projects-index__card, .projects-atlas__node, .projects-helix__node');
     if (projectCard && !projectCard.classList.contains('projects-index__card--coming-soon')) {
@@ -305,15 +418,17 @@
   }, { passive: true });
 
   window.addEventListener('scroll', function () {
-    if (!snapping) return;
-    snapDirty = true;
+    if (navPreviewVisible) hideNavPreview();
+    if (snapping) snapDirty = true;
     requestCursorFrame();
   }, { passive: true });
 
   window.addEventListener('resize', function () {
-    if (!snapping) return;
-    snapDirty = true;
-    snapActiveUntil = performance.now() + 220;
+    if (navPreviewVisible) hideNavPreview();
+    if (snapping) {
+      snapDirty = true;
+      snapActiveUntil = performance.now() + 220;
+    }
     requestCursorFrame();
   }, { passive: true });
 
@@ -354,6 +469,11 @@
 
   document.addEventListener('mouseleave', function () {
     cursor.classList.add('cursor--hidden');
+    hideNavPreview();
+  });
+
+  document.addEventListener('click', function () {
+    hideNavPreview();
   });
 
   document.addEventListener('mouseenter', function () {

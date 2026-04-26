@@ -1,5 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
+@font-face {
+  font-family: 'BradfordMonoLL';
+  src: local('BradfordMonoLL'), local('Bradford Mono LL');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ============================================
    RESET & BASE
    ============================================ */
@@ -16,7 +24,7 @@
   --text-primary: #161412;
   --white: #ffffff;
 
-  --font-primary: 'Courier Prime', 'Courier New', Courier, monospace;
+  --font-primary: 'BradfordMonoLL', 'Courier Prime', 'Courier New', Courier, monospace;
 }
 
 html {
@@ -120,6 +128,37 @@ img {
 
 .cursor--hidden {
   opacity: 0;
+}
+
+.nav-hover-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 112px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: rgba(244, 242, 236, 0.86);
+  border: 1px solid rgba(17, 17, 15, 0.1);
+  box-shadow: 0 12px 28px rgba(42, 36, 30, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate3d(-140px, -160px, 0);
+  transform-origin: top left;
+  contain: layout style paint;
+  will-change: transform, opacity;
+  transition: opacity 0.18s ease;
+}
+
+.nav-hover-preview.is-visible {
+  opacity: 1;
+}
+
+.nav-hover-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ============================================
