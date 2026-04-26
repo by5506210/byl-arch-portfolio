@@ -300,6 +300,7 @@
         var nextNamespace = data.next && data.next.namespace ? data.next.namespace : '';
         window.scrollTo(0, 0);
         document.body.style.background = getPageBackground(nextNamespace);
+        window.bylProjectsHelixDeferReady = nextNamespace === 'projects';
 
         // Initialize page interactivity before reveal to avoid layout flashes.
         if (typeof initProjectPage === 'function') {
@@ -319,12 +320,25 @@
 
         gsap.set(data.next.container, { opacity: isProjectsPage ? 1 : 0, y: 12 });
 
-        return gsap.timeline()
+        var tl = gsap.timeline()
           .to(overlay, {
             opacity: 0,
             duration: 0.26,
             ease: 'power1.out'
-          })
+          });
+
+        if (isProjectsPage) {
+          tl.call(function () {
+            if (typeof window.bylReleaseProjectsHelixEntry === 'function') {
+              window.bylReleaseProjectsHelixEntry();
+            } else {
+              window.bylProjectsHelixDeferReady = false;
+              window.dispatchEvent(new CustomEvent('byl:projects-helix-release'));
+            }
+          }, null, '>-0.02');
+        }
+
+        return tl
           .to(data.next.container, {
             opacity: 1,
             y: 0,

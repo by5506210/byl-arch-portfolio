@@ -2357,9 +2357,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --thumb-base-scale: 0.88;
   --thumb-proximity-scale: 0.74;
   --thumb-image-proximity-scale: 0.34;
-  --thumb-rotate-x: 48deg;
-  --thumb-rotate-y: 0deg;
-  --thumb-rotate-z: 0deg;
+  --thumb-skew-y: 18deg;
   --arm-length: 0px;
   --arm-angle: 0;
   --helix-dx: 0px;
@@ -2377,8 +2375,6 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   opacity: calc((0.24 + var(--depth) * 0.6 + var(--proximity) * 0.36) * (1 - var(--fog) * 0.34) * var(--focus-dim));
   transition: none;
   will-change: transform, opacity;
-  perspective: 780px;
-  transform-style: preserve-3d;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   -webkit-user-select: none;
@@ -2432,12 +2428,9 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: calc(var(--thumb-h, 52px) * var(--thumb-base-scale));
   transform:
     translate3d(-50%, -50%, 0)
-    rotateX(var(--thumb-rotate-x))
-    rotateY(var(--thumb-rotate-y))
-    rotateZ(var(--thumb-rotate-z))
+    skewY(var(--thumb-skew-y))
     scale(calc(1 + var(--depth) * 0.15 + var(--proximity) * var(--thumb-proximity-scale)));
   transform-origin: center center;
-  transform-style: preserve-3d;
   overflow: hidden;
   border: 1px solid rgba(17, 17, 15, 0.12);
   border-radius: 2px;

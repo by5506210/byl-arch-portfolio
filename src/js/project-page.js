@@ -466,6 +466,7 @@ function initProjectsAtlas() {
   var lastPointerHoverNode = null;
   var readyRectTimer = null;
   var entryReadyTimer = null;
+  var entryReadyReleaseHandler = null;
   var entryReadyScheduled = false;
   var proximityNeedsStep = true;
   var PROXIMITY_TARGET_STEPS = 80;
@@ -493,6 +494,33 @@ function initProjectsAtlas() {
   function scheduleHelixReadyState() {
     if (disposed || entryReadyScheduled) return;
     entryReadyScheduled = true;
+
+    function releaseReady() {
+      if (disposed || entryReadyTimer) return;
+      if (entryReadyReleaseHandler) {
+        window.removeEventListener('byl:projects-helix-release', entryReadyReleaseHandler);
+        if (window.bylReleaseProjectsHelixEntry === entryReadyReleaseHandler) {
+          window.bylReleaseProjectsHelixEntry = null;
+        }
+        entryReadyReleaseHandler = null;
+      }
+      window.bylProjectsHelixDeferReady = false;
+      entryReadyTimer = window.setTimeout(function () {
+        entryReadyTimer = null;
+        if (disposed || !helix.isConnected) return;
+        requestAnimationFrame(function () {
+          requestAnimationFrame(setHelixReadyState);
+        });
+      }, 70);
+    }
+
+    if (window.bylProjectsHelixDeferReady) {
+      entryReadyReleaseHandler = releaseReady;
+      window.bylReleaseProjectsHelixEntry = releaseReady;
+      window.addEventListener('byl:projects-helix-release', releaseReady, { once: true });
+      return;
+    }
+
     entryReadyTimer = window.setTimeout(function () {
       entryReadyTimer = null;
       if (disposed || !helix.isConnected) return;
@@ -806,22 +834,19 @@ function initProjectsAtlas() {
 
   function applyThumbAxon(node, proximity) {
     var faceAmount = 1 - clamp(proximity || 0, 0, 1);
-    var rotateX = (node.__thumbAxonX || 48) * faceAmount;
-    var rotateY = (node.__thumbAxonY || 0) * faceAmount;
-    var rotateZ = (node.__thumbAxonZ || 0) * faceAmount;
+    var skewY = (node.__thumbAxonSkewY || 18) * faceAmount;
 
-    setNodeStyleValue(node, '--thumb-rotate-x', rotateX.toFixed(2) + 'deg');
-    setNodeStyleValue(node, '--thumb-rotate-y', rotateY.toFixed(2) + 'deg');
-    setNodeStyleValue(node, '--thumb-rotate-z', rotateZ.toFixed(2) + 'deg');
+    setNodeStyleValue(node, '--thumb-skew-y', skewY.toFixed(2) + 'deg');
   }
 
   function updateThumbAxonBase(node, connectorDx, depth, proximity) {
     var normalizedDepth = clamp(depth, 0, 1);
     var sideFactor = clamp(connectorDx / 140, -1, 1);
+    if (Math.abs(sideFactor) < 0.32) {
+      sideFactor = sideFactor < 0 ? -0.32 : 0.32;
+    }
 
-    node.__thumbAxonX = 38 + (1 - normalizedDepth) * 16;
-    node.__thumbAxonY = sideFactor * (18 + (1 - normalizedDepth) * 10);
-    node.__thumbAxonZ = sideFactor * (7 + normalizedDepth * 6);
+    node.__thumbAxonSkewY = sideFactor * (15 + (1 - normalizedDepth) * 8);
     applyThumbAxon(node, proximity || 0);
   }
 
@@ -2090,6 +2115,12 @@ function initProjectsAtlas() {
     if (resizeFrame) cancelAnimationFrame(resizeFrame);
     if (readyRectTimer) window.clearTimeout(readyRectTimer);
     if (entryReadyTimer) window.clearTimeout(entryReadyTimer);
+    if (entryReadyReleaseHandler) {
+      window.removeEventListener('byl:projects-helix-release', entryReadyReleaseHandler);
+      if (window.bylReleaseProjectsHelixEntry === entryReadyReleaseHandler) {
+        window.bylReleaseProjectsHelixEntry = null;
+      }
+    }
     if (pointerFrame) cancelAnimationFrame(pointerFrame);
     if (proximityFrame) cancelAnimationFrame(proximityFrame);
     if (fallbackFrame) cancelAnimationFrame(fallbackFrame);
@@ -2097,6 +2128,7 @@ function initProjectsAtlas() {
     resizeFrame = null;
     readyRectTimer = null;
     entryReadyTimer = null;
+    entryReadyReleaseHandler = null;
     pointerFrame = null;
     proximityFrame = null;
     fallbackFrame = null;
