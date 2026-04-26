@@ -98,6 +98,9 @@ function initSlideshow() {
     if (aboutName) return aboutName.textContent;
     return '';
   });
+  var slideHasProjectTitle = slides.map(function (slide) {
+    return !!slide.dataset.project;
+  });
 
   // Count only project slides (not dividers/about) for numbering
   var projectCount = slides.filter(function (s) {
@@ -200,7 +203,7 @@ function initSlideshow() {
       lastTitleIndex = activeIndex;
       var name = slideNames[activeIndex] || '';
 
-      if (slideDark[activeIndex] || !name) {
+      if (slideDark[activeIndex] || !name || !slideHasProjectTitle[activeIndex]) {
         titleLabel.classList.remove('is-visible');
       } else {
         titleNameEl.textContent = name;
