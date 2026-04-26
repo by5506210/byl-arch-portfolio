@@ -734,12 +734,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   aspect-ratio: 3 / 4;
   overflow: visible;
   position: relative;
-  box-sizing: content-box;
-  padding: clamp(0.38rem, 0.72vw, 0.64rem) clamp(0.38rem, 0.72vw, 0.64rem) clamp(1.1rem, 1.8vw, 1.55rem);
-  background: rgba(248, 245, 237, 0.94);
-  box-shadow:
-    0 2px 0 rgba(255, 255, 255, 0.42) inset,
-    0 12px 28px rgba(48, 42, 35, 0.13);
+  background: transparent;
+  box-shadow: 0 14px 30px rgba(48, 42, 35, 0.14);
   transform: translate3d(var(--slide-card-x), var(--slide-card-y), 0) rotate(var(--slide-card-rotate)) scale(var(--slide-card-scale));
   transform-origin: center center;
   will-change: transform;
