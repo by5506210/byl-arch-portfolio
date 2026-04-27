@@ -93,8 +93,9 @@
 
     if (href.indexOf('contact') !== -1 || label.indexOf('contact') !== -1) {
       return {
-        src: getAssetPath('assets/images/eden-museum/waterfall-2.jpg'),
-        alt: 'Contact preview'
+        src: getAssetPath('assets/images/act-before-it-burns/hero.png'),
+        alt: 'Contact preview',
+        objectPosition: '50% 50%'
       };
     }
 
@@ -303,10 +304,22 @@
     if (!data || !data.src) return;
     endSnap();
     navPreviewAnchor = link || null;
+    navPreviewImg.style.objectPosition = data.objectPosition || '50% 50%';
     if (navPreviewSrc !== data.src) {
       navPreviewSrc = data.src;
+      navPreviewImg.style.opacity = '0';
+      navPreviewImg.onload = function () {
+        if (navPreviewSrc === data.src) {
+          navPreviewImg.style.opacity = '1';
+        }
+      };
       navPreviewImg.src = data.src;
       navPreviewImg.alt = data.alt || '';
+      if (navPreviewImg.complete) {
+        navPreviewImg.style.opacity = '1';
+      }
+    } else {
+      navPreviewImg.style.opacity = '1';
     }
     if (!setNavPreviewPositionFromLink(navPreviewAnchor)) {
       navPreviewAnchor = null;
