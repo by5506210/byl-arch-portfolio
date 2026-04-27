@@ -3439,13 +3439,28 @@ body:has(.contact-page) {
   contain-intrinsic-size: auto 800px;
 }
 
+.project-details--featured-drawing {
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.8fr);
+  gap: clamp(2.5rem, 5vw, 5.5rem);
+  align-items: center;
+}
+
 .project-details__drawing {
   width: 100%;
+}
+
+.project-details--featured-drawing .project-details__drawing {
+  width: calc(100% + clamp(1.5rem, 4vw, 4rem));
+  margin-left: clamp(-3rem, -3vw, -1rem);
 }
 
 .project-details__drawing img {
   width: 100%;
   height: auto;
+}
+
+.project-details--featured-drawing .project-details__drawing img {
+  display: block;
 }
 
 .project-details__info {
@@ -4092,6 +4107,11 @@ body:has(.contact-page) {
     grid-template-columns: 1fr;
     gap: 2rem;
     padding: 3rem 6%;
+  }
+
+  .project-details--featured-drawing .project-details__drawing {
+    width: 100%;
+    margin-left: 0;
   }
 
   .project-sequence {
