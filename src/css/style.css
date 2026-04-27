@@ -968,15 +968,27 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 /* Category Divider Slides */
 .slideshow__slide--divider {
   --divider-opacity: 0;
-  --divider-y: 78vh;
+  --divider-bg-opacity: 1;
   background: transparent;
   cursor: default;
+}
+
+.slideshow__slide--divider::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--concrete);
+  opacity: var(--divider-bg-opacity);
+  pointer-events: none;
+  transition: opacity 0.18s linear;
 }
 
 .slideshow__divider-content {
   position: absolute;
   left: 50%;
-  top: var(--divider-y);
+  top: 50%;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;

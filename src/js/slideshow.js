@@ -126,9 +126,6 @@ function initSlideshow() {
       return slide.classList.contains('slideshow__slide--divider') ? { slide: slide, index: index } : null;
     })
     .filter(Boolean);
-  var aboutIndex = slides.findIndex(function (slide) {
-    return slide.classList.contains('slideshow__slide--about');
-  });
 
   function clamp01(value) {
     return Math.max(0, Math.min(1, value));
@@ -139,22 +136,17 @@ function initSlideshow() {
     return value * value * (3 - 2 * value);
   }
 
-  function updateDividerOpacity(progress) {
-    var restY = window.innerWidth <= 700 ? 75 : 78;
-
+  function updateDividerVisuals(progress) {
     dividerSlides.forEach(function (divider, i) {
-      var nextDivider = dividerSlides[i + 1];
-      var fadeStop = nextDivider ? nextDivider.index : (aboutIndex >= 0 ? aboutIndex : totalSlides);
       var fadeIn = smoothstep((progress - (divider.index - 0.62)) / 0.62);
-      var fadeOut = 1 - smoothstep((progress - (fadeStop - 0.68)) / 0.68);
-      var dividerY = restY;
+      var fadeOut = 1 - smoothstep((progress - (divider.index + 0.28)) / 0.42);
+      var titleOpacity = Math.max(0, Math.min(fadeIn, fadeOut));
+      var backgroundOpacity = i === 0
+        ? 1
+        : smoothstep((progress - (divider.index - 0.26)) / 0.26);
 
-      if (i === 0) {
-        dividerY = 50 + smoothstep(progress / 0.95) * (restY - 50);
-      }
-
-      divider.slide.style.setProperty('--divider-opacity', Math.max(0, Math.min(fadeIn, fadeOut)).toFixed(3));
-      divider.slide.style.setProperty('--divider-y', dividerY.toFixed(2) + 'vh');
+      divider.slide.style.setProperty('--divider-opacity', titleOpacity.toFixed(3));
+      divider.slide.style.setProperty('--divider-bg-opacity', backgroundOpacity.toFixed(3));
     });
   }
 
@@ -192,7 +184,7 @@ function initSlideshow() {
     var progressRatio = totalSlides <= 1 ? 0 : (progress / (totalSlides - 1));
 
     progressContainer.style.setProperty('--slideshow-progress', progressRatio.toFixed(4));
-    updateDividerOpacity(progress);
+    updateDividerVisuals(progress);
 
     // Only update transforms for the visible window of slides
     // Slides before currentIndex are at 0%, slides after currentIndex+1 are at 100%
