@@ -596,6 +596,12 @@ function initVectorField() {
   function animate(timestamp) {
     if (myId !== _vectorFieldInstanceId) return;
 
+    if (document.hidden) {
+      lastFrameTime = 0;
+      requestAnimationFrame(animate);
+      return;
+    }
+
     if (!lastFrameTime) lastFrameTime = timestamp;
     var dt = (timestamp - lastFrameTime) / 1000;
     lastFrameTime = timestamp;

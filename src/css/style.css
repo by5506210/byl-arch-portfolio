@@ -119,6 +119,12 @@ img {
   border: 1.5px solid rgba(0, 0, 0, 0.08);
 }
 
+.cursor--follow-target {
+  transition: background 0.18s ease,
+              border 0.18s ease,
+              opacity 0.2s ease;
+}
+
 .cursor--hover-image {
   width: 22px;
   height: 22px;

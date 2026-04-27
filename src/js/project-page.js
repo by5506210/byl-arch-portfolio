@@ -471,6 +471,8 @@ function initProjectsAtlas() {
   var lastPointerLocalX = null;
   var lastPointerLocalY = null;
   var lastPointerHoverNode = null;
+  var lastPointerEventTarget = null;
+  var lastPointerEventHoverNode = null;
   var readyRectTimer = null;
   var entryReadyTimer = null;
   var entryReadyReleaseHandler = null;
@@ -545,14 +547,15 @@ function initProjectsAtlas() {
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var cores = navigator.hardwareConcurrency || 4;
     var memory = navigator.deviceMemory || 0;
+    var isWindows = /Windows/i.test(navigator.userAgent || '');
     var likelyLowEnd = reducedMotion || cores <= 4 || (memory > 0 && memory <= 4);
     var likelyHighEnd = !reducedMotion && cores >= 8 && (memory === 0 || memory >= 8);
 
     if (likelyLowEnd) {
       return {
-        webglMinFrameMs: 1000 / 52,
-        nodeSyncMinMs: 1000 / 40,
-        fallbackMinFrameMs: 1000 / 42,
+        webglMinFrameMs: 0,
+        nodeSyncMinMs: isWindows ? 1000 / 34 : 1000 / 40,
+        fallbackMinFrameMs: 0,
         ribbonDepthUpdateMs: 220,
         mobilePixelMax: 1.25,
         desktopPixelMax: 1.05,
@@ -567,9 +570,9 @@ function initProjectsAtlas() {
 
     if (likelyHighEnd) {
       return {
-        webglMinFrameMs: 1000 / 60,
-        nodeSyncMinMs: 1000 / 50,
-        fallbackMinFrameMs: 1000 / 56,
+        webglMinFrameMs: 0,
+        nodeSyncMinMs: isWindows ? 1000 / 44 : 1000 / 50,
+        fallbackMinFrameMs: 0,
         ribbonDepthUpdateMs: 120,
         mobilePixelMax: 1.65,
         desktopPixelMax: 1.28,
@@ -583,9 +586,9 @@ function initProjectsAtlas() {
     }
 
     return {
-      webglMinFrameMs: 1000 / 58,
-      nodeSyncMinMs: 1000 / 45,
-      fallbackMinFrameMs: 1000 / 50,
+      webglMinFrameMs: 0,
+      nodeSyncMinMs: isWindows ? 1000 / 38 : 1000 / 45,
+      fallbackMinFrameMs: 0,
       ribbonDepthUpdateMs: 160,
       mobilePixelMax: 1.45,
       desktopPixelMax: 1.16,
@@ -785,6 +788,8 @@ function initProjectsAtlas() {
     lastPointerLocalX = null;
     lastPointerLocalY = null;
     lastPointerHoverNode = null;
+    lastPointerEventTarget = null;
+    lastPointerEventHoverNode = null;
   }
 
   function setElementAttribute(element, name, value) {
@@ -2264,7 +2269,11 @@ function initProjectsAtlas() {
       pointerEventTarget = null;
       selectedNode = null;
       touchSelectedNode = null;
-      pointerHoverNode = target && target.closest ? target.closest('.projects-helix__node') : null;
+      if (target !== lastPointerEventTarget) {
+        lastPointerEventTarget = target || null;
+        lastPointerEventHoverNode = target && target.closest ? target.closest('.projects-helix__node') : null;
+      }
+      pointerHoverNode = lastPointerEventHoverNode;
       updateProximity(pointerClientX, pointerClientY, pointerHoverNode);
     });
   }
@@ -2276,6 +2285,8 @@ function initProjectsAtlas() {
       pointerFrame = null;
     }
     pointerHoverNode = null;
+    lastPointerEventTarget = null;
+    lastPointerEventHoverNode = null;
     if (selectedNode) {
       activateSelection(selectedNode);
       return;

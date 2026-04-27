@@ -114,6 +114,11 @@
     cursor.style.transform = value;
   }
 
+  function snapToDevicePixel(value) {
+    var ratio = Math.max(1, window.devicePixelRatio || 1);
+    return Math.round(value * ratio) / ratio;
+  }
+
   function resetSnapCache() {
     lastSnapLeft = null;
     lastSnapTop = null;
@@ -138,15 +143,16 @@
       cursor.classList.toggle('cursor--dark', !isLandingVisible());
       currentState = 'snap';
     }
+    cursor.classList.toggle('cursor--follow-target', snapFollowTarget);
     hideNavPreview();
   }
 
   function applySnapRect(rect) {
-    var width = rect.width + snapPadX;
-    var height = rect.height + snapPadY;
-    var radius = _min(snapRadiusCap, height * snapRadiusFactor);
-    var left = rect.left + rect.width * 0.5 - width * 0.5;
-    var top = rect.top + rect.height * 0.5 - height * 0.5;
+    var width = snapToDevicePixel(rect.width + snapPadX);
+    var height = snapToDevicePixel(rect.height + snapPadY);
+    var radius = snapToDevicePixel(_min(snapRadiusCap, height * snapRadiusFactor));
+    var left = snapToDevicePixel(rect.left + rect.width * 0.5 - width * 0.5);
+    var top = snapToDevicePixel(rect.top + rect.height * 0.5 - height * 0.5);
 
     cursorX = rect.left + rect.width * 0.5;
     cursorY = rect.top + rect.height * 0.5;
@@ -168,10 +174,10 @@
     lastSnapHeight = height;
     lastSnapRadius = radius;
     hasInlineSize = true;
-    cursor.style.width = width + 'px';
-    cursor.style.height = height + 'px';
-    cursor.style.borderRadius = radius + 'px';
-    setTransform('translate3d(' + left + 'px,' + top + 'px,0)');
+    cursor.style.width = width.toFixed(2) + 'px';
+    cursor.style.height = height.toFixed(2) + 'px';
+    cursor.style.borderRadius = radius.toFixed(2) + 'px';
+    setTransform('translate3d(' + left.toFixed(2) + 'px,' + top.toFixed(2) + 'px,0)');
   }
 
   function getCachedSnapRect() {
@@ -201,9 +207,9 @@
     var shouldFollowTarget = !!config.followTarget;
     var nextKey = config.padX + ':' + config.padY + ':' + config.radiusCap + ':' + config.radiusFactor + ':' + shouldFollowTarget;
     if (snapping && snapTarget === targetEl && lastSnapKey === nextKey) {
-      enterSnapState();
       snapDirty = true;
       snapFollowTarget = shouldFollowTarget;
+      enterSnapState();
       snapActiveUntil = performance.now() + 320;
       requestCursorFrame();
       return;
@@ -234,13 +240,14 @@
     snapFollowTarget = false;
     lastSnapKey = '';
     snapDirty = true;
+    cursor.classList.remove('cursor--follow-target');
   }
 
   function setDefaultState() {
     endSnap();
     hideNavPreview();
     if (currentState !== 'default') {
-      cursor.classList.remove('cursor--snap', 'cursor--hover-image');
+      cursor.classList.remove('cursor--snap', 'cursor--hover-image', 'cursor--follow-target');
       cursor.classList.toggle('cursor--dark', !isLandingVisible());
       currentState = 'default';
     }
@@ -252,7 +259,7 @@
     endSnap();
     hideNavPreview();
     if (currentState !== 'hover-image') {
-      cursor.classList.remove('cursor--snap');
+      cursor.classList.remove('cursor--snap', 'cursor--follow-target');
       cursor.classList.add('cursor--hover-image');
       cursor.classList.remove('cursor--dark');
       currentState = 'hover-image';
@@ -328,7 +335,7 @@
     navPreviewVisible = true;
     navPreview.classList.add('is-visible');
     if (currentState !== 'nav-preview') {
-      cursor.classList.remove('cursor--snap', 'cursor--hover-image');
+      cursor.classList.remove('cursor--snap', 'cursor--hover-image', 'cursor--follow-target');
       cursor.classList.toggle('cursor--dark', !isLandingVisible());
       currentState = 'nav-preview';
     }
