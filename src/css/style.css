@@ -968,6 +968,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 /* Category Divider Slides */
 .slideshow__slide--divider {
   --divider-opacity: 0;
+  --divider-y: 78vh;
   background: transparent;
   cursor: default;
 }
@@ -975,7 +976,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .slideshow__divider-content {
   position: absolute;
   left: 50%;
-  top: 25vh;
+  top: var(--divider-y);
   display: flex;
   flex-direction: column;
   align-items: center;

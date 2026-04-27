@@ -126,6 +126,9 @@ function initSlideshow() {
       return slide.classList.contains('slideshow__slide--divider') ? { slide: slide, index: index } : null;
     })
     .filter(Boolean);
+  var aboutIndex = slides.findIndex(function (slide) {
+    return slide.classList.contains('slideshow__slide--about');
+  });
 
   function clamp01(value) {
     return Math.max(0, Math.min(1, value));
@@ -137,16 +140,21 @@ function initSlideshow() {
   }
 
   function updateDividerOpacity(progress) {
+    var restY = window.innerWidth <= 700 ? 82 : 78;
+
     dividerSlides.forEach(function (divider, i) {
       var nextDivider = dividerSlides[i + 1];
+      var fadeStop = nextDivider ? nextDivider.index : (aboutIndex >= 0 ? aboutIndex : totalSlides);
       var fadeIn = smoothstep((progress - (divider.index - 0.62)) / 0.62);
-      var fadeOut = 1;
+      var fadeOut = 1 - smoothstep((progress - (fadeStop - 0.68)) / 0.68);
+      var dividerY = restY;
 
-      if (nextDivider) {
-        fadeOut = 1 - smoothstep((progress - (nextDivider.index - 0.68)) / 0.68);
+      if (i === 0) {
+        dividerY = 50 + smoothstep(progress / 0.95) * (restY - 50);
       }
 
       divider.slide.style.setProperty('--divider-opacity', Math.max(0, Math.min(fadeIn, fadeOut)).toFixed(3));
+      divider.slide.style.setProperty('--divider-y', dividerY.toFixed(2) + 'vh');
     });
   }
 
