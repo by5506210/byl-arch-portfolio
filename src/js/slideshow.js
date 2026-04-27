@@ -121,6 +121,34 @@ function initSlideshow() {
   var slideDark = slides.map(function (slide) {
     return false;
   });
+  var dividerSlides = slides
+    .map(function (slide, index) {
+      return slide.classList.contains('slideshow__slide--divider') ? { slide: slide, index: index } : null;
+    })
+    .filter(Boolean);
+
+  function clamp01(value) {
+    return Math.max(0, Math.min(1, value));
+  }
+
+  function smoothstep(value) {
+    value = clamp01(value);
+    return value * value * (3 - 2 * value);
+  }
+
+  function updateDividerOpacity(progress) {
+    dividerSlides.forEach(function (divider, i) {
+      var nextDivider = dividerSlides[i + 1];
+      var fadeIn = smoothstep((progress - (divider.index - 0.62)) / 0.62);
+      var fadeOut = 1;
+
+      if (nextDivider) {
+        fadeOut = 1 - smoothstep((progress - (nextDivider.index - 0.68)) / 0.68);
+      }
+
+      divider.slide.style.setProperty('--divider-opacity', Math.max(0, Math.min(fadeIn, fadeOut)).toFixed(3));
+    });
+  }
 
   // Cache nav element
   var nav = document.getElementById('nav');
@@ -156,6 +184,7 @@ function initSlideshow() {
     var progressRatio = totalSlides <= 1 ? 0 : (progress / (totalSlides - 1));
 
     progressContainer.style.setProperty('--slideshow-progress', progressRatio.toFixed(4));
+    updateDividerOpacity(progress);
 
     // Only update transforms for the visible window of slides
     // Slides before currentIndex are at 0%, slides after currentIndex+1 are at 100%
@@ -295,6 +324,11 @@ function initSlideshow() {
 
       var href = slide.dataset.href;
       if (!href) return;
+
+      if (slide.classList.contains('slideshow__slide--about')) {
+        window.location.href = href;
+        return;
+      }
 
       var img = slide.querySelector('.slideshow__slide-img-wrapper img');
 

@@ -967,15 +967,23 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 /* Category Divider Slides */
 .slideshow__slide--divider {
+  --divider-opacity: 0;
   background: transparent;
   cursor: default;
 }
 
 .slideshow__divider-content {
+  position: absolute;
+  left: 50%;
+  top: 25vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
+  opacity: var(--divider-opacity);
+  transform: translate3d(-50%, -50%, 0);
+  transition: opacity 0.18s linear;
+  will-change: opacity;
 }
 
 .slideshow__divider-label {
