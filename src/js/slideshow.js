@@ -249,6 +249,8 @@ function initSlideshow() {
     }
   }
 
+  applyScroll(scrollProgress);
+
   // Wheel handler
   var scrollSensitivity = 0.0015;
 
