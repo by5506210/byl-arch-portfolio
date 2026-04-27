@@ -3440,8 +3440,8 @@ body:has(.contact-page) {
 }
 
 .project-details--featured-drawing {
-  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.8fr);
-  gap: clamp(2.5rem, 5vw, 5.5rem);
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 1fr);
+  gap: clamp(2.5rem, 4vw, 4.5rem);
   align-items: center;
 }
 
@@ -3450,8 +3450,10 @@ body:has(.contact-page) {
 }
 
 .project-details--featured-drawing .project-details__drawing {
-  width: calc(100% + clamp(1.5rem, 4vw, 4rem));
-  margin-left: clamp(-3rem, -3vw, -1rem);
+  width: 100%;
+  max-width: 660px;
+  justify-self: end;
+  margin-left: 0;
 }
 
 .project-details__drawing img {
