@@ -889,15 +889,41 @@ function initProjectsAtlas() {
     };
   }
 
+  function getNodeScaleProfile() {
+    var width = window.innerWidth || 0;
+    if (width <= 640) {
+      return {
+        base: 0.78,
+        depth: 0.27,
+        proximity: 0.34
+      };
+    }
+    if (width <= 900) {
+      return {
+        base: 0.8,
+        depth: 0.3,
+        proximity: 0.38
+      };
+    }
+    return {
+      base: 0.82,
+      depth: 0.34,
+      proximity: 0.48
+    };
+  }
+
   function cacheCursorSnapRect(node, centerX, centerY, depth, proximity) {
     var thumb = node.__helixThumbEl;
     if (!thumb) return;
 
     var scaleProfile = getThumbScaleProfile();
+    var nodeScaleProfile = getNodeScaleProfile();
+    var depthValue = clamp(depth || 0, 0, 1);
     var proximityValue = clamp(proximity || 0, 0, 1);
-    var visualScale = 1 + clamp(depth || 0, 0, 1) * scaleProfile.depth + proximityValue * scaleProfile.proximity;
-    var width = node.__helixThumbW * scaleProfile.base * scaleProfile.responsive * visualScale;
-    var height = node.__helixThumbH * scaleProfile.base * scaleProfile.responsive * visualScale;
+    var visualScale = 1 + depthValue * scaleProfile.depth + proximityValue * scaleProfile.proximity;
+    var nodeScale = nodeScaleProfile.base + depthValue * nodeScaleProfile.depth + proximityValue * nodeScaleProfile.proximity;
+    var width = node.__helixThumbW * scaleProfile.base * scaleProfile.responsive * visualScale * nodeScale;
+    var height = node.__helixThumbH * scaleProfile.base * scaleProfile.responsive * visualScale * nodeScale;
     var skewY = typeof node.__thumbCurrentSkewY === 'number'
       ? node.__thumbCurrentSkewY
       : -30 * (1 - proximityValue);
