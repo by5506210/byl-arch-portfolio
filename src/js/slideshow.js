@@ -136,6 +136,25 @@ function initSlideshow() {
     return value * value * (3 - 2 * value);
   }
 
+  function getSlideTravel() {
+    return (container && container.clientHeight) || window.innerHeight || 0;
+  }
+
+  function snapToDevicePixel(value) {
+    var ratio = Math.max(1, window.devicePixelRatio || 1);
+    return Math.round(value * ratio) / ratio;
+  }
+
+  var slideOffsetCache = [];
+
+  function setSlideOffset(index, offset) {
+    var snappedOffset = snapToDevicePixel(offset);
+    if (slideOffsetCache[index] === snappedOffset) return;
+
+    slideOffsetCache[index] = snappedOffset;
+    slides[index].style.transform = 'translate3d(0, ' + snappedOffset.toFixed(2) + 'px, 0)';
+  }
+
   function updateDividerVisuals(progress) {
     dividerSlides.forEach(function (divider, i) {
       var fadeIn = smoothstep((progress - (divider.index - 0.62)) / 0.62);
@@ -169,10 +188,10 @@ function initSlideshow() {
     slide.style.willChange = 'transform';
 
     if (i === 0) {
-      slide.style.transform = 'translateY(0%)';
+      setSlideOffset(i, 0);
       slide.classList.add('is-active');
     } else {
-      slide.style.transform = 'translateY(100%)';
+      setSlideOffset(i, getSlideTravel());
     }
   });
 
@@ -186,16 +205,15 @@ function initSlideshow() {
     progressContainer.style.setProperty('--slideshow-progress', progressRatio.toFixed(4));
     updateDividerVisuals(progress);
 
-    // Only update transforms for the visible window of slides
-    // Slides before currentIndex are at 0%, slides after currentIndex+1 are at 100%
-    // Only the transitioning slide (currentIndex+1) needs per-frame updates
+    var slideTravel = getSlideTravel();
+
     for (var i = 0; i < totalSlides; i++) {
       if (i <= currentIndex) {
-        slides[i].style.transform = 'translateY(0%)';
+        setSlideOffset(i, 0);
       } else if (i === currentIndex + 1) {
-        slides[i].style.transform = 'translateY(' + ((1 - fraction) * 100) + '%)';
+        setSlideOffset(i, (1 - fraction) * slideTravel);
       } else {
-        slides[i].style.transform = 'translateY(100%)';
+        setSlideOffset(i, slideTravel);
       }
     }
 
@@ -242,6 +260,11 @@ function initSlideshow() {
   }
 
   applyScroll(scrollProgress);
+
+  window.addEventListener('resize', function () {
+    slideOffsetCache = [];
+    applyScroll(scrollProgress);
+  }, { passive: true });
 
   // Wheel handler
   var scrollSensitivity = 0.0015;

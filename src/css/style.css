@@ -777,6 +777,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   box-shadow: 0 14px 30px rgba(48, 42, 35, 0.14);
   transform: translate3d(var(--slide-card-x), var(--slide-card-y), 0) scale(var(--slide-card-scale));
   transform-origin: center center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
   will-change: transform;
   flex: 0 0 auto;
 }
@@ -797,15 +799,18 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   object-fit: cover;
   object-position: center center;
   display: block;
+  image-rendering: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   transition: none;
 }
 
 .slideshow__slide.is-active img {
-  transform: scale(1);
+  transform: translateZ(0) scale(1);
 }
 
 .slideshow__slide:hover img {
-  transform: none;
+  transform: translateZ(0);
 }
 
 /* Title — fixed overlay, separate from slides */
