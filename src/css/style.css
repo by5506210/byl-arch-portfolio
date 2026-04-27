@@ -967,7 +967,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 /* Category Divider Slides */
 .slideshow__slide--divider {
-  background: var(--concrete);
+  background: transparent;
   cursor: default;
 }
 
@@ -1025,8 +1025,18 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 /* About Me slide at end of slideshow */
 .slideshow__slide--about {
-  background: var(--concrete);
+  --slide-card-scale: 0.98;
+  background: transparent;
   cursor: pointer;
+}
+
+.slideshow__about-card {
+  width: min(23vw, 300px);
+  aspect-ratio: 0.78;
+}
+
+.slideshow__about-title-wrapper {
+  margin-top: clamp(0.65rem, 1.8vh, 1rem);
 }
 
 .slideshow__about-content {

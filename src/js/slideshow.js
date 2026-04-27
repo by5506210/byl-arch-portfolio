@@ -133,9 +133,8 @@ function initSlideshow() {
     slide.style.left = '0';
     slide.style.width = '100%';
     slide.style.height = '100vh';
-    // Keep project slides transparent so stacked cards don't cover each other.
-    if (!slide.classList.contains('slideshow__slide--divider') &&
-        !slide.classList.contains('slideshow__slide--about')) {
+    // Keep slides transparent so cards and category labels layer through each other.
+    if (!slide.classList.contains('slideshow__slide--coming-soon')) {
       slide.style.background = 'transparent';
     }
     slide.style.zIndex = String(i + 1);
