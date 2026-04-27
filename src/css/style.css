@@ -4031,16 +4031,20 @@ body:has(.contact-page) {
     max-width: 240px;
   }
 
+  .slideshow__slide {
+    padding: 3.75rem 0 7rem;
+  }
+
   .slideshow__slide-img-wrapper {
-    width: min(62vw, 320px);
+    width: min(56vw, 288px);
   }
 
   .slideshow__slide-img-wrapper--portrait {
-    width: min(62vw, 320px);
+    width: min(56vw, 288px);
   }
 
   .slideshow__slide-img-wrapper--landscape {
-    width: min(82vw, 420px);
+    width: min(74vw, 360px);
   }
 
   .slideshow__slide[data-project='eden-museum'] {

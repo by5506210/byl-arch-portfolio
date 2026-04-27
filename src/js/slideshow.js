@@ -140,7 +140,7 @@ function initSlideshow() {
   }
 
   function updateDividerOpacity(progress) {
-    var restY = window.innerWidth <= 700 ? 82 : 78;
+    var restY = window.innerWidth <= 700 ? 75 : 78;
 
     dividerSlides.forEach(function (divider, i) {
       var nextDivider = dividerSlides[i + 1];
