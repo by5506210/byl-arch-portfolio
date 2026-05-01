@@ -606,13 +606,34 @@ function initProjectsAtlas() {
   }
 
   var coarsePointerQuery = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+  var finePointerQuery = window.matchMedia ? window.matchMedia('(any-pointer: fine)') : null;
+  var hoverPointerQuery = window.matchMedia ? window.matchMedia('(any-hover: hover)') : null;
+  var lastFinePointerInputTime = 0;
+
+  function hasFinePointerAvailable() {
+    return !!((finePointerQuery && finePointerQuery.matches) || (hoverPointerQuery && hoverPointerQuery.matches));
+  }
+
+  function noteFinePointerInput(evt) {
+    if (evt && evt.pointerType && evt.pointerType !== 'mouse' && evt.pointerType !== 'pen') return false;
+    if (hasTouchInput && Date.now() - lastTouchInteractionTime < 420 && !hasFinePointerAvailable()) return false;
+    lastFinePointerInputTime = Date.now();
+    return true;
+  }
 
   function isCoarsePointer() {
+    if (Date.now() - lastFinePointerInputTime < 1800) return false;
+    if (hasFinePointerAvailable()) return false;
     return coarsePointerQuery ? coarsePointerQuery.matches : false;
   }
 
+  function shouldUseTouchTunedHelix() {
+    return (window.innerWidth || 0) <= 900 ||
+      (hasTouchInput && !hasFinePointerAvailable() && Date.now() - lastFinePointerInputTime >= 1800);
+  }
+
   function isTouchNavigationClick() {
-    return isCoarsePointer() || (hasTouchInput && Date.now() - lastTouchInteractionTime < 1200);
+    return (hasTouchInput && Date.now() - lastTouchInteractionTime < 1200) || isCoarsePointer();
   }
 
   function detectIPhoneDevice() {
@@ -890,7 +911,7 @@ function initProjectsAtlas() {
       base: 0.88,
       responsive: 1,
       depth: 0.15,
-      proximity: hasTouchInput ? 0.54 : 0.74
+      proximity: shouldUseTouchTunedHelix() ? 0.54 : 0.74
     };
   }
 
@@ -1314,7 +1335,7 @@ function initProjectsAtlas() {
         });
 
       var frameCount = Math.max(12, sourceImages.length * 2);
-      var isTouchSizedTexture = hasTouchInput || (window.innerWidth || 0) <= 900;
+      var isTouchSizedTexture = shouldUseTouchTunedHelix();
       var frameW = isTouchSizedTexture ? 34 : 28;
       var frameH = isTouchSizedTexture ? 22 : 18;
       var canvas = document.createElement('canvas');
@@ -2160,6 +2181,7 @@ function initProjectsAtlas() {
   var nodeHandlers = [];
   nodes.forEach(function (node) {
     var onMouseEnter = function (evt) {
+      noteFinePointerInput(evt);
       if (disposed || isCoarsePointer()) return;
       pointerClientX = evt.clientX;
       pointerClientY = evt.clientY;
@@ -2168,6 +2190,7 @@ function initProjectsAtlas() {
       ensureProximityAnimation();
     };
     var onMouseLeave = function (evt) {
+      noteFinePointerInput(evt);
       if (disposed || isCoarsePointer()) return;
       pointerClientX = evt.clientX;
       pointerClientY = evt.clientY;
@@ -2258,6 +2281,7 @@ function initProjectsAtlas() {
 
   function handleStageMouseMove(evt) {
     if (disposed) return;
+    noteFinePointerInput(evt);
     if (isCoarsePointer()) return;
     pointerClientX = evt.clientX;
     pointerClientY = evt.clientY;

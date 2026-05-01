@@ -57,6 +57,28 @@ button {
   cursor: none;
 }
 
+body:not(.custom-cursor-enabled),
+body:not(.custom-cursor-enabled) * {
+  cursor: auto !important;
+}
+
+body:not(.custom-cursor-enabled) a,
+body:not(.custom-cursor-enabled) button,
+body:not(.custom-cursor-enabled) [role='button'],
+body:not(.custom-cursor-enabled) .landing__portal,
+body:not(.custom-cursor-enabled) .project-back,
+body:not(.custom-cursor-enabled) .project-filmstrip {
+  cursor: pointer !important;
+}
+
+body:not(.custom-cursor-enabled) .project-filmstrip {
+  cursor: grab !important;
+}
+
+body:not(.custom-cursor-enabled) .project-filmstrip:active {
+  cursor: grabbing !important;
+}
+
 button, input, textarea, select {
   font: inherit;
 }
@@ -2738,7 +2760,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   }
 }
 
-@media (any-pointer: coarse) {
+@media (pointer: coarse) and (any-hover: none) {
   .projects-helix__node {
     --node-proximity-scale: 0.38;
     --thumb-raster-scale: 1.12;
@@ -2748,6 +2770,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     --thumb-image-raster-size: 800%;
     --thumb-image-raster-compensation: 0.125;
   }
+}
+
+body.custom-cursor-enabled .projects-helix__node {
+  --node-proximity-scale: 0.48;
+  --thumb-proximity-scale: 0.74;
+  --thumb-image-proximity-scale: 0.34;
 }
 
 @media (max-width: 900px) {

@@ -3,13 +3,30 @@
 // ============================================
 
 (function () {
-  if (window.innerWidth < 768) {
-    return;
+  var cursorStarted = false;
+  var lastBootstrapTouchTime = 0;
+
+  function isCursorViewport() {
+    return window.innerWidth >= 768;
   }
 
-  if (window.matchMedia && !window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    return;
+  function queryMatches(query) {
+    return !!(window.matchMedia && window.matchMedia(query).matches);
   }
+
+  function hasMouseLikePointer() {
+    return queryMatches('(hover: hover) and (pointer: fine)') ||
+      queryMatches('(any-hover: hover) and (any-pointer: fine)');
+  }
+
+  function startCursor() {
+    if (cursorStarted || !isCursorViewport()) return;
+    cursorStarted = true;
+    document.body.classList.add('custom-cursor-enabled');
+    window.removeEventListener('pointermove', handleMouseLikeInput);
+    window.removeEventListener('mousemove', handleMouseLikeInput);
+    window.removeEventListener('touchstart', noteBootstrapTouch);
+    window.removeEventListener('resize', handleCursorCapabilityChange);
 
   var cursor = document.createElement('div');
   cursor.classList.add('cursor');
@@ -531,4 +548,35 @@
     cursor.classList.remove('cursor--hidden');
     requestCursorFrame();
   });
+
+  }
+
+  function handleMouseLikeInput(evt) {
+    if (evt && evt.pointerType && evt.pointerType !== 'mouse' && evt.pointerType !== 'pen') return;
+    if (evt && !evt.pointerType && navigator.maxTouchPoints > 0 && !hasMouseLikePointer()) {
+      if (Date.now() - lastBootstrapTouchTime < 900) return;
+      if (evt.movementX === 0 && evt.movementY === 0) return;
+    }
+    startCursor();
+  }
+
+  function noteBootstrapTouch() {
+    lastBootstrapTouchTime = Date.now();
+  }
+
+  function handleCursorCapabilityChange() {
+    if (hasMouseLikePointer()) {
+      startCursor();
+    }
+  }
+
+  if (isCursorViewport() && hasMouseLikePointer()) {
+    startCursor();
+  } else {
+    document.body.classList.remove('custom-cursor-enabled');
+    window.addEventListener('pointermove', handleMouseLikeInput, { passive: true });
+    window.addEventListener('mousemove', handleMouseLikeInput, { passive: true });
+    window.addEventListener('touchstart', noteBootstrapTouch, { passive: true });
+    window.addEventListener('resize', handleCursorCapabilityChange, { passive: true });
+  }
 })();
