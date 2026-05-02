@@ -61,7 +61,7 @@ function initGalleryReveals() {
   images.forEach(function (img) {
     // Add native lazy loading to gallery images below the fold
     var imgEl = img.querySelector('img');
-    if (imgEl) imgEl.loading = 'lazy';
+    if (imgEl && !imgEl.hasAttribute('loading')) imgEl.loading = 'lazy';
     observer.observe(img);
   });
 
