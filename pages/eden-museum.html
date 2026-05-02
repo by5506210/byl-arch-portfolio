@@ -3,47 +3,259 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eden Art Museum — Bryan Youn</title>
+  <title>Eden Art Museum &mdash; Bryan Youn</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=spiral-mobile-stable-20260502">
+  <link rel="stylesheet" href="../src/css/style.css?v=eden-museum-20260502">
 </head>
 <body>
   <div class="grain"></div>
   <div data-barba="wrapper">
-  <main data-barba="container" data-barba-namespace="eden-museum">
-  <div class="project-page">
-    <div class="project-hero">
-      <img src="../assets/images/eden-museum/hero.jpg" alt="Eden Art Museum">
-      <div class="project-hero__overlay">
-        <div class="project-hero__category"><span>Architecture</span></div>
-        <h1 class="project-hero__title"><span>Eden Art Museum</span></h1>
+    <main data-barba="container" data-barba-namespace="eden-museum">
+      <div class="project-page">
+
+        <div class="project-hero">
+          <img src="../assets/images/eden-museum/hero.jpg" alt="Eden Art Museum">
+          <div class="project-hero__overlay">
+            <div class="project-hero__category"><span>Architecture</span></div>
+            <h1 class="project-hero__title"><span>Eden Art Museum</span></h1>
+          </div>
+        </div>
+
+        <div class="project-details project-details--featured-drawing">
+          <div class="project-details__drawing">
+            <img src="../assets/images/eden-museum/axon-projection.png" alt="Eden Art Museum axon projection" loading="lazy" decoding="async">
+          </div>
+          <div class="project-details__info">
+            <h2 class="project-details__title">Eden Art Museum</h2>
+            <div class="project-details__meta">
+              <div class="project-details__meta-row">
+                <span class="project-details__meta-label">Type</span>
+                <span class="project-details__meta-value">Museum / Cultural</span>
+              </div>
+              <div class="project-details__meta-row">
+                <span class="project-details__meta-label">Year</span>
+                <span class="project-details__meta-value" data-counter="false">2025</span>
+              </div>
+              <div class="project-details__meta-row">
+                <span class="project-details__meta-label">Location</span>
+                <span class="project-details__meta-value" data-counter="false">2351 Jungmun-dong, Seogwipo, Jeju-do, South Korea</span>
+              </div>
+            </div>
+            <p class="project-details__description">
+              The Eden Art Museum is conceived as a museum of descent, where the permanent exhibition leads visitors gradually into the earth before revealing a great central garden at its core. Rather than presenting the museum as a single object, the project is organized as a sequence of spatial transitions that use movement, curiosity, and natural light to guide visitors downward.
+            </p>
+            <p class="project-details__description">
+              At the heart of the museum is a sunken garden courtyard surrounded by gallery spaces, allowing art, landscape, and circulation to remain in constant dialogue. Lush trees are elevated on structural pillars, creating a suspended garden within the void, while waterfalls descend from ground level into the center.
+            </p>
+            <p class="project-details__description">
+              Set in Seogwipo, Jeju-do, the project draws from the island's volcanic terrain, dramatic topography, and dense natural atmosphere. Through its descending exhibition sequence, naturally lit circulation, and monumental courtyard, the museum becomes a spatial journey from enclosure into revelation.
+            </p>
+          </div>
+        </div>
+
+        <div class="project-section">
+          <div class="project-section__header">
+            <span class="project-section__label">Spatial Sequence</span>
+            <span class="project-section__sublabel">Arrival &rarr; Water edge &rarr; Descent &rarr; Gallery path &rarr; Garden reveal</span>
+          </div>
+        </div>
+        <div class="project-filmstrip">
+          <div class="project-filmstrip__track">
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">01</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-01.png" alt="Arrival hall" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Arrival Hall</span>
+                <span class="project-filmstrip__caption-desc">A compressed entry aligns visitors with a narrow cut of light before the descent begins.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">02</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-02.png" alt="Water edge approach" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Water Edge</span>
+                <span class="project-filmstrip__caption-desc">The exterior path introduces water and planted structure as the first reading of the courtyard below.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">03</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-03.png" alt="Garden threshold" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Garden Threshold</span>
+                <span class="project-filmstrip__caption-desc">A shifted outdoor platform frames the garden as a partially hidden center rather than an immediate object.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">04</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-04.jpg" alt="Stone descent" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Stone Descent</span>
+                <span class="project-filmstrip__caption-desc">A darker passage uses rough stone and a luminous seam to pull movement into the earth.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">05</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-05.png" alt="Gallery reception" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Gallery Reception</span>
+                <span class="project-filmstrip__caption-desc">The first interior gallery opens laterally, balancing reception, art, and directional light.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">06</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-06.png" alt="Light ramp" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Light Ramp</span>
+                <span class="project-filmstrip__caption-desc">A descending ramp gathers a brighter wash of light, turning circulation into anticipation.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">07</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-07.png" alt="Slit passage" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Slit Passage</span>
+                <span class="project-filmstrip__caption-desc">A tall, narrow aperture sharpens the contrast between enclosure and the next room.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">08</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-08.png" alt="Central gallery" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Central Gallery</span>
+                <span class="project-filmstrip__caption-desc">An island-like room lets artworks, shadow, and the perimeter path hold the visitor in suspension.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">09</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-09.png" alt="Curved descent" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Curved Descent</span>
+                <span class="project-filmstrip__caption-desc">A curved wall softens the route while keeping the visitor moving through the lower galleries.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">10</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-10.png" alt="Lower gallery passage" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Lower Gallery</span>
+                <span class="project-filmstrip__caption-desc">The gallery narrows again, letting the next aperture become the visitor's guide.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">11</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-11.png" alt="Sculptural chamber" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Chamber</span>
+                <span class="project-filmstrip__caption-desc">A sculptural room becomes a pause in the sequence before the building folds inward again.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">12</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-12.png" alt="Vertical cut" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Vertical Cut</span>
+                <span class="project-filmstrip__caption-desc">A high slot of daylight marks the courtyard's depth from the edge of the descending path.</span>
+              </div>
+            </div>
+            <div class="project-filmstrip__frame">
+              <div class="project-filmstrip__number">13</div>
+              <div class="project-filmstrip__image">
+                <img src="../assets/images/eden-museum/sequence/sequence-13.png" alt="Earth passage" loading="lazy" decoding="async">
+              </div>
+              <div class="project-filmstrip__caption">
+                <span class="project-filmstrip__caption-title">Earth Passage</span>
+                <span class="project-filmstrip__caption-desc">The sequence closes in a deep stone corridor, carrying visitors toward the garden reveal.</span>
+              </div>
+            </div>
+          </div>
+          <button class="project-filmstrip__arrow project-filmstrip__arrow--prev" aria-label="Previous">&larr;</button>
+          <button class="project-filmstrip__arrow project-filmstrip__arrow--next" aria-label="Next">&rarr;</button>
+          <div class="project-filmstrip__dots project-filmstrip__dots--dense">
+            <button class="project-filmstrip__dot project-filmstrip__dot--active" aria-label="Slide 1"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 2"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 3"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 4"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 5"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 6"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 7"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 8"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 9"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 10"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 11"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 12"></button>
+            <button class="project-filmstrip__dot" aria-label="Slide 13"></button>
+          </div>
+        </div>
+
+        <div class="project-section">
+          <div class="project-section__header">
+            <span class="project-section__label">Courtyard And Galleries</span>
+            <span class="project-section__sublabel">Water, suspended planting, stone, and gallery rooms are held together by the central void.</span>
+          </div>
+        </div>
+        <div class="project-gallery">
+          <div class="project-gallery__image"><img src="../assets/images/eden-museum/waterfall-2.jpg" alt="Sunken water court and suspended garden" loading="lazy" decoding="async"></div>
+          <div class="project-gallery__image"><img src="../assets/images/eden-museum/interior-reception.jpg" alt="Interior reception and gallery threshold" loading="lazy" decoding="async"></div>
+          <div class="project-gallery__image"><img src="../assets/images/eden-museum/interior-reception-alt.png" alt="Gallery interior with courtyard light" loading="lazy" decoding="async"></div>
+        </div>
+
+        <div class="project-section">
+          <div class="project-section__header">
+            <span class="project-section__label">Drawings And Overview</span>
+            <span class="project-section__sublabel">Section, plan, and perspective studies reveal the relationship between descent, exhibition rooms, and the garden void.</span>
+          </div>
+        </div>
+        <div class="project-gallery">
+          <div class="project-gallery__image"><img src="../assets/images/eden-museum/section-cut.png" alt="Section cut through the sunken museum" loading="lazy" decoding="async"></div>
+          <div class="project-gallery__image"><img src="../assets/images/eden-museum/aerial-plan.png" alt="Aerial plan of Eden Art Museum" loading="lazy" decoding="async"></div>
+          <div class="project-gallery__image"><img src="../assets/images/eden-museum/perspective.jpg" alt="Perspective view of the museum courtyard" loading="lazy" decoding="async"></div>
+          <div class="project-gallery__video">
+            <video controls playsinline preload="metadata">
+              <source src="../assets/images/eden-museum/walkthrough.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+
+        <footer class="site-footer">
+          <span class="site-footer__copy">Bryan Youn &mdash; 2025</span>
+          <div class="site-footer__links">
+            <a href="https://www.instagram.com/byl_architecture" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+            <a href="https://www.linkedin.com/in/bryan-youn-7048152b5/" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+          </div>
+        </footer>
       </div>
-    </div>
-    <div class="project-gallery">
-      <div class="project-gallery__image"><img src="../assets/images/eden-museum/waterfall-2.jpg" alt="Waterfall View 2"></div>
-      <div class="project-gallery__image"><img src="../assets/images/eden-museum/interior-reception.jpg" alt="Interior Reception"></div>
-      <div class="project-gallery__image"><img src="../assets/images/eden-museum/interior-reception-alt.png" alt="Reception Detail"></div>
-      <div class="project-gallery__image"><img src="../assets/images/eden-museum/section-cut.png" alt="Section Cut"></div>
-      <div class="project-gallery__image"><img src="../assets/images/eden-museum/aerial-plan.png" alt="Aerial Plan"></div>
-      <div class="project-gallery__image"><img src="../assets/images/eden-museum/perspective.jpg" alt="Perspective"></div>
-      <div class="project-gallery__video"><video controls playsinline><source src="../assets/images/eden-museum/walkthrough.mp4" type="video/mp4"></video></div>
-    </div>
-    <footer class="site-footer">
-      <span class="site-footer__copy">Bryan Youn &mdash; 2025</span>
-      <div class="site-footer__links">
-        <a href="https://www.instagram.com/byl_architecture" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
-        <a href="https://www.linkedin.com/in/bryan-youn-7048152b5/" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
-      </div>
-    </footer>
-  </div>
-  </main>
+    </main>
   </div>
   <script src="../src/js/cursor.js"></script>
-  <script src="../src/js/project-page.js?v=spiral-mobile-stable-20260502"></script>
+  <script src="../src/js/project-page.js?v=eden-museum-20260502"></script>
   <script src="../src/js/transitions.js"></script>
 </body>
 </html>

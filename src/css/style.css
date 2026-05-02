@@ -4099,6 +4099,14 @@ body:has(.contact-page) {
   margin-top: 1.5rem;
 }
 
+.project-filmstrip__dots--dense {
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: min(100%, 34rem);
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .project-filmstrip__dot {
   width: 24px;
   height: 2px;
@@ -4112,6 +4120,14 @@ body:has(.contact-page) {
 .project-filmstrip__dot--active {
   background: rgba(0, 0, 0, 0.5);
   width: 36px;
+}
+
+.project-filmstrip__dots--dense .project-filmstrip__dot {
+  width: 14px;
+}
+
+.project-filmstrip__dots--dense .project-filmstrip__dot--active {
+  width: 22px;
 }
 
 /* ============================================

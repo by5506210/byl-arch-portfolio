@@ -183,6 +183,8 @@ function initSpecCounters() {
   if (values.length === 0) return;
 
   values.forEach(function (el) {
+    if (el.dataset.counter === 'false') return;
+
     var text = el.textContent.trim();
     var match = text.match(/^([\d,]+\.?\d*)/);
     if (!match) return;
