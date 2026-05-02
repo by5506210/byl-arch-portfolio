@@ -636,8 +636,7 @@ function initVectorField() {
 
   function resolveFrameInterval() {
     if (reducedMotion) return 1000 / 24;
-    if (isLandingPage) return lowPowerDevice ? 1000 / 30 : 1000 / 42;
-    if (isContactPage) return lowPowerDevice ? 1000 / 24 : 1000 / 30;
+    if (isLandingPage || isContactPage) return 0;
     return lowPowerDevice ? 1000 / 20 : 1000 / 28;
   }
 

@@ -498,6 +498,7 @@ function initProjectsAtlas() {
   var HELIX_SYNC_ANGLE_EPSILON = 0.08;
   var HELIX_SYNC_DEPTH_EPSILON = 0.0025;
   var HELIX_SYNC_PROXIMITY_EPSILON = 0.001;
+  var scaleProfileCache = null;
   var fallbackNodeGeometry = [];
   var fallbackNodeGeometryTotal = 0;
   var fallbackNodeGeometryStartAngle = 0;
@@ -927,53 +928,67 @@ function initProjectsAtlas() {
     applyThumbAxon(node, proximity || 0);
   }
 
-  function getThumbScaleProfile() {
+  function getScaleProfiles() {
     var width = window.innerWidth || 0;
+    var band = width <= 640 ? 'small' : width <= 900 ? 'medium' : 'large';
+    var touchTuned = band === 'large' && shouldUseTouchTunedHelix();
+    var cacheKey = band + ':' + touchTuned;
+    if (scaleProfileCache && scaleProfileCache.key === cacheKey) return scaleProfileCache;
+
+    var thumb;
+    var node;
     if (width <= 640) {
-      return {
+      thumb = {
         base: 0.76,
         responsive: 0.94,
         depth: 0.09,
         proximity: 0.48
       };
-    }
-    if (width <= 900) {
-      return {
+      node = {
+        base: 0.78,
+        depth: 0.27,
+        proximity: 0.34
+      };
+    } else if (width <= 900) {
+      thumb = {
         base: 0.82,
         responsive: 1,
         depth: 0.11,
         proximity: 0.54
       };
-    }
-    return {
-      base: 0.88,
-      responsive: 1,
-      depth: 0.15,
-      proximity: shouldUseTouchTunedHelix() ? 0.54 : 0.74
-    };
-  }
-
-  function getNodeScaleProfile() {
-    var width = window.innerWidth || 0;
-    if (width <= 640) {
-      return {
-        base: 0.78,
-        depth: 0.27,
-        proximity: 0.34
-      };
-    }
-    if (width <= 900) {
-      return {
+      node = {
         base: 0.8,
         depth: 0.3,
         proximity: 0.38
       };
+    } else {
+      thumb = {
+        base: 0.88,
+        responsive: 1,
+        depth: 0.15,
+        proximity: touchTuned ? 0.54 : 0.74
+      };
+      node = {
+        base: 0.82,
+        depth: 0.34,
+        proximity: 0.48
+      };
     }
-    return {
-      base: 0.82,
-      depth: 0.34,
-      proximity: 0.48
+
+    scaleProfileCache = {
+      key: cacheKey,
+      thumb: thumb,
+      node: node
     };
+    return scaleProfileCache;
+  }
+
+  function getThumbScaleProfile() {
+    return getScaleProfiles().thumb;
+  }
+
+  function getNodeScaleProfile() {
+    return getScaleProfiles().node;
   }
 
   function cacheCursorSnapRect(node, centerX, centerY, depth, proximity) {
@@ -1066,20 +1081,20 @@ function initProjectsAtlas() {
       setNodeLayer(node, proximity);
     }
 
-    node.__helixGeometryState = {
-      anchorX: geometry.anchorX,
-      anchorY: geometry.anchorY,
-      viewportX: viewportX,
-      viewportY: viewportY,
-      depth: geometry.depth,
-      fog: geometry.fog,
-      connectorDx: geometry.connectorDx,
-      connectorDy: geometry.connectorDy,
-      connectorLength: geometry.connectorLength,
-      connectorAngle: geometry.connectorAngle,
-      hitThreshold: geometry.hitThreshold,
-      proximity: proximity
-    };
+    var nextState = previous || {};
+    nextState.anchorX = geometry.anchorX;
+    nextState.anchorY = geometry.anchorY;
+    nextState.viewportX = viewportX;
+    nextState.viewportY = viewportY;
+    nextState.depth = geometry.depth;
+    nextState.fog = geometry.fog;
+    nextState.connectorDx = geometry.connectorDx;
+    nextState.connectorDy = geometry.connectorDy;
+    nextState.connectorLength = geometry.connectorLength;
+    nextState.connectorAngle = geometry.connectorAngle;
+    nextState.hitThreshold = geometry.hitThreshold;
+    nextState.proximity = proximity;
+    node.__helixGeometryState = nextState;
     return true;
   }
 
@@ -1378,6 +1393,7 @@ function initProjectsAtlas() {
     }
 
     renderer.setClearColor(0x000000, 0);
+    renderer.autoClear = false;
     renderer.setPixelRatio(1);
 
     while (webglMount.firstChild) {
@@ -1430,7 +1446,7 @@ function initProjectsAtlas() {
     var tempProjectedRibbon = new THREE.Vector3();
     var ribbonTexture = null;
     var ribbonMeshRef = null;
-    var useWebglThumbLayer = hasTouchInput || (window.innerWidth || 0) <= 900;
+    var useWebglThumbLayer = false;
     var webglThumbsReady = 0;
     var webglThumbReadyTotal = 0;
     var projectionSmoothing = isIPhoneDevice ? 0.28 : 0.34;
@@ -1817,6 +1833,7 @@ function initProjectsAtlas() {
       data.thumbTextureCanvas = textureCanvas;
       data.thumbTextureReady = false;
       data.thumbCropKey = '';
+      data.thumbCropProximity = -1;
       webglThumbReadyTotal++;
 
       function redrawTextureCanvas() {
@@ -2104,6 +2121,13 @@ function initProjectsAtlas() {
       if (!data || !data.thumbMesh || !data.thumbMesh.userData) return;
       var texture = data.thumbMesh.userData.thumbTexture;
       if (!texture) return;
+      if (
+        data.thumbCropProximity >= 0 &&
+        Math.abs(data.thumbCropProximity - proximity) < 0.006
+      ) {
+        return;
+      }
+      data.thumbCropProximity = proximity;
 
       var imageZoom = 1.12 * (1.03 + proximity * 0.2) * 0.92;
       var repeatX = 1 / imageZoom;
@@ -2177,6 +2201,7 @@ function initProjectsAtlas() {
     }
 
     function renderSceneWithThumbs() {
+      renderer.clear(true, true, true);
       renderer.render(scene, camera);
       if (useWebglThumbLayer && webglThumbReadyTotal > 0) {
         renderer.clearDepth();
@@ -2326,7 +2351,7 @@ function initProjectsAtlas() {
       camera.bottom = -frustumSize * 0.5;
       camera.updateProjectionMatrix();
 
-      useWebglThumbLayer = hasTouchInput || width <= 900;
+      useWebglThumbLayer = false;
       buildWorld(width, height, frustumSize);
       syncWebglThumbs(width, height);
       renderSceneWithThumbs();
