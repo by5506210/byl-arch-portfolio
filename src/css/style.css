@@ -2477,6 +2477,63 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   display: none;
 }
 
+.projects-helix__fallback-ribbon {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.projects-helix--ribbon-ready:not(.projects-helix--webgl-enabled) .projects-helix__fallback-ribbon {
+  opacity: 1;
+}
+
+.projects-helix--webgl-enabled .projects-helix__fallback-ribbon {
+  display: none;
+}
+
+.projects-helix__fallback-ribbon-slice {
+  --x: 0px;
+  --y: 0px;
+  --angle: 0rad;
+  --scale: 1;
+  --opacity: 0.7;
+  --ribbon-w: 90px;
+  --ribbon-h: 44px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--ribbon-w);
+  height: var(--ribbon-h);
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 0 0 1px rgba(17, 17, 15, 0.08),
+    0 10px 22px rgba(44, 36, 30, 0.12);
+  opacity: var(--opacity);
+  transform:
+    translate3d(var(--x), var(--y), 0)
+    translate(-50%, -50%)
+    rotate(var(--angle))
+    skewY(-13deg)
+    scale(var(--scale));
+  transform-origin: center center;
+  will-change: transform, opacity;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+.projects-helix__fallback-ribbon-slice img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .projects-helix__axis,
 .projects-helix__orbit,
 .projects-helix__thread {
@@ -2561,13 +2618,13 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --node-proximity-scale: 0.48;
   --thumb-base-scale: 0.88;
   --thumb-responsive-scale: 1;
-  --thumb-raster-scale: 1.12;
-  --thumb-raster-compensation: 0.893;
+  --thumb-raster-scale: 1;
+  --thumb-raster-compensation: 1;
   --thumb-depth-scale: 0.15;
   --thumb-proximity-scale: 0.74;
   --thumb-image-proximity-scale: 0.34;
-  --thumb-image-raster-size: 800%;
-  --thumb-image-raster-compensation: 0.125;
+  --thumb-image-raster-size: 112%;
+  --thumb-image-raster-compensation: 0.92;
   --thumb-skew-y: -30deg;
   --arm-length: 0px;
   --arm-angle: 0;
@@ -2763,12 +2820,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 @media (pointer: coarse) and (any-hover: none) {
   .projects-helix__node {
     --node-proximity-scale: 0.38;
-    --thumb-raster-scale: 1.12;
-    --thumb-raster-compensation: 0.893;
+    --thumb-raster-scale: 1;
+    --thumb-raster-compensation: 1;
     --thumb-proximity-scale: 0.54;
     --thumb-image-proximity-scale: 0.2;
-    --thumb-image-raster-size: 800%;
-    --thumb-image-raster-compensation: 0.125;
+    --thumb-image-raster-size: 112%;
+    --thumb-image-raster-compensation: 0.92;
   }
 }
 
@@ -2788,13 +2845,13 @@ body.custom-cursor-enabled .projects-helix__node {
     --node-depth-scale: 0.3;
     --node-proximity-scale: 0.38;
     --thumb-base-scale: 0.82;
-    --thumb-raster-scale: 1.16;
-    --thumb-raster-compensation: 0.862;
+    --thumb-raster-scale: 1;
+    --thumb-raster-compensation: 1;
     --thumb-depth-scale: 0.11;
     --thumb-proximity-scale: 0.54;
     --thumb-image-proximity-scale: 0.2;
-    --thumb-image-raster-size: 800%;
-    --thumb-image-raster-compensation: 0.125;
+    --thumb-image-raster-size: 112%;
+    --thumb-image-raster-compensation: 0.92;
   }
 
   .projects-helix__viewport {
@@ -2845,13 +2902,13 @@ body.custom-cursor-enabled .projects-helix__node {
     --node-proximity-scale: 0.34;
     --thumb-base-scale: 0.76;
     --thumb-responsive-scale: 0.94;
-    --thumb-raster-scale: 1.24;
-    --thumb-raster-compensation: 0.806;
+    --thumb-raster-scale: 1;
+    --thumb-raster-compensation: 1;
     --thumb-depth-scale: 0.09;
     --thumb-proximity-scale: 0.48;
     --thumb-image-proximity-scale: 0.14;
-    --thumb-image-raster-size: 800%;
-    --thumb-image-raster-compensation: 0.125;
+    --thumb-image-raster-size: 112%;
+    --thumb-image-raster-compensation: 0.92;
   }
 
   .projects-helix__label {
@@ -3813,6 +3870,7 @@ body:has(.contact-page) {
   box-shadow: 0 8px 24px rgba(17, 17, 15, 0.12);
 }
 
+.project-nav-bar--over-hero .project-nav-bar__back,
 .project-nav-bar--over-hero .project-nav-bar__link,
 .project-nav-bar--over-hero .project-nav-bar__logo {
   color: var(--text-primary);
@@ -3830,6 +3888,7 @@ body:has(.contact-page) {
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+.project-nav-bar--solid .project-nav-bar__back,
 .project-nav-bar--solid .project-nav-bar__link {
   color: var(--text-primary);
   text-shadow: none;
@@ -3857,6 +3916,25 @@ body:has(.contact-page) {
 
 .project-nav-bar__logo:hover {
   opacity: 0.5;
+}
+
+.project-nav-bar__back {
+  position: absolute;
+  left: 1.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-primary);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  line-height: 1;
+}
+
+.project-nav-bar__back:hover {
+  opacity: 0.6;
 }
 
 .project-nav-bar--projects-helix,
@@ -4256,6 +4334,15 @@ body:has(.contact-page) {
     transform: translateY(-50%);
     font-size: 0.74rem;
     letter-spacing: 0.01em;
+  }
+
+  .project-nav-bar--has-back .project-nav-bar__logo {
+    display: none;
+  }
+
+  .project-nav-bar__back {
+    left: 0.85rem;
+    font-size: 0.7rem;
   }
 
   .project-nav-bar__links {

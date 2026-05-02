@@ -85,6 +85,11 @@ function initVectorField() {
 
   var coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   var touchCapable = coarsePointer || !!(navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var lowPowerDevice = reducedMotion ||
+    coarsePointer ||
+    (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+    (navigator.deviceMemory && navigator.deviceMemory <= 4);
   var ctx = canvas.getContext('2d', { alpha: true, desynchronized: coarsePointer }) ||
     canvas.getContext('2d', { alpha: true }) ||
     canvas.getContext('2d');
@@ -153,6 +158,7 @@ function initVectorField() {
   var particles = [];
   var time = 0;
   var lastFrameTime = 0;
+  var minFrameMs = resolveFrameInterval();
   var assembleState = null;
   var landingTransition = {
     active: false,
@@ -347,9 +353,12 @@ function initVectorField() {
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
     maxGravityDistance = _max(fieldWidth, window.innerHeight) * 0.6;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
+    minFrameMs = resolveFrameInterval();
 
     if (gridChanged) {
       buildGrid();
+      reserveStrokeBuckets(fieldBuckets, particles.length);
+      reserveStrokeBuckets(fieldBucketsDark, particles.length);
       lastSpacing = spacing;
     }
   }
@@ -379,12 +388,36 @@ function initVectorField() {
         var seed1 = Math.random() * 100;
         var seed2 = Math.random() * 100;
         var seed3 = Math.random() * 100;
+        var centerDx = centerX - px;
+        var centerDy = centerY - py;
+        var centerDistSq = centerDx * centerDx + centerDy * centerDy;
+        var centerDist = _sqrt(centerDistSq);
+        var centerFalloff = maxGravityDistance > 0 ? _max(0, 1 - centerDist / maxGravityDistance) : 0;
+        var centerAngle = _atan2(centerDy, centerDx);
+        var blackHoleStrength = 0;
+        var blackHoleCoreFade = 1;
+        var easterDx = easterEggX - px;
+        var easterDy = easterEggY - py;
+        var easterDistSq = easterDx * easterDx + easterDy * easterDy;
+        var easterDist = _sqrt(easterDistSq);
+        var easterLinear = _max(0, 1 - easterDist / easterEggRadius);
+        var easterStrength = easterLinear * easterLinear;
+        var easterAngle = _atan2(easterDy, easterDx);
+        var layerConfigEntry = layerConfig[layer];
+        var baseOpacity = (0.24 + Math.random() * 0.12) * opacityScale;
+
+        if (centerDistSq < blackHoleRadius * blackHoleRadius) {
+          blackHoleStrength = _max(0, 1 - centerDist / blackHoleRadius);
+          blackHoleStrength = blackHoleStrength * blackHoleStrength * blackHoleStrength;
+          if (centerDist < 35) blackHoleCoreFade = centerDist / 35;
+        }
 
         particles.push({
           x: px,
           y: py,
           currentAngle: startAngle, // start aligned for awakening
-          baseOpacity: (0.24 + Math.random() * 0.12) * opacityScale,
+          baseOpacity: baseOpacity,
+          baseOpacityLayer: baseOpacity * layerConfigEntry[0],
           seed1: seed1,
           seed2: seed2,
           seed3: seed3,
@@ -398,7 +431,21 @@ function initVectorField() {
           mouseWaveSeed: seed1 * 5,
           drift: (Math.random() - 0.5) * 1.0,
           mouseRadiusOffset: (Math.random() - 0.5) * 80,
-          layer: layer
+          layer: layer,
+          layerOpacity: layerConfigEntry[0],
+          layerWidth: layerConfigEntry[1],
+          layerSpeed: layerConfigEntry[2],
+          layerLen: layerConfigEntry[3],
+          centerDistSq: centerDistSq,
+          centerDist: centerDist,
+          centerAngle: centerAngle,
+          centerFalloff: centerFalloff,
+          blackHoleStrength: blackHoleStrength,
+          blackHoleCoreFade: blackHoleCoreFade,
+          easterDistSq: easterDistSq,
+          easterLinear: easterLinear,
+          easterStrength: easterStrength,
+          easterAngle: easterAngle
         });
       }
     }
@@ -534,7 +581,36 @@ function initVectorField() {
     }
   }
 
-  function strokeBuckets(bucketLines, bucketWidthSums, bucketCounts, color) {
+  function createBucketStyles(color) {
+    var styles = new Array(OPACITY_BUCKETS);
+    var rgbaPrefix = 'rgba(' + color + ', ';
+    for (var bs = 0; bs < OPACITY_BUCKETS; bs++) {
+      var bucketOpacity = OPACITY_BUCKETS <= 1 ? 1 : bs / (OPACITY_BUCKETS - 1);
+      styles[bs] = rgbaPrefix + bucketOpacity + ')';
+    }
+    return styles;
+  }
+
+  function strokeBuckets(bucketLines, bucketWidthSums, bucketCounts, bucketStyles) {
+    for (var bk = 0; bk < bucketLines.length; bk++) {
+      var bLines = bucketLines[bk];
+      var bCount = bucketCounts[bk];
+      if (bCount === 0) continue;
+
+      ctx.strokeStyle = bucketStyles[bk];
+      ctx.lineWidth = bucketWidthSums[bk] / bCount;
+      ctx.beginPath();
+
+      for (var bj = 0, bjEnd = bCount * 4; bj < bjEnd; bj += 4) {
+        ctx.moveTo(bLines[bj], bLines[bj + 1]);
+        ctx.lineTo(bLines[bj + 2], bLines[bj + 3]);
+      }
+
+      ctx.stroke();
+    }
+  }
+
+  function strokeBucketsLegacy(bucketLines, bucketWidthSums, bucketCounts, color) {
     var rgbaPrefix = 'rgba(' + color + ', ';
     for (var bk = 0; bk < bucketLines.length; bk++) {
       var bLines = bucketLines[bk];
@@ -558,7 +634,32 @@ function initVectorField() {
   var OPACITY_BUCKETS = 64;
   var rippleRingWidth = 120;
 
+  function resolveFrameInterval() {
+    if (reducedMotion) return 1000 / 24;
+    if (isLandingPage) return lowPowerDevice ? 1000 / 30 : 1000 / 42;
+    if (isContactPage) return lowPowerDevice ? 1000 / 24 : 1000 / 30;
+    return lowPowerDevice ? 1000 / 20 : 1000 / 28;
+  }
+
   function createStrokeBuckets(count) {
+    var bucketLines = new Array(count);
+    var bucketWidthSums = new Array(count);
+    var bucketCounts = new Array(count);
+
+    for (var bi = 0; bi < count; bi++) {
+      bucketLines[bi] = new Float32Array(256);
+      bucketWidthSums[bi] = 0;
+      bucketCounts[bi] = 0;
+    }
+
+    return {
+      lines: bucketLines,
+      widthSums: bucketWidthSums,
+      counts: bucketCounts
+    };
+  }
+
+  function createLegacyStrokeBuckets(count) {
     var bucketLines = new Array(count);
     var bucketWidthSums = new Array(count);
     var bucketCounts = new Array(count);
@@ -576,7 +677,51 @@ function initVectorField() {
     };
   }
 
+  function addStrokeSegment(buckets, bucketIdx, x1, y1, x2, y2, width) {
+    var count = buckets.counts[bucketIdx];
+    var offset = count * 4;
+    var lines = buckets.lines[bucketIdx];
+
+    if (offset + 4 > lines.length) {
+      var nextLength = lines.length * 2;
+      while (offset + 4 > nextLength) nextLength *= 2;
+      var grownLines = new Float32Array(nextLength);
+      grownLines.set(lines);
+      lines = grownLines;
+      buckets.lines[bucketIdx] = lines;
+    }
+
+    lines[offset] = x1;
+    lines[offset + 1] = y1;
+    lines[offset + 2] = x2;
+    lines[offset + 3] = y2;
+    buckets.widthSums[bucketIdx] += width;
+    buckets.counts[bucketIdx] = count + 1;
+  }
+
+  function reserveStrokeBuckets(buckets, segmentCapacity) {
+    var requiredLength = _max(256, segmentCapacity * 4);
+    var lines = buckets.lines;
+
+    for (var bi = 0; bi < lines.length; bi++) {
+      if (lines[bi].length >= requiredLength) continue;
+      var reservedLines = new Float32Array(requiredLength);
+      reservedLines.set(lines[bi]);
+      lines[bi] = reservedLines;
+    }
+  }
+
   function resetStrokeBuckets(buckets) {
+    var widthSums = buckets.widthSums;
+    var counts = buckets.counts;
+
+    for (var bi = 0; bi < counts.length; bi++) {
+      widthSums[bi] = 0;
+      counts[bi] = 0;
+    }
+  }
+
+  function resetLegacyStrokeBuckets(buckets) {
     var lines = buckets.lines;
     var widthSums = buckets.widthSums;
     var counts = buckets.counts;
@@ -590,6 +735,11 @@ function initVectorField() {
 
   var fieldBuckets = createStrokeBuckets(OPACITY_BUCKETS);
   var fieldBucketsDark = createStrokeBuckets(OPACITY_BUCKETS);
+  var transitionBuckets = createLegacyStrokeBuckets(OPACITY_BUCKETS);
+  var transitionBucketsDark = createLegacyStrokeBuckets(OPACITY_BUCKETS);
+  var bucketStylesLight = createBucketStyles(lightLineColor);
+  var bucketStylesDark = createBucketStyles(darkLineColor);
+  var bucketStylesLine = isDarkLines ? bucketStylesDark : bucketStylesLight;
 
   window.setVectorFieldTransition = setTransitionState;
 
@@ -602,10 +752,18 @@ function initVectorField() {
       return;
     }
 
-    if (!lastFrameTime) lastFrameTime = timestamp;
-    var dt = (timestamp - lastFrameTime) / 1000;
-    lastFrameTime = timestamp;
-    if (dt > 0.1) dt = 0.016;
+    var transitionFidelityActive = isLandingPage && ((assembleState && assembleState.active) || landingTransition.active);
+    var activeMinFrameMs = transitionFidelityActive ? 0 : minFrameMs;
+
+    if (!lastFrameTime) lastFrameTime = activeMinFrameMs > 0 ? timestamp - activeMinFrameMs : timestamp;
+    var elapsedMs = timestamp - lastFrameTime;
+    if (activeMinFrameMs > 0 && elapsedMs < activeMinFrameMs) {
+      requestAnimationFrame(animate);
+      return;
+    }
+    var dt = elapsedMs / 1000;
+    lastFrameTime = activeMinFrameMs > 0 ? timestamp - (elapsedMs % activeMinFrameMs) : timestamp;
+    if (dt > 0.1) dt = transitionFidelityActive ? 0.016 : 0.05;
     time += dt;
 
     var mouseX = _vfMouseX;
@@ -664,8 +822,8 @@ function initVectorField() {
       var assembleProgress = _min(1, (time - assembleState.startTime) / assembleState.duration);
       var a1 = 1 - assembleProgress;
       var meltProgress = assembleProgress < 0.78 ? 0 : ((assembleProgress - 0.78) / 0.22);
-      resetStrokeBuckets(fieldBuckets);
-      if (revealActive) resetStrokeBuckets(fieldBucketsDark);
+      resetLegacyStrokeBuckets(transitionBuckets);
+      if (revealActive) resetLegacyStrokeBuckets(transitionBucketsDark);
 
       var assembleCount = assembleState.sortedParticles.length;
       for (var ai = 0; ai < assembleCount; ai++) {
@@ -719,7 +877,7 @@ function initVectorField() {
         var clampedAssembleOpacity = drawOpacityAssemble < 0 ? 0 : (drawOpacityAssemble > 1 ? 1 : drawOpacityAssemble);
         var assembleBucketIdx = (clampedAssembleOpacity * (OPACITY_BUCKETS - 1) + 0.5) | 0;
         var insideReveal = revealActive && ((centerX - drawX) * (centerX - drawX) + (centerY - drawY) * (centerY - drawY)) <= revealRadiusSq;
-        var assembleBucketSet = insideReveal ? fieldBucketsDark : fieldBuckets;
+        var assembleBucketSet = insideReveal ? transitionBucketsDark : transitionBuckets;
         var assembleBucket = assembleBucketSet.lines[assembleBucketIdx];
         assembleBucket.push(
           drawX - cosAssemble * halfLenAssemble,
@@ -731,9 +889,9 @@ function initVectorField() {
         assembleBucketSet.counts[assembleBucketIdx]++;
       }
 
-      strokeBuckets(fieldBuckets.lines, fieldBuckets.widthSums, fieldBuckets.counts, revealActive ? lightLineColor : lineColor);
+      strokeBucketsLegacy(transitionBuckets.lines, transitionBuckets.widthSums, transitionBuckets.counts, revealActive ? lightLineColor : lineColor);
       if (revealActive) {
-        strokeBuckets(fieldBucketsDark.lines, fieldBucketsDark.widthSums, fieldBucketsDark.counts, darkLineColor);
+        strokeBucketsLegacy(transitionBucketsDark.lines, transitionBucketsDark.widthSums, transitionBucketsDark.counts, darkLineColor);
         if (revealRadius > 8) {
           ctx.beginPath();
           ctx.arc(centerX, centerY, revealRadius, 0, TWO_PI);
@@ -965,14 +1123,10 @@ function initVectorField() {
     for (var i = particleStart; i < particleEnd; i++) {
       var p = particles[i];
       if (!isLandingPage && (p.y < visibleTop || p.y > visibleBottom)) continue;
-      var lc = layerConfig[p.layer];
-      var layerSpeedMult = lc[2];
-      var lcOpacity = lc[0];
-      var lcLen = lc[3];
-      var lcWidth = lc[1];
-      var dxCenter = centerX - p.x;
-      var dyCenter = centerY - p.y;
-      var distCenterSq = dxCenter * dxCenter + dyCenter * dyCenter;
+      var layerSpeedMult = p.layerSpeed;
+      var lcLen = p.layerLen;
+      var lcWidth = p.layerWidth;
+      var distCenterSq = p.centerDistSq;
 
       // Waves with layer-specific speed
       var waveTime = time * layerSpeedMult;
@@ -990,19 +1144,13 @@ function initVectorField() {
       // --- #1: GRAVITATIONAL CURRENT (mobile only) ---
       // Subtle inward bias — like water circling a drain
       if (gravityStrength > 0) {
-        var gdx = centerX - p.x;
-        var gdy = centerY - p.y;
-        var gDistSq = gdx * gdx + gdy * gdy;
         // Only apply outside the black hole zone to avoid fighting the spiral
-        if (gDistSq > blackHoleRadiusSq) {
-          var gAngle = _atan2(gdy, gdx);
+        if (distCenterSq > blackHoleRadiusSq) {
           // Spiral offset so it's not just pointing at center — add a swirl
-          var gSpiral = gAngle + 0.6;
+          var gSpiral = p.centerAngle + 0.6;
           var gDiff = angleDiff(liveAngle, gSpiral);
           // Stronger pull closer to center, fades at edges
-          var gDist = _sqrt(gDistSq);
-          var gFalloff = _max(0, 1 - gDist / maxGravityDistance);
-          liveAngle += gDiff * gravityStrength * gFalloff;
+          liveAngle += gDiff * gravityStrength * p.centerFalloff;
         }
       }
 
@@ -1069,7 +1217,7 @@ function initVectorField() {
 
       var bhResistance = 0;
       var targetAngle = baseAngle;
-      var drawOpacity = (p.baseOpacity * lcOpacity) + rippleOpacityBoost + wakeOpacityBoost;
+      var drawOpacity = p.baseOpacityLayer + rippleOpacityBoost + wakeOpacityBoost;
       var drawLen = (lineLen * lcLen) + rippleLenBoost;
       var widthScale = 1;
       var speed = returnSpeed;
@@ -1082,34 +1230,27 @@ function initVectorField() {
       drawOpacity *= awakenEased;
 
       if (isLandingPage) {
-        var dxBH = dxCenter;
-        var dyBH = dyCenter;
         var distBHSq = distCenterSq;
 
         if (distBHSq < blackHoleRadiusSq) {
-          var distBH = _sqrt(distBHSq);
-          var bhStrength = (1 - distBH / blackHoleRadius);
-          bhStrength = bhStrength * bhStrength * bhStrength;
+          var distBH = p.centerDist;
+          var bhStrength = p.blackHoleStrength;
           bhResistance = bhStrength;
           var spiralOffset = bhStrength * 2.0 + _sin(time * 3.5 + p.seed1) * bhStrength * 0.6;
-          var bhAngle = _atan2(dyBH, dxBH) + spiralOffset;
+          var bhAngle = p.centerAngle + spiralOffset;
           targetAngle = bhAngle * bhStrength * awakenEased + baseAngle * (1 - bhStrength);
-          drawOpacity = (p.baseOpacity * lcOpacity + bhStrength * 0.4 * opacityScale + rippleOpacityBoost + wakeOpacityBoost) * awakenEased;
+          drawOpacity = (p.baseOpacityLayer + bhStrength * 0.4 * opacityScale + rippleOpacityBoost + wakeOpacityBoost) * awakenEased;
           drawLen = lineLen * lcLen + bhStrength * 12 + rippleLenBoost;
           speed = returnSpeed + bhStrength * 0.3;
-          if (distBH < 35) { var fade = distBH / 35; drawOpacity *= fade; drawLen = lineLen * lcLen * fade + bhStrength * 12 * fade; }
+          if (distBH < 35) { var fade = p.blackHoleCoreFade; drawOpacity *= fade; drawLen = lineLen * lcLen * fade + bhStrength * 12 * fade; }
         }
 
-        var dxEE = easterEggX - p.x;
-        var dyEE = easterEggY - p.y;
-        var distEESq = dxEE * dxEE + dyEE * dyEE;
+        var distEESq = p.easterDistSq;
 
         if (distEESq < easterEggRadiusSq) {
-          var distEE = _sqrt(distEESq);
-          var eeStrength = (1 - distEE / easterEggRadius);
-          eeStrength = eeStrength * eeStrength;
+          var eeStrength = p.easterStrength;
           var eeSpiralOffset = eeStrength * 1.8 + _sin(time * 2.5 + p.seed2) * eeStrength * 0.5;
-          var eeAngle = _atan2(dyEE, dxEE) + eeSpiralOffset;
+          var eeAngle = p.easterAngle + eeSpiralOffset;
           var eeDiff = angleDiff(targetAngle, eeAngle);
           targetAngle += eeDiff * eeStrength * 0.8;
 
@@ -1136,11 +1277,8 @@ function initVectorField() {
           if (distMSq < particleMouseRadiusSq) {
             var particleNearEE = 0;
             if (isLandingPage) {
-              var _dpeX = p.x - easterEggX;
-              var _dpeY = p.y - easterEggY;
-              var _dpeSq = _dpeX * _dpeX + _dpeY * _dpeY;
-              if (_dpeSq < easterEggRadiusSq) {
-                particleNearEE = _max(0, 1 - _sqrt(_dpeSq) / easterEggRadius);
+              if (p.easterDistSq < easterEggRadiusSq) {
+                particleNearEE = p.easterLinear;
               }
             }
 
@@ -1154,7 +1292,7 @@ function initVectorField() {
               drawOpacity *= _max(0.02, 1 - dimFactor * 3);
             } else {
               var brightenAmount = mouseEffect * 0.3 * opacityScale;
-              drawOpacity = _max(drawOpacity, p.baseOpacity * lcOpacity + brightenAmount);
+              drawOpacity = _max(drawOpacity, p.baseOpacityLayer + brightenAmount);
             }
 
             var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
@@ -1172,8 +1310,7 @@ function initVectorField() {
       while (p.currentAngle < -PI) p.currentAngle += TWO_PI;
 
       if (revealActive) {
-        var distCenter = _sqrt(distCenterSq);
-        var edgeBoost = _max(0, 1 - _abs(distCenter - revealRadius) / 56);
+        var edgeBoost = _max(0, 1 - _abs(p.centerDist - revealRadius) / 56);
         if (edgeBoost > 0) {
           drawOpacity = _min(1, drawOpacity + edgeBoost * 0.1);
           drawLen += edgeBoost * 2.8;
@@ -1196,16 +1333,21 @@ function initVectorField() {
       var bucketIdx = (clampedOpacity * (OPACITY_BUCKETS - 1) + 0.5) | 0;
       var useDarkBucket = revealActive && distCenterSq <= revealRadiusSq;
       var bucketSet = useDarkBucket ? fieldBucketsDark : fieldBuckets;
-      var bucket = bucketSet.lines[bucketIdx];
-      bucket.push(p.x - cosA * halfLen, p.y - sinA * halfLen, p.x + cosA * halfLen, p.y + sinA * halfLen);
-      bucketSet.widthSums[bucketIdx] += angleWidth;
-      bucketSet.counts[bucketIdx]++;
+      addStrokeSegment(
+        bucketSet,
+        bucketIdx,
+        p.x - cosA * halfLen,
+        p.y - sinA * halfLen,
+        p.x + cosA * halfLen,
+        p.y + sinA * halfLen,
+        angleWidth
+      );
     }
 
     // --- BATCHED DRAW: one beginPath/stroke per opacity bucket ---
-    strokeBuckets(fieldBuckets.lines, fieldBuckets.widthSums, fieldBuckets.counts, revealActive ? lightLineColor : lineColor);
+    strokeBuckets(fieldBuckets.lines, fieldBuckets.widthSums, fieldBuckets.counts, revealActive ? bucketStylesLight : bucketStylesLine);
     if (revealActive) {
-      strokeBuckets(fieldBucketsDark.lines, fieldBucketsDark.widthSums, fieldBucketsDark.counts, darkLineColor);
+      strokeBuckets(fieldBucketsDark.lines, fieldBucketsDark.widthSums, fieldBucketsDark.counts, bucketStylesDark);
     }
 
     // --- DRAW RIPPLE RINGS ---

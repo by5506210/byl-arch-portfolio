@@ -112,13 +112,24 @@ function initNavBar(rootContainer) {
 
   var hero = scope.querySelector('.project-hero');
   var isProjectsHelix = !!scope.querySelector('.projects-helix');
+  var isProjectDetail = !!scope.querySelector('.project-page, .coming-soon-page');
 
   // Build the unified bar
   var bar = document.createElement('div');
   bar.classList.add('project-nav-bar');
   if (isProjectsHelix) bar.classList.add('project-nav-bar--projects-helix');
+  if (isProjectDetail) bar.classList.add('project-nav-bar--has-back');
 
-  // Left: back arrow — goes to previous page
+  if (isProjectDetail) {
+    var backLink = document.createElement('a');
+    backLink.href = 'projects.html';
+    backLink.classList.add('project-nav-bar__back');
+    backLink.setAttribute('aria-label', 'Back to Projects');
+    backLink.textContent = 'Back';
+    bar.appendChild(backLink);
+  }
+
+  // Center: site mark.
   var logo = document.createElement('a');
   logo.href = '../index.html';
   logo.classList.add('project-nav-bar__logo');
@@ -479,6 +490,23 @@ function initProjectsAtlas() {
   var entryReadyScheduled = false;
   var proximityNeedsStep = true;
   var PROXIMITY_TARGET_STEPS = 80;
+  var HELIX_SYNC_POSITION_EPSILON = 0.28;
+  var HELIX_SYNC_LENGTH_EPSILON = 0.28;
+  var HELIX_SYNC_ANGLE_EPSILON = 0.08;
+  var HELIX_SYNC_DEPTH_EPSILON = 0.0025;
+  var HELIX_SYNC_PROXIMITY_EPSILON = 0.001;
+  var fallbackNodeGeometry = [];
+  var fallbackNodeGeometryTotal = 0;
+  var fallbackNodeGeometryStartAngle = 0;
+  var fallbackThreadSamples = null;
+  var fallbackThreadSampleCount = 0;
+  var fallbackThreadSampleStartAngle = 0;
+  var fallbackThreadProjection = { x: 0, depth: 0 };
+  var fallbackNodeProjection = { x: 0, depth: 0 };
+  var fallbackRibbon = null;
+  var fallbackRibbonSlices = [];
+  var fallbackRibbonProjection = { x: 0, depth: 0 };
+  var fallbackRibbonTangentProjection = { x: 0, depth: 0 };
   var hasTouchInput = 'ontouchstart' in window || !!(navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
 
   if (!stage || nodes.length === 0) return;
@@ -554,16 +582,16 @@ function initProjectsAtlas() {
     if (likelyLowEnd) {
       return {
         webglMinFrameMs: 0,
-        nodeSyncMinMs: isWindows ? 1000 / 34 : 1000 / 40,
+        nodeSyncMinMs: isWindows ? 1000 / 20 : 1000 / 24,
         fallbackMinFrameMs: 0,
-        ribbonDepthUpdateMs: 220,
-        mobilePixelMax: 1.25,
-        desktopPixelMax: 1.05,
-        ringSegments: 40,
-        threadSegmentsMin: 84,
-        threadSegmentsMult: 12,
-        ribbonSegmentsMobile: 34,
-        ribbonSegmentsDesktop: 46,
+        ribbonDepthUpdateMs: 360,
+        mobilePixelMax: 1.05,
+        desktopPixelMax: 0.9,
+        ringSegments: 30,
+        threadSegmentsMin: 64,
+        threadSegmentsMult: 9,
+        ribbonSegmentsMobile: 24,
+        ribbonSegmentsDesktop: 32,
         anisotropyCap: 2
       };
     }
@@ -571,32 +599,32 @@ function initProjectsAtlas() {
     if (likelyHighEnd) {
       return {
         webglMinFrameMs: 0,
-        nodeSyncMinMs: isWindows ? 1000 / 44 : 1000 / 50,
+        nodeSyncMinMs: isWindows ? 1000 / 28 : 1000 / 32,
         fallbackMinFrameMs: 0,
-        ribbonDepthUpdateMs: 120,
-        mobilePixelMax: 1.65,
-        desktopPixelMax: 1.28,
-        ringSegments: 56,
-        threadSegmentsMin: 112,
-        threadSegmentsMult: 16,
-        ribbonSegmentsMobile: 48,
-        ribbonSegmentsDesktop: 64,
+        ribbonDepthUpdateMs: 220,
+        mobilePixelMax: 1.35,
+        desktopPixelMax: 1.05,
+        ringSegments: 44,
+        threadSegmentsMin: 88,
+        threadSegmentsMult: 12,
+        ribbonSegmentsMobile: 36,
+        ribbonSegmentsDesktop: 48,
         anisotropyCap: 4
       };
     }
 
     return {
       webglMinFrameMs: 0,
-      nodeSyncMinMs: isWindows ? 1000 / 38 : 1000 / 45,
+      nodeSyncMinMs: isWindows ? 1000 / 24 : 1000 / 28,
       fallbackMinFrameMs: 0,
-      ribbonDepthUpdateMs: 160,
-      mobilePixelMax: 1.45,
-      desktopPixelMax: 1.16,
-      ringSegments: 48,
-      threadSegmentsMin: 96,
-      threadSegmentsMult: 14,
-      ribbonSegmentsMobile: 40,
-      ribbonSegmentsDesktop: 56,
+      ribbonDepthUpdateMs: 280,
+      mobilePixelMax: 1.18,
+      desktopPixelMax: 0.98,
+      ringSegments: 36,
+      threadSegmentsMin: 76,
+      threadSegmentsMult: 10,
+      ribbonSegmentsMobile: 30,
+      ribbonSegmentsDesktop: 40,
       anisotropyCap: 3
     };
   }
@@ -835,6 +863,13 @@ function initProjectsAtlas() {
       nodeHitCache[index] = { x: x, y: y, threshold: threshold };
       return;
     }
+    if (
+      Math.abs(hit.x - x) < HELIX_SYNC_POSITION_EPSILON &&
+      Math.abs(hit.y - y) < HELIX_SYNC_POSITION_EPSILON &&
+      Math.abs((hit.threshold || 0) - threshold) < HELIX_SYNC_LENGTH_EPSILON
+    ) {
+      return;
+    }
     hit.x = x;
     hit.y = y;
     hit.threshold = threshold;
@@ -967,6 +1002,108 @@ function initProjectsAtlas() {
     thumb.__cursorSnapRect = rect;
   }
 
+  function applyNodeHelixGeometry(node, index, stageLeft, stageTop, geometry, force) {
+    var proximity = proximityCurrent.get(node) || 0;
+    var viewportX = stageLeft + geometry.anchorX;
+    var viewportY = stageTop + geometry.anchorY;
+    var previous = node.__helixGeometryState;
+    var positionChanged = force || !previous ||
+      Math.abs(previous.anchorX - geometry.anchorX) >= HELIX_SYNC_POSITION_EPSILON ||
+      Math.abs(previous.anchorY - geometry.anchorY) >= HELIX_SYNC_POSITION_EPSILON ||
+      Math.abs(previous.viewportX - viewportX) >= HELIX_SYNC_POSITION_EPSILON ||
+      Math.abs(previous.viewportY - viewportY) >= HELIX_SYNC_POSITION_EPSILON;
+    var depthChanged = force || !previous ||
+      Math.abs(previous.depth - geometry.depth) >= HELIX_SYNC_DEPTH_EPSILON ||
+      Math.abs(previous.fog - geometry.fog) >= HELIX_SYNC_DEPTH_EPSILON;
+    var connectorChanged = force || !previous ||
+      Math.abs(previous.connectorDx - geometry.connectorDx) >= HELIX_SYNC_POSITION_EPSILON ||
+      Math.abs(previous.connectorDy - geometry.connectorDy) >= HELIX_SYNC_POSITION_EPSILON ||
+      Math.abs(previous.connectorLength - geometry.connectorLength) >= HELIX_SYNC_LENGTH_EPSILON ||
+      Math.abs(previous.connectorAngle - geometry.connectorAngle) >= HELIX_SYNC_ANGLE_EPSILON;
+    var hitChanged = force || !previous ||
+      Math.abs(previous.hitThreshold - geometry.hitThreshold) >= HELIX_SYNC_LENGTH_EPSILON;
+    var proximityChanged = force || !previous ||
+      Math.abs(previous.proximity - proximity) >= HELIX_SYNC_PROXIMITY_EPSILON;
+
+    if (!positionChanged && !depthChanged && !connectorChanged && !hitChanged && !proximityChanged) {
+      return false;
+    }
+
+    if (positionChanged) {
+      setNodeStyleValue(node, '--x', geometry.anchorX.toFixed(2) + 'px');
+      setNodeStyleValue(node, '--y', geometry.anchorY.toFixed(2) + 'px');
+    }
+
+    if (depthChanged) {
+      setNodeStyleValue(node, '--depth', geometry.depth.toFixed(3));
+      setNodeStyleValue(node, '--fog', geometry.fog.toFixed(3));
+      node.__helixDepth = geometry.depth;
+    }
+
+    if (connectorChanged) {
+      setNodeStyleValue(node, '--arm-length', geometry.connectorLength.toFixed(2) + 'px');
+      setNodeStyleValue(node, '--arm-angle', geometry.connectorAngle.toFixed(2));
+      setNodeStyleValue(node, '--helix-dx', geometry.connectorDx.toFixed(2) + 'px');
+      setNodeStyleValue(node, '--helix-dy', geometry.connectorDy.toFixed(2) + 'px');
+    }
+
+    if (depthChanged || proximityChanged) {
+      updateThumbAxonBase(node, geometry.connectorDx, geometry.depth, proximity);
+    }
+
+    if (positionChanged || depthChanged || proximityChanged) {
+      cacheCursorSnapRect(node, viewportX, viewportY, geometry.depth, proximity);
+    }
+
+    if (positionChanged || depthChanged || hitChanged) {
+      setHitCache(index, geometry.anchorX, geometry.anchorY, geometry.hitThreshold);
+    }
+
+    if (depthChanged || proximityChanged) {
+      setNodeLayer(node, proximity);
+    }
+
+    node.__helixGeometryState = {
+      anchorX: geometry.anchorX,
+      anchorY: geometry.anchorY,
+      viewportX: viewportX,
+      viewportY: viewportY,
+      depth: geometry.depth,
+      fog: geometry.fog,
+      connectorDx: geometry.connectorDx,
+      connectorDy: geometry.connectorDy,
+      connectorLength: geometry.connectorLength,
+      connectorAngle: geometry.connectorAngle,
+      hitThreshold: geometry.hitThreshold,
+      proximity: proximity
+    };
+    return true;
+  }
+
+  function resetNodeHelixGeometryState() {
+    nodeHitCache = [];
+    nodes.forEach(function (node) {
+      node.__helixGeometryState = null;
+    });
+  }
+
+  function getNodeComputedGeometry(node) {
+    if (!node.__helixComputedGeometry) {
+      node.__helixComputedGeometry = {
+        anchorX: 0,
+        anchorY: 0,
+        depth: 0,
+        fog: 0,
+        connectorDx: 0,
+        connectorDy: 0,
+        connectorLength: 0,
+        connectorAngle: 0,
+        hitThreshold: 0
+      };
+    }
+    return node.__helixComputedGeometry;
+  }
+
   function setPrimaryNode(node) {
     var nextNode = node || null;
     if (primaryNode === nextNode) return;
@@ -1030,6 +1167,9 @@ function initProjectsAtlas() {
       node.classList.toggle('is-active', isActive);
     }
     setNodeLayer(node, clamped);
+    if (node.__helixGeometryState) {
+      node.__helixGeometryState.proximity = clamped;
+    }
   }
 
   function setActiveFocusNode(node) {
@@ -1135,6 +1275,35 @@ function initProjectsAtlas() {
     orbitBottom = svg.querySelector('.projects-helix__orbit--bottom');
   }
 
+  function ensureFallbackRibbon() {
+    if (fallbackRibbon || !stage) return;
+
+    fallbackRibbon = document.createElement('div');
+    fallbackRibbon.className = 'projects-helix__fallback-ribbon';
+    fallbackRibbon.setAttribute('aria-hidden', 'true');
+
+    var sliceCount = Math.max(18, nodes.length * 3);
+    for (var i = 0; i < sliceCount; i++) {
+      var sourceNode = nodes[i % nodes.length];
+      var sourceImg = sourceNode && sourceNode.querySelector('.projects-helix__thumb img');
+      var slice = document.createElement('span');
+      slice.className = 'projects-helix__fallback-ribbon-slice';
+
+      if (sourceImg) {
+        var img = document.createElement('img');
+        img.src = sourceImg.currentSrc || sourceImg.getAttribute('src') || sourceImg.src;
+        img.alt = '';
+        img.decoding = 'async';
+        slice.appendChild(img);
+      }
+
+      fallbackRibbon.appendChild(slice);
+      fallbackRibbonSlices.push(slice);
+    }
+
+    stage.appendChild(fallbackRibbon);
+  }
+
   function clearVisualState(immediate) {
     selectedNode = null;
     touchSelectedNode = null;
@@ -1231,10 +1400,10 @@ function initProjectsAtlas() {
     var ribbonTextureRefreshFrame = 0;
     var webglDestroyed = false;
     var ribbonReadyNotified = false;
-    var tempPointWorld = new THREE.Vector3();
-    var tempAnchorWorld = new THREE.Vector3();
-    var tempProjectedPoint = new THREE.Vector3();
-    var tempProjectedAnchor = new THREE.Vector3();
+    var tempNodeProjectionMatrix = new THREE.Matrix4();
+    var tempDotMatrix = new THREE.Matrix4();
+    var tempProjectedPoint = { x: 0, y: 0, z: 0 };
+    var tempProjectedAnchor = { x: 0, y: 0, z: 0 };
     var tempRibbonWorld = new THREE.Vector3();
     var tempProjectedRibbon = new THREE.Vector3();
     var ribbonTexture = null;
@@ -1264,6 +1433,9 @@ function initProjectsAtlas() {
       var geometry = new THREE.BufferGeometry().setFromPoints(points);
       var line = new THREE.Line(geometry, material);
       if (dashed && line.computeLineDistances) line.computeLineDistances();
+      line.matrixAutoUpdate = false;
+      line.frustumCulled = false;
+      line.updateMatrix();
       group.add(line);
       return line;
     }
@@ -1346,9 +1518,27 @@ function initProjectsAtlas() {
       ctx.imageSmoothingEnabled = true;
       if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = isTouchSizedTexture ? 'high' : 'medium';
       var texture = new THREE.CanvasTexture(canvas);
+      var pendingDecodeRefresh = false;
+
+      function drawRibbonFallbackFrames() {
+        var grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        grad.addColorStop(0, '#d1c9bb');
+        grad.addColorStop(0.25, '#e3ddd2');
+        grad.addColorStop(0.5, '#c6bdaf');
+        grad.addColorStop(0.75, '#e8e1d6');
+        grad.addColorStop(1, '#b9b1a4');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (var i = 0; i < frameCount; i++) {
+          var x = i * frameW;
+          ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(26,26,26,0.05)';
+          ctx.fillRect(x, 0, Math.max(2, frameW * 0.14), frameH);
+        }
+      }
 
       function redrawFromThumbs() {
         var anyDrawn = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (var i = 0; i < frameCount; i++) {
           var x = i * frameW;
           var source = sourceImages.length ? sourceImages[i % sourceImages.length] : null;
@@ -1360,15 +1550,33 @@ function initProjectsAtlas() {
             anyDrawn = true;
           }
         }
+        if (!anyDrawn) {
+          drawRibbonFallbackFrames();
+        }
         texture.needsUpdate = true;
-        if (anyDrawn) markRibbonReady();
+        markRibbonReady();
+        return anyDrawn;
       }
 
       function scheduleRibbonRefresh() {
+        if (webglDestroyed || disposed) return;
         if (ribbonTextureRefreshFrame) return;
         ribbonTextureRefreshFrame = requestAnimationFrame(function () {
           ribbonTextureRefreshFrame = 0;
           redrawFromThumbs();
+        });
+      }
+
+      function scheduleRibbonDecodeRefresh() {
+        if (pendingDecodeRefresh) return;
+        pendingDecodeRefresh = true;
+        var decodePromises = sourceImages.map(function (img) {
+          if (!img || !img.decode) return Promise.resolve();
+          return img.decode().catch(function () {});
+        });
+        Promise.all(decodePromises).then(function () {
+          pendingDecodeRefresh = false;
+          scheduleRibbonRefresh();
         });
       }
 
@@ -1386,7 +1594,12 @@ function initProjectsAtlas() {
           markRibbonReady();
         }
       } else {
-        redrawFromThumbs();
+        var drewInitialRibbonImages = redrawFromThumbs();
+        if (!drewInitialRibbonImages) {
+          window.setTimeout(scheduleRibbonRefresh, 220);
+          window.setTimeout(scheduleRibbonRefresh, 900);
+        }
+        scheduleRibbonDecodeRefresh();
       }
 
       texture.generateMipmaps = false;
@@ -1476,9 +1689,9 @@ function initProjectsAtlas() {
       var material = new THREE.MeshBasicMaterial({
         map: ribbonTexture,
         transparent: true,
-        opacity: 0.74,
+        opacity: 0.92,
         side: THREE.DoubleSide,
-        depthWrite: true,
+        depthWrite: false,
         alphaTest: 0.02,
         vertexColors: true
       });
@@ -1493,6 +1706,7 @@ function initProjectsAtlas() {
       var colorAttr = geometry.getAttribute('color');
       if (!positionAttr || !colorAttr) return;
 
+      ribbonMeshRef.updateMatrixWorld(true);
       for (var i = 0; i < positionAttr.count; i++) {
         tempRibbonWorld.fromBufferAttribute(positionAttr, i).applyMatrix4(ribbonMeshRef.matrixWorld);
         tempProjectedRibbon.copy(tempRibbonWorld).project(camera);
@@ -1511,6 +1725,7 @@ function initProjectsAtlas() {
       clearGroup();
       nodeData = [];
       nodeScreenState = [];
+      resetNodeHelixGeometryState();
       ribbonMeshRef = null;
 
       var total = nodes.length;
@@ -1527,7 +1742,7 @@ function initProjectsAtlas() {
       var axisTop = helixHeight * 0.61;
       var axisBottom = -helixHeight * 0.61;
       var ribbonPhaseShift = 0;
-      var ribbonEndT = Math.min(0.7, 0.4 + total * 0.035);
+      var ribbonEndT = 1;
 
       addLine(
         [new THREE.Vector3(0, axisTop, 0), new THREE.Vector3(0, axisBottom, 0)],
@@ -1580,13 +1795,26 @@ function initProjectsAtlas() {
         phaseShift: ribbonPhaseShift,
         startT: 0,
         endT: ribbonEndT,
-        width: isMobile ? 0.38 : 0.46,
+        width: isMobile ? 0.44 : 0.54,
         tilt: isMobile ? 0.045 : 0.068,
         segments: isMobile ? performanceProfile.ribbonSegmentsMobile : performanceProfile.ribbonSegmentsDesktop
       });
       if (ribbonMesh) {
         ribbonMeshRef = ribbonMesh;
+        ribbonMesh.frustumCulled = false;
         group.add(ribbonMesh);
+      }
+
+      var dotMaterial = new THREE.MeshBasicMaterial({
+        color: 0x0f0f0d,
+        transparent: true,
+        opacity: 0.9
+      });
+      var dotMesh = THREE.InstancedMesh ? new THREE.InstancedMesh(dotGeometry, dotMaterial, total) : null;
+      if (dotMesh) {
+        dotMesh.matrixAutoUpdate = false;
+        dotMesh.frustumCulled = false;
+        dotMesh.updateMatrix();
       }
 
       for (var index = 0; index < total; index++) {
@@ -1605,15 +1833,28 @@ function initProjectsAtlas() {
         }
         var anchor = point.clone().add(radial.multiplyScalar(1.58));
 
-        var dot = new THREE.Mesh(dotGeometry, new THREE.MeshBasicMaterial({
-          color: 0x0f0f0d,
-          transparent: true,
-          opacity: 0.9
-        }));
-        dot.position.copy(point);
-        group.add(dot);
+        if (dotMesh) {
+          tempDotMatrix.makeTranslation(point.x, point.y, point.z);
+          dotMesh.setMatrixAt(index, tempDotMatrix);
+        } else {
+          var dot = new THREE.Mesh(dotGeometry, dotMaterial);
+          dot.position.copy(point);
+          dot.updateMatrix();
+          dot.matrixAutoUpdate = false;
+          dot.frustumCulled = false;
+          group.add(dot);
+        }
 
-        nodeData.push({ point: point, anchor: anchor });
+        nodeData.push({
+          point: point,
+          anchor: anchor,
+          geometry: getNodeComputedGeometry(nodes[index])
+        });
+      }
+
+      if (dotMesh) {
+        dotMesh.instanceMatrix.needsUpdate = true;
+        group.add(dotMesh);
       }
     }
 
@@ -1646,8 +1887,25 @@ function initProjectsAtlas() {
       return state;
     }
 
+    function projectNodePoint(point, matrix, width, height, target) {
+      var x = point.x;
+      var y = point.y;
+      var z = point.z;
+      var w = matrix[3] * x + matrix[7] * y + matrix[11] * z + matrix[15];
+      var invW = w ? 1 / w : 1;
+      var projectedX = (matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12]) * invW;
+      var projectedY = (matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13]) * invW;
+      var projectedZ = (matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14]) * invW;
+
+      target.x = (projectedX * 0.5 + 0.5) * width;
+      target.y = (-projectedY * 0.5 + 0.5) * height;
+      target.z = projectedZ;
+      return target;
+    }
+
     function syncNodes(width, height, now) {
-      group.updateMatrixWorld(true);
+      group.updateMatrix();
+      group.matrixWorld.copy(group.matrix);
       if (!lastRibbonDepthUpdate || (now - lastRibbonDepthUpdate) >= RIBBON_DEPTH_UPDATE_MS) {
         updateRibbonDepthVisual();
         lastRibbonDepthUpdate = now;
@@ -1655,19 +1913,22 @@ function initProjectsAtlas() {
       var cachedStageRect = stageRectCache || getStageRect();
       var stageLeft = cachedStageRect ? cachedStageRect.left : 0;
       var stageTop = cachedStageRect ? cachedStageRect.top : 0;
+      tempNodeProjectionMatrix
+        .multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+        .multiply(group.matrixWorld);
+      var projectionMatrix = tempNodeProjectionMatrix.elements;
+
       nodes.forEach(function (node, index) {
         var data = nodeData[index];
         if (!data) return;
 
-        tempPointWorld.copy(data.point).applyMatrix4(group.matrixWorld);
-        tempAnchorWorld.copy(data.anchor).applyMatrix4(group.matrixWorld);
-        tempProjectedPoint.copy(tempPointWorld).project(camera);
-        tempProjectedAnchor.copy(tempAnchorWorld).project(camera);
+        projectNodePoint(data.point, projectionMatrix, width, height, tempProjectedPoint);
+        projectNodePoint(data.anchor, projectionMatrix, width, height, tempProjectedAnchor);
 
-        var pointX = (tempProjectedPoint.x * 0.5 + 0.5) * width;
-        var pointY = (-tempProjectedPoint.y * 0.5 + 0.5) * height;
-        var anchorX = (tempProjectedAnchor.x * 0.5 + 0.5) * width;
-        var anchorY = (-tempProjectedAnchor.y * 0.5 + 0.5) * height;
+        var pointX = tempProjectedPoint.x;
+        var pointY = tempProjectedPoint.y;
+        var anchorX = tempProjectedAnchor.x;
+        var anchorY = tempProjectedAnchor.y;
         var smoothedNode = smoothProjectedNode(index, pointX, pointY, anchorX, anchorY);
         pointX = smoothedNode.pointX;
         pointY = smoothedNode.pointY;
@@ -1680,21 +1941,18 @@ function initProjectsAtlas() {
         var depth = clamp(1 - (tempProjectedPoint.z + 1) * 0.5, 0, 1);
         var fog = clamp(1 - depth, 0, 1);
         var hitThreshold = (width <= 820 ? 126 : 148) * (0.9 + depth * 0.7);
+        var geometry = data.geometry || getNodeComputedGeometry(node);
+        geometry.anchorX = anchorX;
+        geometry.anchorY = anchorY;
+        geometry.depth = depth;
+        geometry.fog = fog;
+        geometry.connectorDx = connectorDx;
+        geometry.connectorDy = connectorDy;
+        geometry.connectorLength = connectorLength;
+        geometry.connectorAngle = connectorAngle;
+        geometry.hitThreshold = hitThreshold;
 
-        var depthValue = depth.toFixed(3);
-        setNodeStyleValue(node, '--x', anchorX.toFixed(2) + 'px');
-        setNodeStyleValue(node, '--y', anchorY.toFixed(2) + 'px');
-        setNodeStyleValue(node, '--depth', depthValue);
-        setNodeStyleValue(node, '--fog', fog.toFixed(3));
-        setNodeStyleValue(node, '--arm-length', connectorLength.toFixed(2) + 'px');
-        setNodeStyleValue(node, '--arm-angle', connectorAngle.toFixed(2));
-        setNodeStyleValue(node, '--helix-dx', connectorDx.toFixed(2) + 'px');
-        setNodeStyleValue(node, '--helix-dy', connectorDy.toFixed(2) + 'px');
-        node.__helixDepth = depth;
-        updateThumbAxonBase(node, connectorDx, depth, proximityCurrent.get(node) || 0);
-        cacheCursorSnapRect(node, stageLeft + anchorX, stageTop + anchorY, depth, proximityCurrent.get(node) || 0);
-        setHitCache(index, anchorX, anchorY, hitThreshold);
-        setNodeLayer(node, proximityCurrent.get(node) || 0);
+        applyNodeHelixGeometry(node, index, stageLeft, stageTop, geometry, false);
       });
     }
 
@@ -1871,27 +2129,75 @@ function initProjectsAtlas() {
     loadNext();
   }
 
-  function projectOffset(theta, radius, viewAngle) {
-    var spatialX = Math.sin(theta) * radius;
-    var spatialZ = Math.cos(theta) * radius;
-    var projectedX = spatialX * Math.cos(viewAngle) + spatialZ * Math.sin(viewAngle);
-    var projectedDepth = (-spatialX * Math.sin(viewAngle)) + (spatialZ * Math.cos(viewAngle));
-    return {
-      x: projectedX,
-      depth: projectedDepth
-    };
+  function getFallbackNodeGeometry(total, startAngle) {
+    if (
+      fallbackNodeGeometry.length === total &&
+      fallbackNodeGeometryTotal === total &&
+      fallbackNodeGeometryStartAngle === startAngle
+    ) {
+      return fallbackNodeGeometry;
+    }
+
+    fallbackNodeGeometry = [];
+    fallbackNodeGeometryTotal = total;
+    fallbackNodeGeometryStartAngle = startAngle;
+    for (var index = 0; index < total; index++) {
+      var progress = total === 1 ? 0.5 : index / (total - 1);
+      var theta = startAngle + progress * Math.PI * 2;
+      fallbackNodeGeometry.push({
+        progress: progress,
+        sinTheta: Math.sin(theta),
+        cosTheta: Math.cos(theta)
+      });
+    }
+    return fallbackNodeGeometry;
   }
 
-  function buildThreadPath(centerX, topY, loopHeight, radius, startAngle, viewAngle) {
-    var segments = Math.max(72, nodes.length * 14);
-    var d = '';
+  function getFallbackThreadSamples(segments, startAngle) {
+    if (
+      fallbackThreadSamples &&
+      fallbackThreadSampleCount === segments &&
+      fallbackThreadSampleStartAngle === startAngle
+    ) {
+      return fallbackThreadSamples;
+    }
 
+    fallbackThreadSamples = [];
+    fallbackThreadSampleCount = segments;
+    fallbackThreadSampleStartAngle = startAngle;
     for (var i = 0; i <= segments; i++) {
       var progress = i / segments;
       var theta = startAngle + progress * Math.PI * 2;
-      var projected = projectOffset(theta, radius, viewAngle);
+      fallbackThreadSamples.push({
+        progress: progress,
+        sinTheta: Math.sin(theta),
+        cosTheta: Math.cos(theta)
+      });
+    }
+    return fallbackThreadSamples;
+  }
+
+  function projectOffsetFromTrig(sinTheta, cosTheta, radius, sinViewAngle, cosViewAngle, target) {
+    var spatialX = sinTheta * radius;
+    var spatialZ = cosTheta * radius;
+    var projectedX = spatialX * cosViewAngle + spatialZ * sinViewAngle;
+    var projectedDepth = (-spatialX * sinViewAngle) + (spatialZ * cosViewAngle);
+    var nextTarget = target || { x: 0, depth: 0 };
+    nextTarget.x = projectedX;
+    nextTarget.depth = projectedDepth;
+    return nextTarget;
+  }
+
+  function buildThreadPath(centerX, topY, loopHeight, radius, startAngle, sinViewAngle, cosViewAngle) {
+    var segments = Math.max(72, nodes.length * 14);
+    var samples = getFallbackThreadSamples(segments, startAngle);
+    var d = '';
+
+    for (var i = 0; i < samples.length; i++) {
+      var sample = samples[i];
+      var projected = projectOffsetFromTrig(sample.sinTheta, sample.cosTheta, radius, sinViewAngle, cosViewAngle, fallbackThreadProjection);
       var x = centerX + projected.x;
-      var y = topY + progress * loopHeight;
+      var y = topY + sample.progress * loopHeight;
       d += (i === 0 ? 'M' : ' L') + x.toFixed(2) + ' ' + y.toFixed(2);
     }
 
@@ -1904,6 +2210,45 @@ function initProjectsAtlas() {
     setElementAttribute(orbit, 'cy', cy.toFixed(2));
     setElementAttribute(orbit, 'rx', rx.toFixed(2));
     setElementAttribute(orbit, 'ry', ry.toFixed(2));
+  }
+
+  function layoutFallbackRibbon(centerX, topY, loopHeight, radius, startAngle, sinViewAngle, cosViewAngle, isMobile) {
+    ensureFallbackRibbon();
+    if (!fallbackRibbonSlices.length) return;
+
+    var count = fallbackRibbonSlices.length;
+    var step = count <= 1 ? 1 : 1 / (count - 1);
+    var sliceWidth = isMobile ? 62 : 90;
+    var sliceHeight = isMobile ? 32 : 44;
+
+    for (var i = 0; i < count; i++) {
+      var progress = count === 1 ? 0.5 : i * step;
+      var theta = startAngle + progress * Math.PI * 2;
+      var projected = projectOffsetFromTrig(Math.sin(theta), Math.cos(theta), radius, sinViewAngle, cosViewAngle, fallbackRibbonProjection);
+      var x = centerX + projected.x;
+      var y = topY + progress * loopHeight;
+      var depth = Math.max(0, Math.min(1, (projected.depth / radius + 1) * 0.5));
+      var tangentProgress = i < count - 1 ? Math.min(1, progress + step) : Math.max(0, progress - step);
+      var tangentTheta = startAngle + tangentProgress * Math.PI * 2;
+      var tangentProjected = projectOffsetFromTrig(Math.sin(tangentTheta), Math.cos(tangentTheta), radius, sinViewAngle, cosViewAngle, fallbackRibbonTangentProjection);
+      var tangentX = centerX + tangentProjected.x;
+      var tangentY = topY + tangentProgress * loopHeight;
+      var angle = i < count - 1
+        ? Math.atan2(tangentY - y, tangentX - x)
+        : Math.atan2(y - tangentY, x - tangentX);
+      var scale = 0.72 + depth * 0.4;
+      var opacity = 0.42 + depth * 0.48;
+      var slice = fallbackRibbonSlices[i];
+
+      slice.style.setProperty('--x', x.toFixed(2) + 'px');
+      slice.style.setProperty('--y', y.toFixed(2) + 'px');
+      slice.style.setProperty('--angle', angle.toFixed(4) + 'rad');
+      slice.style.setProperty('--scale', scale.toFixed(3));
+      slice.style.setProperty('--opacity', opacity.toFixed(3));
+      slice.style.setProperty('--ribbon-w', sliceWidth + 'px');
+      slice.style.setProperty('--ribbon-h', sliceHeight + 'px');
+      slice.style.zIndex = String(Math.round(2 + depth * 8));
+    }
   }
 
   function layoutHelixFallback() {
@@ -1921,6 +2266,9 @@ function initProjectsAtlas() {
     var viewAngle = (isMobile ? Math.PI * 0.2 : baseViewAngle) + fallbackRotation;
     var startAngle = -Math.PI * 0.5;
     var total = nodes.length;
+    var sinViewAngle = Math.sin(viewAngle);
+    var cosViewAngle = Math.cos(viewAngle);
+    var cachedNodeGeometry = getFallbackNodeGeometry(total, startAngle);
 
     if (axisPath) {
       setElementAttribute(
@@ -1936,15 +2284,16 @@ function initProjectsAtlas() {
     setOrbitGeometry(orbitBottom, centerX, topY + loopHeight, radiusX, orbitRadiusY);
 
     if (threadPath) {
-      setElementAttribute(threadPath, 'd', buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle, viewAngle));
+      setElementAttribute(threadPath, 'd', buildThreadPath(centerX, topY, loopHeight, radiusX, startAngle, sinViewAngle, cosViewAngle));
     }
 
+    layoutFallbackRibbon(centerX, topY, loopHeight, radiusX, startAngle, sinViewAngle, cosViewAngle, isMobile);
+
     nodes.forEach(function (node, index) {
-      var progress = total === 1 ? 0.5 : index / (total - 1);
-      var theta = startAngle + progress * Math.PI * 2;
-      var projected = projectOffset(theta, radiusX, viewAngle);
+      var cachedGeometry = cachedNodeGeometry[index];
+      var projected = projectOffsetFromTrig(cachedGeometry.sinTheta, cachedGeometry.cosTheta, radiusX, sinViewAngle, cosViewAngle, fallbackNodeProjection);
       var helixX = centerX + projected.x;
-      var y = topY + progress * loopHeight;
+      var y = topY + cachedGeometry.progress * loopHeight;
       var depth = Math.max(0, Math.min(1, (projected.depth / radiusX + 1) * 0.5));
       var fog = clamp(1 - depth, 0, 1);
       var side = projected.x >= 0 ? 1 : -1;
@@ -1956,21 +2305,18 @@ function initProjectsAtlas() {
       var connectorLength = Math.sqrt(connectorDx * connectorDx + connectorDy * connectorDy);
       var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
       var hitThreshold = (isMobile ? 126 : 148) * (0.9 + depth * 0.7);
+      var geometry = getNodeComputedGeometry(node);
+      geometry.anchorX = anchorX;
+      geometry.anchorY = anchorY;
+      geometry.depth = depth;
+      geometry.fog = fog;
+      geometry.connectorDx = connectorDx;
+      geometry.connectorDy = connectorDy;
+      geometry.connectorLength = connectorLength;
+      geometry.connectorAngle = connectorAngle;
+      geometry.hitThreshold = hitThreshold;
 
-      var depthValue = depth.toFixed(3);
-      setNodeStyleValue(node, '--x', anchorX.toFixed(2) + 'px');
-      setNodeStyleValue(node, '--y', anchorY.toFixed(2) + 'px');
-      setNodeStyleValue(node, '--depth', depthValue);
-      setNodeStyleValue(node, '--fog', fog.toFixed(3));
-      setNodeStyleValue(node, '--arm-length', connectorLength.toFixed(2) + 'px');
-      setNodeStyleValue(node, '--arm-angle', connectorAngle.toFixed(2));
-      setNodeStyleValue(node, '--helix-dx', connectorDx.toFixed(2) + 'px');
-      setNodeStyleValue(node, '--helix-dy', connectorDy.toFixed(2) + 'px');
-      node.__helixDepth = depth;
-      updateThumbAxonBase(node, connectorDx, depth, proximityCurrent.get(node) || 0);
-      cacheCursorSnapRect(node, rect.left + anchorX, rect.top + anchorY, depth, proximityCurrent.get(node) || 0);
-      setHitCache(index, anchorX, anchorY, hitThreshold);
-      setNodeLayer(node, proximityCurrent.get(node) || 0);
+      applyNodeHelixGeometry(node, index, rect.left, rect.top, geometry, false);
     });
   }
 
@@ -2140,6 +2486,9 @@ function initProjectsAtlas() {
     }
     helix.classList.add('projects-helix--webgl-enabled');
     helix.classList.remove('projects-helix--ribbon-ready');
+    if (fallbackRibbon && fallbackRibbon.parentNode) fallbackRibbon.remove();
+    fallbackRibbon = null;
+    fallbackRibbonSlices = [];
     if (guides) {
       guides.remove();
       guides = null;
@@ -2419,6 +2768,9 @@ function initProjectsAtlas() {
       webglHelix.destroy();
     }
     webglHelix = null;
+    if (fallbackRibbon && fallbackRibbon.parentNode) fallbackRibbon.remove();
+    fallbackRibbon = null;
+    fallbackRibbonSlices = [];
   }
 
   registerProjectPageCleanup(cleanupAtlas);
