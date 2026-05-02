@@ -1424,36 +1424,54 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   contain-intrinsic-size: none;
 }
 
-.project-gallery--main-views .project-gallery__image img,
-.project-gallery--closing .project-gallery__image img {
+.project-gallery--main-views .project-gallery__image img {
   clip-path: inset(0 0 0 0);
   filter: saturate(1);
 }
 
-.project-gallery--closing {
-  padding: 2rem 0 4rem;
+.project-coda {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: end;
+  width: min(92vw, 1320px);
+  margin: clamp(2.5rem, 6vw, 5rem) auto clamp(5rem, 8vw, 7rem);
   content-visibility: visible;
   contain-intrinsic-size: none;
 }
 
-.project-gallery--closing .project-gallery__image {
-  width: min(92%, 1320px);
-  margin-bottom: 0;
+.project-coda__closing {
+  grid-column: 1 / -1;
+  margin: 0;
+  overflow: hidden;
 }
 
-.project-concept-sketch {
-  width: min(42rem, 58vw);
-  margin: 0 auto 5rem;
+.project-coda__closing img {
+  width: 100%;
+  height: auto;
+  display: block;
+  clip-path: inset(0 0 0 0);
+  filter: saturate(1);
+}
+
+.project-coda__sketch {
+  grid-column: 9 / 12;
+  z-index: 1;
+  width: min(100%, 20rem);
+  margin: clamp(1.2rem, 2vw, 1.8rem) clamp(0rem, 1.5vw, 1.2rem) 0 0;
+  justify-self: end;
   text-align: center;
+  transform: rotate(-1.25deg);
+  transform-origin: center;
 }
 
-.project-concept-sketch img {
+.project-coda__sketch img {
   width: 100%;
   height: auto;
   display: block;
 }
 
-.project-concept-sketch figcaption {
+.project-coda__sketch figcaption {
   margin-top: 0.65rem;
   font-family: var(--font-primary);
   font-size: 0.62rem;
@@ -4370,9 +4388,22 @@ body:has(.contact-page) {
     padding: 0 6%;
   }
 
-  .project-concept-sketch {
-    width: 82%;
-    margin-bottom: 4rem;
+  .project-coda {
+    display: block;
+    width: 92%;
+    margin-top: 3rem;
+    margin-bottom: 4.5rem;
+    padding-bottom: 0;
+  }
+
+  .project-coda__closing {
+    width: 100%;
+  }
+
+  .project-coda__sketch {
+    width: min(82%, 21rem);
+    margin: 2.25rem auto 0;
+    transform: rotate(-0.8deg);
   }
 
   .project-compare {
