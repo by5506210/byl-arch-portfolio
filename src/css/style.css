@@ -2455,6 +2455,23 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   backface-visibility: hidden;
 }
 
+.projects-helix__ribbon-source {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.projects-helix__ribbon-source img {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+}
+
 .projects-helix__mode-badge {
   position: absolute;
   left: 0.75rem;

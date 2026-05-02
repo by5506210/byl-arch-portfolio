@@ -719,7 +719,7 @@ function initProjectsAtlas() {
     helixNavigationInProgress = true;
 
     var rect = thumb.getBoundingClientRect();
-    var src = thumbImg.currentSrc || thumbImg.src || '';
+    var src = thumbImg.dataset.transitionSrc || thumbImg.currentSrc || thumbImg.src || '';
     if (!src) return false;
     var alt = thumbImg.alt || node.dataset.title || '';
     var absoluteHref = resolveAbsoluteHref(href);
@@ -831,6 +831,20 @@ function initProjectsAtlas() {
   function setRibbonReadyState() {
     if (disposed || !helix.isConnected) return;
     helix.classList.add('projects-helix--ribbon-ready');
+  }
+
+  function getRibbonSourceImages() {
+    var ribbonSources = Array.prototype.slice.call(stage.querySelectorAll('.projects-helix__ribbon-source img'));
+    if (ribbonSources.length) return ribbonSources;
+
+    return nodes
+      .map(function (node) {
+        var thumbImg = node.querySelector('.projects-helix__thumb img');
+        return thumbImg || null;
+      })
+      .filter(function (img) {
+        return !!img;
+      });
   }
 
   function getStageRect() {
@@ -1320,10 +1334,10 @@ function initProjectsAtlas() {
     fallbackRibbon.className = 'projects-helix__fallback-ribbon';
     fallbackRibbon.setAttribute('aria-hidden', 'true');
 
-    var sliceCount = Math.max(18, nodes.length * 3);
+    var ribbonSources = getRibbonSourceImages();
+    var sliceCount = Math.max(24, (ribbonSources.length || nodes.length) * 2);
     for (var i = 0; i < sliceCount; i++) {
-      var sourceNode = nodes[i % nodes.length];
-      var sourceImg = sourceNode && sourceNode.querySelector('.projects-helix__thumb img');
+      var sourceImg = ribbonSources.length ? ribbonSources[i % ribbonSources.length] : null;
       var slice = document.createElement('span');
       slice.className = 'projects-helix__fallback-ribbon-slice';
 
@@ -1558,19 +1572,11 @@ function initProjectsAtlas() {
     }
 
     function createRibbonTexture() {
-      var sourceImages = nodes
-        .map(function (node) {
-          var thumbImg = node.querySelector('.projects-helix__thumb img');
-          return thumbImg || null;
-        })
-        .filter(function (img) {
-          return !!img;
-        });
-
-      var frameCount = Math.max(12, sourceImages.length * 2);
+      var sourceImages = getRibbonSourceImages();
+      var frameCount = Math.max(24, sourceImages.length * 2);
       var isTouchSizedTexture = shouldUseTouchTunedHelix();
-      var frameW = isTouchSizedTexture ? 34 : 28;
-      var frameH = isTouchSizedTexture ? 22 : 18;
+      var frameW = isTouchSizedTexture ? 28 : 22;
+      var frameH = isTouchSizedTexture ? 16 : 13;
       var canvas = document.createElement('canvas');
       canvas.width = frameCount * frameW;
       canvas.height = frameH;
@@ -1999,8 +2005,8 @@ function initProjectsAtlas() {
         phaseShift: ribbonPhaseShift,
         startT: 0,
         endT: ribbonEndT,
-        width: isMobile ? 0.44 : 0.54,
-        tilt: isMobile ? 0.045 : 0.068,
+        width: isMobile ? 0.28 : 0.34,
+        tilt: isMobile ? 0.026 : 0.04,
         segments: isMobile ? performanceProfile.ribbonSegmentsMobile : performanceProfile.ribbonSegmentsDesktop
       });
       if (ribbonMesh) {
@@ -2353,7 +2359,7 @@ function initProjectsAtlas() {
       camera.bottom = -frustumSize * 0.5;
       camera.updateProjectionMatrix();
 
-      useWebglThumbLayer = false;
+      useWebglThumbLayer = true;
       buildWorld(width, height, frustumSize);
       syncWebglThumbs(width, height);
       renderSceneWithThumbs();
@@ -2537,8 +2543,8 @@ function initProjectsAtlas() {
 
     var count = fallbackRibbonSlices.length;
     var step = count <= 1 ? 1 : 1 / (count - 1);
-    var sliceWidth = isMobile ? 62 : 90;
-    var sliceHeight = isMobile ? 32 : 44;
+    var sliceWidth = isMobile ? 50 : 72;
+    var sliceHeight = isMobile ? 20 : 28;
 
     for (var i = 0; i < count; i++) {
       var progress = count === 1 ? 0.5 : i * step;
