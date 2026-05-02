@@ -2733,6 +2733,19 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   transition: none;
 }
 
+.projects-helix--webgl-thumbs .projects-helix__thumb {
+  visibility: hidden;
+  opacity: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.projects-helix--webgl-thumbs .projects-helix__thumb img {
+  opacity: 0;
+}
+
 .projects-helix__label {
   min-width: max-content;
   top: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * var(--thumb-responsive-scale) * 0.5 + 12px);
