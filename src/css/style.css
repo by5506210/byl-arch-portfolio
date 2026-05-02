@@ -1431,7 +1431,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .project-coda {
   position: relative;
-  width: min(78vw, 1180px);
+  width: min(88vw, 1680px);
   margin: clamp(4.5rem, 9vw, 7.5rem) auto clamp(5rem, 8vw, 7rem);
   padding-top: clamp(3.2rem, 6vw, 5.8rem);
   overflow: visible;
@@ -1456,10 +1456,10 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .project-coda__sketch {
   position: absolute;
-  left: clamp(-8rem, -8vw, -4rem);
+  left: clamp(-7rem, -5.4vw, -3.25rem);
   top: clamp(0.9rem, 2.8vw, 2.7rem);
   z-index: 2;
-  width: clamp(13rem, 18vw, 19rem);
+  width: clamp(13rem, 17vw, 20rem);
   margin: 0;
   transform: rotate(-1deg);
   transform-origin: center;
