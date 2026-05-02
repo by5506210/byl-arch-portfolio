@@ -1418,42 +1418,48 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   filter: saturate(1);
 }
 
-.project-gallery--paired {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(1rem, 2vw, 1.5rem);
-  padding: 0 8% 4rem;
+.project-gallery--main-views {
+  padding-top: 0;
   content-visibility: visible;
   contain-intrinsic-size: none;
 }
 
-.project-gallery--paired .project-gallery__image {
-  width: 100%;
-  margin: 0;
-  aspect-ratio: 16 / 9;
-}
-
-.project-gallery--paired .project-gallery__image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.project-gallery--paired .project-gallery__image img,
+.project-gallery--main-views .project-gallery__image img,
 .project-gallery--closing .project-gallery__image img {
   clip-path: inset(0 0 0 0);
   filter: saturate(1);
 }
 
 .project-gallery--closing {
-  padding-top: 0;
-  padding-bottom: 5rem;
+  padding: 2rem 0 4rem;
   content-visibility: visible;
   contain-intrinsic-size: none;
 }
 
 .project-gallery--closing .project-gallery__image {
+  width: min(92%, 1320px);
   margin-bottom: 0;
+}
+
+.project-concept-sketch {
+  width: min(42rem, 58vw);
+  margin: 0 auto 5rem;
+  text-align: center;
+}
+
+.project-concept-sketch img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.project-concept-sketch figcaption {
+  margin-top: 0.65rem;
+  font-family: var(--font-primary);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dark-gray);
 }
 
 .project-gallery__video {
@@ -4364,9 +4370,9 @@ body:has(.contact-page) {
     padding: 0 6%;
   }
 
-  .project-gallery--paired {
-    grid-template-columns: 1fr;
-    padding: 0 6% 3rem;
+  .project-concept-sketch {
+    width: 82%;
+    margin-bottom: 4rem;
   }
 
   .project-compare {
