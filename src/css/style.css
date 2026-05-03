@@ -4357,16 +4357,17 @@ body:has(.blackjack-page) {
 
   .blackjack-seat--ghost {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 1 / -1;
     position: absolute;
     right: 0.34rem;
-    top: 0.38rem;
+    top: 50%;
     z-index: 3;
     width: min(8.7rem, 39vw);
     min-height: 0;
     padding: 0.34rem 0.36rem;
     background: transparent;
     backdrop-filter: none;
+    transform: translateY(-50%);
   }
 
   .blackjack-seat--player {
