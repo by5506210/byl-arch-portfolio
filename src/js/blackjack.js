@@ -157,6 +157,7 @@
       stand: game.querySelector('#blackjack-stand'),
       doubleDown: game.querySelector('#blackjack-double'),
       betButtons: game.querySelectorAll('[data-bet-step]'),
+      controlsLeft: game.querySelector('.blackjack-controls__left'),
       wagerPanel: game.querySelector('[data-blackjack-panel="wager"]'),
       actionPanel: game.querySelector('[data-blackjack-panel="actions"]')
     };
@@ -188,7 +189,7 @@
     }
 
     function setBet(step) {
-      if (state.phase !== 'idle' && state.phase !== 'round-over') return;
+      if (state.phase !== 'idle') return;
       if (state.round > MAX_ROUNDS || state.chips <= 0) return;
       var maxBet = Math.max(0, state.chips);
       state.bet = clamp(state.bet + step, Math.min(BASE_BET, maxBet), maxBet);
@@ -205,11 +206,8 @@
       }
 
       if (state.phase === 'round-over') {
-        state.round++;
-        if (state.round > MAX_ROUNDS || state.chips <= 0) {
-          endGame();
-          return;
-        }
+        prepareNextBet();
+        return;
       }
 
       state.phase = 'player-turn';
@@ -238,6 +236,27 @@
       }
 
       render('');
+    }
+
+    function prepareNextBet() {
+      state.round++;
+      if (state.round > MAX_ROUNDS || state.chips <= 0) {
+        endGame();
+        return;
+      }
+
+      state.phase = 'idle';
+      state.player = [];
+      state.cpu = [];
+      state.dealer = [];
+      state.dealerHidden = false;
+      state.playerDoubled = false;
+      state.roundResult = '';
+      state.roundDelta = 0;
+      state.bet = clamp(state.bet, Math.min(BASE_BET, state.chips), state.chips);
+      state.playerBet = state.bet;
+      state.cpuBet = Math.min(BASE_BET, state.cpuChips);
+      render('Wager');
     }
 
     function playerHit() {
@@ -364,7 +383,7 @@
 
     function render(message) {
       var isAction = state.phase === 'player-turn';
-      var isIdle = state.phase === 'idle' || state.phase === 'round-over';
+      var isIdle = state.phase === 'idle';
       var isGameOver = state.phase === 'game-over';
 
       els.round.textContent = 'Round ' + Math.min(state.round, MAX_ROUNDS) + '/' + MAX_ROUNDS;
@@ -401,7 +420,8 @@
 
       els.deal.disabled = isAction || state.phase === 'resolving';
       els.deal.classList.toggle('is-hidden', isAction || state.phase === 'resolving' || isGameOver);
-      els.wagerPanel.classList.toggle('is-hidden', isAction || state.phase === 'resolving');
+      els.controlsLeft.classList.toggle('is-hidden', !isIdle);
+      els.wagerPanel.classList.toggle('is-hidden', !isIdle);
       els.actionPanel.classList.toggle('is-hidden', !isAction);
     }
 

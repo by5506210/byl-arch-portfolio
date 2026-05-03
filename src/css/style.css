@@ -3945,6 +3945,10 @@ body:has(.blackjack-page) {
   gap: var(--blackjack-control-gap);
 }
 
+.blackjack-controls__left.is-hidden {
+  display: none;
+}
+
 .blackjack-controls__hud {
   display: flex;
   align-items: center;
