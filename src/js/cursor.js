@@ -438,6 +438,34 @@
     requestCursorFrame();
   }, { passive: true });
 
+  function getHelixSnapTarget(node) {
+    if (!node || !node.querySelector) return null;
+    return node.querySelector('.projects-helix__thumb') || node;
+  }
+
+  function snapToHelixNode(node) {
+    var target = getHelixSnapTarget(node);
+    if (!target) return;
+
+    beginSnap(target, {
+      padX: 18,
+      padY: 18,
+      radiusCap: 8,
+      radiusFactor: 0.06,
+      followTarget: true
+    });
+  }
+
+  document.addEventListener('byl:helix-cursor-snap', function (e) {
+    var node = e && e.detail ? e.detail.node : null;
+    snapToHelixNode(node);
+  });
+
+  document.addEventListener('byl:helix-cursor-clear', function () {
+    var helixNode = snapTarget && snapTarget.closest ? snapTarget.closest('.projects-helix__node') : null;
+    if (helixNode) setDefaultState();
+  });
+
   document.addEventListener('mouseover', function (e) {
     var target = e.target;
     if (!target || !target.closest) return;

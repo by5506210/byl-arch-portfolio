@@ -2697,10 +2697,12 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --thumb-raster-compensation: 1;
   --thumb-depth-scale: 0.15;
   --thumb-proximity-scale: 0.74;
-  --thumb-image-proximity-scale: 0.34;
-  --thumb-image-raster-size: 112%;
-  --thumb-image-raster-compensation: 0.92;
+  --thumb-image-proximity-scale: 0.08;
+  --thumb-image-raster-size: 100%;
+  --thumb-image-raster-compensation: 1;
   --thumb-skew-y: -30deg;
+  --hit-w: 120px;
+  --hit-h: 92px;
   --arm-length: 0px;
   --arm-angle: 0;
   --helix-dx: 0px;
@@ -2725,6 +2727,17 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
   z-index: 1;
+}
+
+.projects-helix__node::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--hit-w);
+  height: var(--hit-h);
+  transform: translate3d(-50%, -50%, 0);
+  pointer-events: auto;
 }
 
 .projects-helix__stem,
@@ -2799,6 +2812,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   max-width: none;
   max-height: none;
   object-fit: cover;
+  image-orientation: from-image;
   transform: translate3d(-50%, -50%, 0) scale(calc((1.03 + var(--proximity) * var(--thumb-image-proximity-scale)) * var(--thumb-image-raster-compensation)));
   transform-origin: center center;
   filter: none;
@@ -2823,7 +2837,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__label {
   min-width: max-content;
-  top: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * var(--thumb-responsive-scale) * 0.5 + 12px);
+  top: calc(var(--thumb-h, 52px) * var(--thumb-base-scale) * var(--thumb-responsive-scale) * var(--thumb-raster-scale) * (1 + var(--depth) * var(--thumb-depth-scale) + var(--proximity) * var(--thumb-proximity-scale)) * 0.5 + 14px);
   transform: translate3d(-50%, calc(6px + (1 - var(--proximity)) * 4px), 0);
   font-family: var(--font-primary);
   font-size: 0.54rem;
@@ -2911,16 +2925,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     --thumb-raster-scale: 1;
     --thumb-raster-compensation: 1;
     --thumb-proximity-scale: 0.54;
-    --thumb-image-proximity-scale: 0.2;
-    --thumb-image-raster-size: 112%;
-    --thumb-image-raster-compensation: 0.92;
+    --thumb-image-proximity-scale: 0.06;
+    --thumb-image-raster-size: 100%;
+    --thumb-image-raster-compensation: 1;
   }
 }
 
 body.custom-cursor-enabled .projects-helix__node {
   --node-proximity-scale: 0.48;
   --thumb-proximity-scale: 0.74;
-  --thumb-image-proximity-scale: 0.34;
+  --thumb-image-proximity-scale: 0.08;
 }
 
 @media (max-width: 900px) {
@@ -2937,9 +2951,9 @@ body.custom-cursor-enabled .projects-helix__node {
     --thumb-raster-compensation: 1;
     --thumb-depth-scale: 0.11;
     --thumb-proximity-scale: 0.54;
-    --thumb-image-proximity-scale: 0.2;
-    --thumb-image-raster-size: 112%;
-    --thumb-image-raster-compensation: 0.92;
+    --thumb-image-proximity-scale: 0.06;
+    --thumb-image-raster-size: 100%;
+    --thumb-image-raster-compensation: 1;
   }
 
   .projects-helix__viewport {
@@ -2994,9 +3008,9 @@ body.custom-cursor-enabled .projects-helix__node {
     --thumb-raster-compensation: 1;
     --thumb-depth-scale: 0.09;
     --thumb-proximity-scale: 0.48;
-    --thumb-image-proximity-scale: 0.14;
-    --thumb-image-raster-size: 112%;
-    --thumb-image-raster-compensation: 0.92;
+    --thumb-image-proximity-scale: 0.05;
+    --thumb-image-raster-size: 100%;
+    --thumb-image-raster-compensation: 1;
   }
 
   .projects-helix__label {

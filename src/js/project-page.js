@@ -471,6 +471,7 @@ function initProjectsAtlas() {
   var proximityFrame = null;
   var proximityLast = 0;
   var exclusiveProximityNode = null;
+  var cursorSnapNode = null;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
   var performanceProfile = getHelixPerformanceProfile();
   var isIPhoneDevice = detectIPhoneDevice();
@@ -833,6 +834,18 @@ function initProjectsAtlas() {
     helix.classList.add('projects-helix--ribbon-ready');
   }
 
+  function setHelixCursorSnapNode(node) {
+    var nextNode = node || null;
+    if (cursorSnapNode === nextNode) return;
+    cursorSnapNode = nextNode;
+
+    document.dispatchEvent(new CustomEvent(nextNode ? 'byl:helix-cursor-snap' : 'byl:helix-cursor-clear', {
+      detail: {
+        node: nextNode
+      }
+    }));
+  }
+
   function getRibbonSourceImages() {
     var ribbonSources = Array.prototype.slice.call(stage.querySelectorAll('.projects-helix__ribbon-source img'));
     if (ribbonSources.length) return ribbonSources;
@@ -1029,11 +1042,16 @@ function initProjectsAtlas() {
       width: width,
       height: height + skewExtra
     };
+    var localHitScale = Math.max(0.2, nodeScale);
+    var localHitWidth = width / localHitScale + 28;
+    var localHitHeight = (height + skewExtra) / localHitScale + 28;
 
     node.__helixAnchorViewportX = centerX;
     node.__helixAnchorViewportY = centerY;
     node.__cursorSnapRect = rect;
     thumb.__cursorSnapRect = rect;
+    setNodeStyleValue(node, '--hit-w', localHitWidth.toFixed(2) + 'px');
+    setNodeStyleValue(node, '--hit-h', localHitHeight.toFixed(2) + 'px');
   }
 
   function applyNodeHelixGeometry(node, index, stageLeft, stageTop, geometry, force) {
@@ -1368,6 +1386,7 @@ function initProjectsAtlas() {
       }
     });
     setActiveFocusNode(null);
+    setHelixCursorSnapNode(null);
     if (!immediate) ensureProximityAnimation();
   }
 
@@ -1375,6 +1394,7 @@ function initProjectsAtlas() {
     selectedNode = node;
     setExclusiveProximityNode(node);
     setActiveFocusNode(node);
+    setHelixCursorSnapNode(node);
     ensureProximityAnimation();
   }
 
@@ -2359,9 +2379,8 @@ function initProjectsAtlas() {
       camera.bottom = -frustumSize * 0.5;
       camera.updateProjectionMatrix();
 
-      useWebglThumbLayer = true;
+      useWebglThumbLayer = false;
       buildWorld(width, height, frustumSize);
-      syncWebglThumbs(width, height);
       renderSceneWithThumbs();
       lastNodeSyncTime = performance.now();
       syncNodes(width, height, lastNodeSyncTime);
@@ -2691,12 +2710,43 @@ function initProjectsAtlas() {
     fallbackFrame = requestAnimationFrame(runFallbackFrame);
   }
 
+  function findNodeBySnapRect(clientX, clientY, pad) {
+    var bestNode = null;
+    var bestScore = -Infinity;
+    var hitPad = typeof pad === 'number' ? pad : 0;
+
+    nodes.forEach(function (node) {
+      var rect = node.__cursorSnapRect;
+      if (!rect) return;
+
+      var left = rect.left - hitPad;
+      var right = rect.left + rect.width + hitPad;
+      var top = rect.top - hitPad;
+      var bottom = rect.top + rect.height + hitPad;
+      if (clientX < left || clientX > right || clientY < top || clientY > bottom) return;
+
+      var centerX = rect.left + rect.width * 0.5;
+      var centerY = rect.top + rect.height * 0.5;
+      var normX = rect.width ? Math.abs(clientX - centerX) / rect.width : 1;
+      var normY = rect.height ? Math.abs(clientY - centerY) / rect.height : 1;
+      var depth = typeof node.__helixDepth === 'number' ? node.__helixDepth : 0.5;
+      var score = depth * 2 - normX - normY + (node.classList.contains('is-active') ? 1 : 0);
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestNode = node;
+      }
+    });
+
+    return bestNode;
+  }
+
   function updateProximity(clientX, clientY, hoveredNode) {
     if (disposed || !stage.isConnected) return;
     var stageRect = getStageRect();
     var localX = clientX - stageRect.left;
     var localY = clientY - stageRect.top;
-    var nextHoverNode = hoveredNode || null;
+    var nextHoverNode = hoveredNode || findNodeBySnapRect(clientX, clientY, 12);
     var targetChanged = false;
 
     if (
@@ -2714,12 +2764,14 @@ function initProjectsAtlas() {
     lastPointerHoverNode = nextHoverNode;
 
     if (nextHoverNode) {
+      setHelixCursorSnapNode(nextHoverNode);
       targetChanged = setExclusiveProximityNode(nextHoverNode);
       if (targetChanged) ensureProximityAnimation();
       return;
     }
 
     exclusiveProximityNode = null;
+    setHelixCursorSnapNode(null);
     nodes.forEach(function (node, index) {
       var hit = nodeHitCache[index];
       if (!hit) return;
