@@ -1516,7 +1516,8 @@
     gl.uniform1f(u.uAwaken, awakenEased);
     gl.uniform2f(u.uMouse, pageMouseX, pageMouseY);
     gl.uniform1f(u.uMouseActive, mousePresence);
-    gl.uniform3f(u.uScroll, scrollKick, scrollDirection, scrollTilt);
+    var scrollVectorShift = (this.isMobile || this.touchCapable) ? 0 : scrollKick;
+    gl.uniform3f(u.uScroll, scrollVectorShift, scrollDirection, scrollVectorShift > 0 ? scrollTilt : 0);
     gl.uniform2f(u.uLine, this.lineLen, this.lineWidth);
     gl.uniform2f(u.uCenter, this.centerX, this.centerY);
     gl.uniform1f(u.uOpacityScale, this.opacityScale);

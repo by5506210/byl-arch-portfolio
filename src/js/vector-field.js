@@ -776,6 +776,10 @@ function initVectorFieldCanvas() {
     var mouseActive = mouseX > 0 && mouseY > 0;
     _vfScrollVelocity *= 0.9;
     _vfScrollKick *= 0.9;
+    if (isMobile || touchCapable) {
+      _vfScrollVelocity = 0;
+      _vfScrollKick = 0;
+    }
     if (_abs(_vfScrollVelocity) < 0.001) _vfScrollVelocity = 0;
     if (_vfScrollKick < 0.001) _vfScrollKick = 0;
     var scrollTilt = _max(-1, _min(1, _vfScrollVelocity / 10));
