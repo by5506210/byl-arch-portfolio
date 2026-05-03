@@ -3606,6 +3606,20 @@ body:has(.blackjack-page) {
   color: #ece8df;
 }
 
+body:has(.blackjack-page).custom-cursor-enabled .cursor {
+  background: rgba(245, 241, 232, 0.94);
+  border: 1px solid rgba(8, 8, 6, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(245, 241, 232, 0.32),
+    0 0 18px rgba(245, 241, 232, 0.34);
+}
+
+body:has(.blackjack-page).custom-cursor-enabled .cursor--snap {
+  background: rgba(245, 241, 232, 0.08);
+  border: 1.5px solid rgba(245, 241, 232, 0.62);
+  box-shadow: 0 0 16px rgba(245, 241, 232, 0.18);
+}
+
 .blackjack-page button,
 .blackjack-page a {
   touch-action: manipulation;
