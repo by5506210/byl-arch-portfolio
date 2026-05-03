@@ -4159,10 +4159,15 @@ body:has(.blackjack-page).custom-cursor-enabled .cursor--snap {
 
 .blackjack-game-over__actions a,
 .blackjack-game-over__actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.2rem;
   padding: 0 0.9rem;
+  box-sizing: border-box;
   font-family: var(--font-primary);
   font-size: 0.64rem;
+  line-height: 1;
   color: rgba(236, 232, 223, 0.9);
   text-decoration: none;
   background: rgba(232, 228, 223, 0.07);

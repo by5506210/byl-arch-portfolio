@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-cursor-visible-20260503">
+  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-go-back-nav-20260503">
 </head>
 <body>
   <div class="grain"></div>
@@ -17,11 +17,11 @@
     <main data-barba="container" data-barba-namespace="blackjack">
       <section class="blackjack-page" data-blackjack-game>
         <nav class="blackjack-nav" aria-label="Blackjack navigation">
-          <a href="../index.html" class="blackjack-nav__brand">BYL</a>
+          <a href="../index.html" class="blackjack-nav__brand" data-barba-prevent="self">BYL</a>
           <div class="blackjack-nav__links">
-            <a href="projects.html">Projects</a>
-            <a href="about.html">About</a>
-            <a href="contact.html">Contact</a>
+            <a href="projects.html" data-barba-prevent="self">Projects</a>
+            <a href="about.html" data-barba-prevent="self">About</a>
+            <a href="contact.html" data-barba-prevent="self">Contact</a>
           </div>
         </nav>
 
@@ -101,7 +101,7 @@
             <strong id="blackjack-final-title">You win</strong>
             <small id="blackjack-final-detail">100 chips</small>
             <div class="blackjack-game-over__actions">
-              <a href="about.html">Go Back</a>
+              <a href="about.html" data-barba-prevent="self">Go Back</a>
               <button type="button" id="blackjack-play-again">Play Again</button>
             </div>
           </div>
