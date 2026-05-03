@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-animated-20260503">
+  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-final-20260503">
 </head>
 <body>
   <div class="grain"></div>
@@ -65,21 +65,24 @@
             </section>
 
             <aside class="blackjack-controls" aria-label="Blackjack controls">
-              <div class="blackjack-controls__hud" aria-label="Current chips and bet">
-                <span>Chips <strong id="blackjack-chips">100</strong></span>
-                <span>Bet <strong id="blackjack-bet">10</strong></span>
+              <div class="blackjack-controls__left">
+                <div class="blackjack-controls__hud" aria-label="Current chips and bet">
+                  <span>Chips <strong id="blackjack-chips">100</strong></span>
+                  <span>Bet <strong id="blackjack-bet">10</strong></span>
+                </div>
+
+                <div class="blackjack-panel blackjack-panel--wager" data-blackjack-panel="wager">
+                  <div class="blackjack-wager">
+                    <button type="button" class="blackjack-icon-button" data-bet-step="-10" aria-label="Lower bet">-</button>
+                    <div>
+                      <strong id="blackjack-wager-display">10</strong>
+                    </div>
+                    <button type="button" class="blackjack-icon-button" data-bet-step="10" aria-label="Raise bet">+</button>
+                  </div>
+                </div>
               </div>
 
-              <div class="blackjack-panel blackjack-panel--wager" data-blackjack-panel="wager">
-                <div class="blackjack-wager">
-                  <button type="button" class="blackjack-icon-button" data-bet-step="-10" aria-label="Lower bet">-</button>
-                  <div>
-                    <strong id="blackjack-wager-display">10</strong>
-                  </div>
-                  <button type="button" class="blackjack-icon-button" data-bet-step="10" aria-label="Raise bet">+</button>
-                </div>
-                <button type="button" id="blackjack-deal" class="blackjack-primary-action">Deal</button>
-              </div>
+              <button type="button" id="blackjack-deal" class="blackjack-primary-action">Deal</button>
 
               <div class="blackjack-panel blackjack-panel--actions is-hidden" data-blackjack-panel="actions">
                 <div class="blackjack-actions">
@@ -91,12 +94,24 @@
             </aside>
           </div>
         </div>
+
+        <div class="blackjack-game-over" id="blackjack-game-over" aria-live="polite" aria-modal="true" aria-hidden="true" role="dialog">
+          <div class="blackjack-game-over__panel">
+            <span>Final</span>
+            <strong id="blackjack-final-title">You win</strong>
+            <small id="blackjack-final-detail">100 chips</small>
+            <div class="blackjack-game-over__actions">
+              <a href="about.html">Go Back</a>
+              <button type="button" id="blackjack-play-again">Play Again</button>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
 
   <script src="../src/js/cursor.js"></script>
-  <script src="../src/js/blackjack.js?v=blackjack-room-animated-20260503"></script>
+  <script src="../src/js/blackjack.js?v=blackjack-room-final-20260503"></script>
   <script src="../src/js/transitions.js"></script>
 </body>
 </html>

@@ -148,6 +148,10 @@
       playerHand: game.querySelector('#blackjack-player-hand'),
       cpuHand: game.querySelector('#blackjack-cpu-hand'),
       result: game.querySelector('#blackjack-result'),
+      gameOver: game.querySelector('#blackjack-game-over'),
+      finalTitle: game.querySelector('#blackjack-final-title'),
+      finalDetail: game.querySelector('#blackjack-final-detail'),
+      playAgain: game.querySelector('#blackjack-play-again'),
       deal: game.querySelector('#blackjack-deal'),
       hit: game.querySelector('#blackjack-hit'),
       stand: game.querySelector('#blackjack-stand'),
@@ -261,7 +265,7 @@
     }
 
     function canDoubleDown() {
-      return state.phase === 'player-turn' && !state.playerDoubled;
+      return state.phase === 'player-turn';
     }
 
     function playCpu() {
@@ -322,7 +326,7 @@
       else if (playerResult === 'push') state.pushes++;
       else state.wins++;
 
-      state.roundResult = playerResult === 'loss' ? 'You lost' : (playerResult === 'push' ? 'Push' : 'You win');
+      state.roundResult = playerResult === 'loss' ? 'You lose' : (playerResult === 'push' ? 'Push' : 'You win');
       state.roundDelta = playerDelta;
 
       state.phase = 'round-over';
@@ -377,6 +381,7 @@
       renderHand(els.playerHand, state.player, false);
       renderHand(els.cpuHand, state.cpu, false);
       renderResult();
+      renderFinalOverlay();
 
       els.hit.disabled = !isAction;
       els.stand.disabled = !isAction;
@@ -395,6 +400,7 @@
       }
 
       els.deal.disabled = isAction || state.phase === 'resolving';
+      els.deal.classList.toggle('is-hidden', isAction || state.phase === 'resolving' || isGameOver);
       els.wagerPanel.classList.toggle('is-hidden', isAction || state.phase === 'resolving');
       els.actionPanel.classList.toggle('is-hidden', !isAction);
     }
@@ -412,10 +418,24 @@
       els.result.innerHTML = '<span>' + state.roundResult + '</span> <small>' + deltaText + '</small>';
     }
 
+    function renderFinalOverlay() {
+      var showFinal = state.phase === 'game-over';
+      els.gameOver.classList.toggle('is-visible', showFinal);
+      els.gameOver.setAttribute('aria-hidden', showFinal ? 'false' : 'true');
+      if (!showFinal) return;
+
+      var finalResult = state.chips > STARTING_CHIPS ? 'You win' : (state.chips < STARTING_CHIPS ? 'You lose' : 'Push');
+      var delta = state.chips - STARTING_CHIPS;
+      var deltaText = delta > 0 ? '+' + delta : String(delta);
+      els.finalTitle.textContent = finalResult;
+      els.finalDetail.textContent = state.chips + ' chips (' + deltaText + ')';
+    }
+
     els.deal.addEventListener('click', startRound);
     els.hit.addEventListener('click', playerHit);
     els.stand.addEventListener('click', playerStand);
     els.doubleDown.addEventListener('click', playerDoubleDown);
+    els.playAgain.addEventListener('click', resetGame);
     els.betButtons.forEach(function (button) {
       button.addEventListener('click', function () {
         setBet(Number(button.getAttribute('data-bet-step')) || 0);
