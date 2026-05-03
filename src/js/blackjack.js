@@ -5,8 +5,14 @@
 (function () {
   'use strict';
 
-  var SUITS = ['C', 'D', 'H', 'S'];
+  var SUITS = [
+    { code: 'clubs', symbol: '\u2663', red: false },
+    { code: 'diamonds', symbol: '\u2666', red: true },
+    { code: 'hearts', symbol: '\u2665', red: true },
+    { code: 'spades', symbol: '\u2660', red: false }
+  ];
   var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  var GHOST_NAME = 'Ghost Bryan';
   var MAX_ROUNDS = 3;
   var STARTING_CHIPS = 100;
   var BASE_BET = 10;
@@ -20,7 +26,9 @@
     for (var s = 0; s < SUITS.length; s++) {
       for (var r = 0; r < RANKS.length; r++) {
         deck.push({
-          suit: SUITS[s],
+          suit: SUITS[s].code,
+          suitSymbol: SUITS[s].symbol,
+          red: SUITS[s].red,
           rank: RANKS[r]
         });
       }
@@ -96,6 +104,14 @@
     return 'push';
   }
 
+  function rankName(rank) {
+    if (rank === 'A') return 'Ace';
+    if (rank === 'J') return 'Jack';
+    if (rank === 'Q') return 'Queen';
+    if (rank === 'K') return 'King';
+    return rank;
+  }
+
   function createCardEl(card, hidden) {
     var el = document.createElement('div');
     el.className = hidden ? 'blackjack-card blackjack-card--hidden' : 'blackjack-card';
@@ -105,9 +121,11 @@
       return el;
     }
 
-    var isRed = card.suit === 'H' || card.suit === 'D';
-    if (isRed) el.classList.add('blackjack-card--red');
-    el.innerHTML = '<span>' + card.rank + '</span><strong>' + card.suit + '</strong><span>' + card.rank + '</span>';
+    if (card.red) el.classList.add('blackjack-card--red');
+    el.innerHTML =
+      '<span class="blackjack-card__corner">' + card.rank + '<i>' + card.suitSymbol + '</i></span>' +
+      '<strong><span>' + card.suitSymbol + '</span><em>' + rankName(card.rank) + '</em></strong>' +
+      '<span class="blackjack-card__corner">' + card.rank + '<i>' + card.suitSymbol + '</i></span>';
     return el;
   }
 
@@ -137,7 +155,9 @@
       hit: game.querySelector('#blackjack-hit'),
       stand: game.querySelector('#blackjack-stand'),
       doubleDown: game.querySelector('#blackjack-double'),
-      betButtons: game.querySelectorAll('[data-bet-step]')
+      betButtons: game.querySelectorAll('[data-bet-step]'),
+      wagerPanel: game.querySelector('[data-blackjack-panel="wager"]'),
+      actionPanel: game.querySelector('[data-blackjack-panel="actions"]')
     };
 
     var state = null;
@@ -160,9 +180,9 @@
         wins: 0,
         losses: 0,
         pushes: 0,
-        log: ['CPU Bryan is already acting suspicious.']
+        log: [GHOST_NAME + ' is already acting suspicious.']
       };
-      render('Set your wager.');
+      render('Choose your wager, then deal.');
     }
 
     function addLog(text) {
@@ -178,7 +198,7 @@
       if (state.bet % BASE_BET !== 0 && state.bet > BASE_BET) {
         state.bet = Math.floor(state.bet / BASE_BET) * BASE_BET;
       }
-      render('Wager set to ' + state.bet + '.');
+      render('Wager set to ' + state.bet + '. Deal when ready.');
     }
 
     function startRound() {
@@ -270,9 +290,9 @@
       }
 
       value = handValue(state.cpu);
-      if (value.bust) return 'CPU Bryan busted at ' + value.total + '.';
-      if (doubled) return 'CPU Bryan doubled and froze at ' + value.total + '.';
-      return 'CPU Bryan stayed at ' + value.total + '.';
+      if (value.bust) return GHOST_NAME + ' busted at ' + value.total + '.';
+      if (doubled) return GHOST_NAME + ' doubled and froze at ' + value.total + '.';
+      return GHOST_NAME + ' stayed at ' + value.total + '.';
     }
 
     function playDealer() {
@@ -321,7 +341,7 @@
       else state.wins++;
 
       addLog('You: ' + resultText(playerResult, Math.abs(playerDelta)) + '.');
-      addLog('CPU Bryan: ' + resultText(cpuResult, Math.abs(cpuDelta)) + '.');
+      addLog(GHOST_NAME + ': ' + resultText(cpuResult, Math.abs(cpuDelta)) + '.');
 
       state.phase = 'round-over';
       if (state.round >= MAX_ROUNDS || state.chips <= 0) {
@@ -380,7 +400,7 @@
       els.dealerValue.textContent = handLabel(state.dealer, state.dealerHidden);
       els.playerValue.textContent = handLabel(state.player, false);
       els.cpuValue.textContent = handLabel(state.cpu, false);
-      els.cpuNote.textContent = state.phase === 'player-turn' ? 'Studying the dealer.' : (message || 'Waiting for the deal.');
+      els.cpuNote.textContent = state.phase === 'player-turn' ? 'Watching the shoe.' : (message || 'Waiting for the deal.');
 
       renderHand(els.dealerHand, state.dealer, state.dealerHidden);
       renderHand(els.playerHand, state.player, false);
@@ -390,6 +410,7 @@
       els.hit.disabled = !isAction;
       els.stand.disabled = !isAction;
       els.doubleDown.disabled = !canDoubleDown();
+      els.doubleDown.classList.toggle('is-hidden', !canDoubleDown());
       els.betButtons.forEach(function (button) {
         button.disabled = !isIdle || isGameOver;
       });
@@ -403,6 +424,8 @@
       }
 
       els.deal.disabled = isAction || state.phase === 'resolving';
+      els.wagerPanel.classList.toggle('is-hidden', isAction || state.phase === 'resolving');
+      els.actionPanel.classList.toggle('is-hidden', !isAction);
     }
 
     els.deal.addEventListener('click', startRound);

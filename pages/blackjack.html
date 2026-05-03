@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-20260503">
+  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-friendly-20260503">
 </head>
 <body>
   <div class="grain"></div>
@@ -45,7 +45,7 @@
               <strong id="blackjack-bet">10</strong>
             </div>
             <div>
-              <span>CPU Bryan</span>
+              <span>Ghost Bryan</span>
               <strong id="blackjack-cpu-chips">100</strong>
             </div>
             <div>
@@ -56,52 +56,64 @@
 
           <div class="blackjack-layout">
             <section class="blackjack-table" aria-label="Blackjack table">
-              <div class="blackjack-seat blackjack-seat--dealer">
-                <div class="blackjack-seat__topline">
-                  <span class="blackjack-seat__name">Dealer</span>
-                  <span class="blackjack-seat__value" id="blackjack-dealer-value">0</span>
+              <div class="blackjack-table__felt">
+                <div class="blackjack-seat blackjack-seat--dealer">
+                  <div class="blackjack-seat__topline">
+                    <span class="blackjack-seat__name">Dealer</span>
+                    <span class="blackjack-seat__value" id="blackjack-dealer-value">0</span>
+                  </div>
+                  <div class="blackjack-hand" id="blackjack-dealer-hand" aria-label="Dealer hand"></div>
                 </div>
-                <div class="blackjack-hand" id="blackjack-dealer-hand" aria-label="Dealer hand"></div>
-              </div>
 
-              <div class="blackjack-rivals">
-                <div class="blackjack-seat">
+                <div class="blackjack-seat blackjack-seat--ghost">
+                  <div class="blackjack-seat__topline">
+                    <span class="blackjack-seat__name">Ghost Bryan</span>
+                    <span class="blackjack-seat__value" id="blackjack-cpu-value">0</span>
+                  </div>
+                  <div class="blackjack-cpu-tag">
+                    <span class="blackjack-avatar" aria-hidden="true">GB</span>
+                    <span id="blackjack-cpu-note">Waiting for the deal.</span>
+                  </div>
+                  <div class="blackjack-hand blackjack-hand--small" id="blackjack-cpu-hand" aria-label="Ghost Bryan hand"></div>
+                </div>
+
+                <div class="blackjack-seat blackjack-seat--player">
                   <div class="blackjack-seat__topline">
                     <span class="blackjack-seat__name">You</span>
                     <span class="blackjack-seat__value" id="blackjack-player-value">0</span>
                   </div>
                   <div class="blackjack-hand" id="blackjack-player-hand" aria-label="Your hand"></div>
                 </div>
-
-                <div class="blackjack-seat">
-                  <div class="blackjack-seat__topline">
-                    <span class="blackjack-seat__name">CPU Bryan</span>
-                    <span class="blackjack-seat__value" id="blackjack-cpu-value">0</span>
-                  </div>
-                  <div class="blackjack-cpu-tag">
-                    <span class="blackjack-avatar" aria-hidden="true">BY</span>
-                    <span id="blackjack-cpu-note">Waiting for the deal.</span>
-                  </div>
-                  <div class="blackjack-hand" id="blackjack-cpu-hand" aria-label="CPU Bryan hand"></div>
-                </div>
               </div>
             </section>
 
             <aside class="blackjack-controls" aria-label="Blackjack controls">
-              <div class="blackjack-wager">
-                <button type="button" class="blackjack-icon-button" data-bet-step="-10" aria-label="Lower bet">-</button>
-                <div>
+              <div class="blackjack-panel blackjack-panel--wager" data-blackjack-panel="wager">
+                <div class="blackjack-panel__heading">
                   <span>Wager</span>
-                  <strong id="blackjack-wager-display">10</strong>
+                  <strong>Choose your bet</strong>
                 </div>
-                <button type="button" class="blackjack-icon-button" data-bet-step="10" aria-label="Raise bet">+</button>
+                <div class="blackjack-wager">
+                  <button type="button" class="blackjack-icon-button" data-bet-step="-10" aria-label="Lower bet">-</button>
+                  <div>
+                    <span>Current wager</span>
+                    <strong id="blackjack-wager-display">10</strong>
+                  </div>
+                  <button type="button" class="blackjack-icon-button" data-bet-step="10" aria-label="Raise bet">+</button>
+                </div>
+                <button type="button" id="blackjack-deal" class="blackjack-primary-action">Deal</button>
               </div>
 
-              <div class="blackjack-actions">
-                <button type="button" id="blackjack-deal">Deal</button>
+              <div class="blackjack-panel blackjack-panel--actions is-hidden" data-blackjack-panel="actions">
+                <div class="blackjack-panel__heading">
+                  <span>Your turn</span>
+                  <strong>Choose an action</strong>
+                </div>
+                <div class="blackjack-actions">
                 <button type="button" id="blackjack-hit" disabled>Hit</button>
                 <button type="button" id="blackjack-stand" disabled>Stand</button>
                 <button type="button" id="blackjack-double" disabled>Double Down</button>
+                </div>
               </div>
 
               <div class="blackjack-round-log" id="blackjack-log" aria-live="polite"></div>
@@ -113,7 +125,7 @@
   </div>
 
   <script src="../src/js/cursor.js"></script>
-  <script src="../src/js/blackjack.js?v=blackjack-room-20260503"></script>
+  <script src="../src/js/blackjack.js?v=blackjack-room-friendly-20260503"></script>
   <script src="../src/js/transitions.js"></script>
 </body>
 </html>
