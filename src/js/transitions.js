@@ -9,6 +9,7 @@
 
   function getPageBackground(namespace) {
     if (namespace === 'projects') return PROJECTS_PAGE_BG;
+    if (namespace === 'blackjack') return '#080806';
     return DEFAULT_PAGE_BG;
   }
 
