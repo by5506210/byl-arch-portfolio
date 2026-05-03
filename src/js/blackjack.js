@@ -139,6 +139,7 @@
       message: game.querySelector('#blackjack-message'),
       chips: game.querySelector('#blackjack-chips'),
       bet: game.querySelector('#blackjack-bet'),
+      cpuChips: game.querySelector('#blackjack-cpu-chips'),
       wager: game.querySelector('#blackjack-wager-display'),
       dealerValue: game.querySelector('#blackjack-dealer-value'),
       playerValue: game.querySelector('#blackjack-player-value'),
@@ -146,6 +147,7 @@
       dealerHand: game.querySelector('#blackjack-dealer-hand'),
       playerHand: game.querySelector('#blackjack-player-hand'),
       cpuHand: game.querySelector('#blackjack-cpu-hand'),
+      result: game.querySelector('#blackjack-result'),
       deal: game.querySelector('#blackjack-deal'),
       hit: game.querySelector('#blackjack-hit'),
       stand: game.querySelector('#blackjack-stand'),
@@ -172,6 +174,8 @@
         dealer: [],
         dealerHidden: false,
         playerDoubled: false,
+        roundResult: '',
+        roundDelta: 0,
         wins: 0,
         losses: 0,
         pushes: 0
@@ -210,6 +214,8 @@
       state.dealer = [];
       state.dealerHidden = true;
       state.playerDoubled = false;
+      state.roundResult = '';
+      state.roundDelta = 0;
       state.playerBet = Math.min(state.bet, state.chips);
       state.cpuBet = Math.min(BASE_BET, state.cpuChips);
 
@@ -248,34 +254,27 @@
 
     function playerDoubleDown() {
       if (!canDoubleDown()) return;
-      state.playerBet *= 2;
+      state.playerBet = Math.min(state.playerBet * 2, state.chips);
       state.playerDoubled = true;
       state.player.push(draw(state.deck));
       finishRound();
     }
 
     function canDoubleDown() {
-      return state.phase === 'player-turn' &&
-        state.player.length === 2 &&
-        state.chips >= state.playerBet * 2;
+      return state.phase === 'player-turn' && !state.playerDoubled;
     }
 
     function playCpu() {
       var value = handValue(state.cpu);
-      var doubled = false;
-      if (state.cpu.length === 2 && value.total === 11 && state.cpuChips >= state.cpuBet * 2) {
-        state.cpuBet *= 2;
+      if (state.cpu.length === 2 && value.total >= 9 && value.total <= 12 && state.cpuChips >= state.cpuBet * 2) {
+        state.cpuBet = Math.min(state.cpuBet * 2, state.cpuChips);
         state.cpu.push(draw(state.deck));
-        doubled = true;
       } else {
-        while (!value.bust && (value.total < 16 || (value.soft && value.total < 18))) {
+        while (!value.bust && (value.total < 18 || (value.soft && value.total <= 18))) {
           state.cpu.push(draw(state.deck));
           value = handValue(state.cpu);
         }
       }
-
-      value = handValue(state.cpu);
-      return doubled;
     }
 
     function playDealer() {
@@ -323,6 +322,9 @@
       else if (playerResult === 'push') state.pushes++;
       else state.wins++;
 
+      state.roundResult = playerResult === 'loss' ? 'You lost' : (playerResult === 'push' ? 'Push' : 'You win');
+      state.roundDelta = playerDelta;
+
       state.phase = 'round-over';
       if (state.round >= MAX_ROUNDS || state.chips <= 0) {
         state.phase = 'game-over';
@@ -365,6 +367,7 @@
       els.message.textContent = message || '';
       els.chips.textContent = state.chips;
       els.bet.textContent = state.playerBet || state.bet;
+      els.cpuChips.textContent = state.cpuChips;
       els.wager.textContent = state.bet;
       els.dealerValue.textContent = handLabel(state.dealer, state.dealerHidden);
       els.playerValue.textContent = handLabel(state.player, false);
@@ -373,11 +376,12 @@
       renderHand(els.dealerHand, state.dealer, state.dealerHidden);
       renderHand(els.playerHand, state.player, false);
       renderHand(els.cpuHand, state.cpu, false);
+      renderResult();
 
       els.hit.disabled = !isAction;
       els.stand.disabled = !isAction;
       els.doubleDown.disabled = !canDoubleDown();
-      els.doubleDown.classList.toggle('is-hidden', !canDoubleDown());
+      els.doubleDown.classList.toggle('is-hidden', !isAction);
       els.betButtons.forEach(function (button) {
         button.disabled = !isIdle || isGameOver;
       });
@@ -393,6 +397,19 @@
       els.deal.disabled = isAction || state.phase === 'resolving';
       els.wagerPanel.classList.toggle('is-hidden', isAction || state.phase === 'resolving');
       els.actionPanel.classList.toggle('is-hidden', !isAction);
+    }
+
+    function renderResult() {
+      var shouldShow = state.roundResult && (state.phase === 'round-over' || state.phase === 'game-over');
+      els.result.classList.toggle('is-visible', Boolean(shouldShow));
+      if (!shouldShow) {
+        els.result.innerHTML = '';
+        return;
+      }
+
+      var delta = state.roundDelta;
+      var deltaText = delta > 0 ? '+' + delta : (delta < 0 ? String(delta) : '0');
+      els.result.innerHTML = '<span>' + state.roundResult + '</span> <small>' + deltaText + '</small>';
     }
 
     els.deal.addEventListener('click', startRound);

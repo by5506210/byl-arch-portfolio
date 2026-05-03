@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blackjack Room - Bryan Youn</title>
+  <title>Table - Bryan Youn</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-minimal-20260503">
+  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-animated-20260503">
 </head>
 <body>
   <div class="grain"></div>
@@ -26,8 +26,7 @@
         </nav>
 
         <div class="blackjack-shell">
-          <header class="blackjack-header">
-            <h1 class="blackjack-header__title">Blackjack Room</h1>
+          <header class="blackjack-header" aria-label="Blackjack status">
             <div class="blackjack-header__meta" aria-live="polite">
               <span id="blackjack-round">Round 1/3</span>
               <span id="blackjack-message">Wager</span>
@@ -47,7 +46,7 @@
 
                 <div class="blackjack-seat blackjack-seat--ghost">
                   <div class="blackjack-seat__topline">
-                    <span class="blackjack-seat__name">Ghost Bryan</span>
+                    <span class="blackjack-seat__name">Ghost Bryan <span class="blackjack-seat__chips"><strong id="blackjack-cpu-chips">100</strong> chips</span></span>
                     <span class="blackjack-seat__value" id="blackjack-cpu-value">0</span>
                   </div>
                   <div class="blackjack-hand blackjack-hand--small" id="blackjack-cpu-hand" aria-label="Ghost Bryan hand"></div>
@@ -60,6 +59,8 @@
                   </div>
                   <div class="blackjack-hand" id="blackjack-player-hand" aria-label="Your hand"></div>
                 </div>
+
+                <div class="blackjack-result" id="blackjack-result" aria-live="polite" aria-atomic="true"></div>
               </div>
             </section>
 
@@ -95,7 +96,7 @@
   </div>
 
   <script src="../src/js/cursor.js"></script>
-  <script src="../src/js/blackjack.js?v=blackjack-room-minimal-20260503"></script>
+  <script src="../src/js/blackjack.js?v=blackjack-room-animated-20260503"></script>
   <script src="../src/js/transitions.js"></script>
 </body>
 </html>
