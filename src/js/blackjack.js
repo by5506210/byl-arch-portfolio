@@ -12,7 +12,6 @@
     { code: 'spades', symbol: '\u2660', red: false }
   ];
   var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-  var GHOST_NAME = 'Ghost Bryan';
   var MAX_ROUNDS = 3;
   var STARTING_CHIPS = 100;
   var BASE_BET = 10;
@@ -98,10 +97,10 @@
   }
 
   function resultText(result, amount) {
-    if (result === 'blackjack') return 'blackjack +' + amount;
-    if (result === 'win') return 'win +' + amount;
-    if (result === 'loss') return 'loss ' + amount;
-    return 'push';
+    if (result === 'blackjack') return 'Blackjack +' + amount;
+    if (result === 'win') return 'Win +' + amount;
+    if (result === 'loss') return 'Loss -' + amount;
+    return 'Push';
   }
 
   function rankName(rank) {
@@ -140,8 +139,6 @@
       message: game.querySelector('#blackjack-message'),
       chips: game.querySelector('#blackjack-chips'),
       bet: game.querySelector('#blackjack-bet'),
-      cpuChips: game.querySelector('#blackjack-cpu-chips'),
-      record: game.querySelector('#blackjack-record'),
       wager: game.querySelector('#blackjack-wager-display'),
       dealerValue: game.querySelector('#blackjack-dealer-value'),
       playerValue: game.querySelector('#blackjack-player-value'),
@@ -149,8 +146,6 @@
       dealerHand: game.querySelector('#blackjack-dealer-hand'),
       playerHand: game.querySelector('#blackjack-player-hand'),
       cpuHand: game.querySelector('#blackjack-cpu-hand'),
-      cpuNote: game.querySelector('#blackjack-cpu-note'),
-      log: game.querySelector('#blackjack-log'),
       deal: game.querySelector('#blackjack-deal'),
       hit: game.querySelector('#blackjack-hit'),
       stand: game.querySelector('#blackjack-stand'),
@@ -179,15 +174,9 @@
         playerDoubled: false,
         wins: 0,
         losses: 0,
-        pushes: 0,
-        log: [GHOST_NAME + ' is already acting suspicious.']
+        pushes: 0
       };
-      render('Choose your wager, then deal.');
-    }
-
-    function addLog(text) {
-      state.log.unshift(text);
-      state.log = state.log.slice(0, 5);
+      render('Wager');
     }
 
     function setBet(step) {
@@ -198,7 +187,7 @@
       if (state.bet % BASE_BET !== 0 && state.bet > BASE_BET) {
         state.bet = Math.floor(state.bet / BASE_BET) * BASE_BET;
       }
-      render('Wager set to ' + state.bet + '. Deal when ready.');
+      render('Wager');
     }
 
     function startRound() {
@@ -231,8 +220,6 @@
       state.cpu.push(draw(state.deck));
       state.dealer.push(draw(state.deck));
 
-      addLog('Round ' + state.round + ' opened at ' + state.playerBet + ' chips.');
-
       var playerValue = handValue(state.player);
       var dealerValue = handValue(state.dealer);
       if (playerValue.blackjack || dealerValue.blackjack) {
@@ -240,7 +227,7 @@
         return;
       }
 
-      render('Your move.');
+      render('');
     }
 
     function playerHit() {
@@ -248,10 +235,9 @@
       state.player.push(draw(state.deck));
       var value = handValue(state.player);
       if (value.bust) {
-        addLog('You busted at ' + value.total + '.');
         finishRound();
       } else {
-        render('Your move.');
+        render('');
       }
     }
 
@@ -265,7 +251,6 @@
       state.playerBet *= 2;
       state.playerDoubled = true;
       state.player.push(draw(state.deck));
-      addLog('Double down: wager locked at ' + state.playerBet + '.');
       finishRound();
     }
 
@@ -290,9 +275,7 @@
       }
 
       value = handValue(state.cpu);
-      if (value.bust) return GHOST_NAME + ' busted at ' + value.total + '.';
-      if (doubled) return GHOST_NAME + ' doubled and froze at ' + value.total + '.';
-      return GHOST_NAME + ' stayed at ' + value.total + '.';
+      return doubled;
     }
 
     function playDealer() {
@@ -321,7 +304,7 @@
       state.phase = 'resolving';
 
       var playerValue = handValue(state.player);
-      var cpuNote = playCpu();
+      playCpu();
       var cpuValue = handValue(state.cpu);
 
       if (!playerValue.bust || !cpuValue.bust) {
@@ -340,17 +323,14 @@
       else if (playerResult === 'push') state.pushes++;
       else state.wins++;
 
-      addLog('You: ' + resultText(playerResult, Math.abs(playerDelta)) + '.');
-      addLog(GHOST_NAME + ': ' + resultText(cpuResult, Math.abs(cpuDelta)) + '.');
-
       state.phase = 'round-over';
       if (state.round >= MAX_ROUNDS || state.chips <= 0) {
         state.phase = 'game-over';
       }
 
-      var message = cpuNote;
+      var message = resultText(playerResult, Math.abs(playerDelta));
       if (state.phase === 'game-over') {
-        message = state.chips > STARTING_CHIPS ? 'Three rounds complete. You left up.' : 'Three rounds complete. The table remembers.';
+        message = state.chips > STARTING_CHIPS ? 'Final +' + (state.chips - STARTING_CHIPS) : 'Final ' + state.chips;
       }
 
       render(message);
@@ -376,36 +356,23 @@
       }
     }
 
-    function renderLog() {
-      els.log.innerHTML = '';
-      for (var i = 0; i < state.log.length; i++) {
-        var item = document.createElement('p');
-        item.textContent = state.log[i];
-        els.log.appendChild(item);
-      }
-    }
-
     function render(message) {
       var isAction = state.phase === 'player-turn';
       var isIdle = state.phase === 'idle' || state.phase === 'round-over';
       var isGameOver = state.phase === 'game-over';
 
-      els.round.textContent = 'Round ' + Math.min(state.round, MAX_ROUNDS) + ' of ' + MAX_ROUNDS;
+      els.round.textContent = 'Round ' + Math.min(state.round, MAX_ROUNDS) + '/' + MAX_ROUNDS;
       els.message.textContent = message || '';
       els.chips.textContent = state.chips;
       els.bet.textContent = state.playerBet || state.bet;
-      els.cpuChips.textContent = state.cpuChips;
-      els.record.textContent = state.wins + '-' + state.losses + '-' + state.pushes;
       els.wager.textContent = state.bet;
       els.dealerValue.textContent = handLabel(state.dealer, state.dealerHidden);
       els.playerValue.textContent = handLabel(state.player, false);
       els.cpuValue.textContent = handLabel(state.cpu, false);
-      els.cpuNote.textContent = state.phase === 'player-turn' ? 'Watching the shoe.' : (message || 'Waiting for the deal.');
 
       renderHand(els.dealerHand, state.dealer, state.dealerHidden);
       renderHand(els.playerHand, state.player, false);
       renderHand(els.cpuHand, state.cpu, false);
-      renderLog();
 
       els.hit.disabled = !isAction;
       els.stand.disabled = !isAction;

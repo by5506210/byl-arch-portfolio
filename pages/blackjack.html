@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-friendly-20260503">
+  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-minimal-20260503">
 </head>
 <body>
   <div class="grain"></div>
@@ -27,32 +27,12 @@
 
         <div class="blackjack-shell">
           <header class="blackjack-header">
-            <p class="blackjack-header__eyebrow">2x Blackjack Champion</p>
             <h1 class="blackjack-header__title">Blackjack Room</h1>
             <div class="blackjack-header__meta" aria-live="polite">
-              <span id="blackjack-round">Round 1 of 3</span>
-              <span id="blackjack-message">Set your wager.</span>
+              <span id="blackjack-round">Round 1/3</span>
+              <span id="blackjack-message">Wager</span>
             </div>
           </header>
-
-          <div class="blackjack-score" aria-label="Blackjack score">
-            <div>
-              <span>Chips</span>
-              <strong id="blackjack-chips">100</strong>
-            </div>
-            <div>
-              <span>Bet</span>
-              <strong id="blackjack-bet">10</strong>
-            </div>
-            <div>
-              <span>Ghost Bryan</span>
-              <strong id="blackjack-cpu-chips">100</strong>
-            </div>
-            <div>
-              <span>Record</span>
-              <strong id="blackjack-record">0-0-0</strong>
-            </div>
-          </div>
 
           <div class="blackjack-layout">
             <section class="blackjack-table" aria-label="Blackjack table">
@@ -70,10 +50,6 @@
                     <span class="blackjack-seat__name">Ghost Bryan</span>
                     <span class="blackjack-seat__value" id="blackjack-cpu-value">0</span>
                   </div>
-                  <div class="blackjack-cpu-tag">
-                    <span class="blackjack-avatar" aria-hidden="true">GB</span>
-                    <span id="blackjack-cpu-note">Waiting for the deal.</span>
-                  </div>
                   <div class="blackjack-hand blackjack-hand--small" id="blackjack-cpu-hand" aria-label="Ghost Bryan hand"></div>
                 </div>
 
@@ -88,15 +64,15 @@
             </section>
 
             <aside class="blackjack-controls" aria-label="Blackjack controls">
+              <div class="blackjack-controls__hud" aria-label="Current chips and bet">
+                <span>Chips <strong id="blackjack-chips">100</strong></span>
+                <span>Bet <strong id="blackjack-bet">10</strong></span>
+              </div>
+
               <div class="blackjack-panel blackjack-panel--wager" data-blackjack-panel="wager">
-                <div class="blackjack-panel__heading">
-                  <span>Wager</span>
-                  <strong>Choose your bet</strong>
-                </div>
                 <div class="blackjack-wager">
                   <button type="button" class="blackjack-icon-button" data-bet-step="-10" aria-label="Lower bet">-</button>
                   <div>
-                    <span>Current wager</span>
                     <strong id="blackjack-wager-display">10</strong>
                   </div>
                   <button type="button" class="blackjack-icon-button" data-bet-step="10" aria-label="Raise bet">+</button>
@@ -105,18 +81,12 @@
               </div>
 
               <div class="blackjack-panel blackjack-panel--actions is-hidden" data-blackjack-panel="actions">
-                <div class="blackjack-panel__heading">
-                  <span>Your turn</span>
-                  <strong>Choose an action</strong>
-                </div>
                 <div class="blackjack-actions">
-                <button type="button" id="blackjack-hit" disabled>Hit</button>
-                <button type="button" id="blackjack-stand" disabled>Stand</button>
-                <button type="button" id="blackjack-double" disabled>Double Down</button>
+                  <button type="button" id="blackjack-hit" disabled>Hit</button>
+                  <button type="button" id="blackjack-stand" disabled>Stand</button>
+                  <button type="button" id="blackjack-double" aria-label="Double down" disabled>Double</button>
                 </div>
               </div>
-
-              <div class="blackjack-round-log" id="blackjack-log" aria-live="polite"></div>
             </aside>
           </div>
         </div>
@@ -125,7 +95,7 @@
   </div>
 
   <script src="../src/js/cursor.js"></script>
-  <script src="../src/js/blackjack.js?v=blackjack-room-friendly-20260503"></script>
+  <script src="../src/js/blackjack.js?v=blackjack-room-minimal-20260503"></script>
   <script src="../src/js/transitions.js"></script>
 </body>
 </html>

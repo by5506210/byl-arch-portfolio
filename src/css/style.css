@@ -3615,7 +3615,7 @@ body:has(.blackjack-page) {
     linear-gradient(180deg, #11110f 0%, #090907 100%);
   position: relative;
   overflow-x: hidden;
-  padding: 4.8rem 1.2rem 2rem;
+  padding: 4.35rem 1.2rem 1.6rem;
 }
 
 .blackjack-page::before {
@@ -3682,77 +3682,37 @@ body:has(.blackjack-page) {
 }
 
 .blackjack-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.8rem 2rem;
-  align-items: end;
-  padding-bottom: 1.1rem;
-  border-bottom: 1px solid rgba(232, 228, 223, 0.15);
-}
-
-.blackjack-header__eyebrow {
-  grid-column: 1 / -1;
-  font-size: 0.66rem;
-  color: rgba(236, 232, 223, 0.58);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.72rem;
 }
 
 .blackjack-header__title {
   font-family: var(--font-primary);
-  font-size: clamp(2.2rem, 7vw, 6.2rem);
-  line-height: 0.9;
+  font-size: clamp(0.9rem, 1.5vw, 1.2rem);
+  line-height: 1;
   font-weight: 400;
   letter-spacing: 0;
 }
 
 .blackjack-header__meta {
-  min-width: min(24rem, 100%);
   display: flex;
   justify-content: flex-end;
-  gap: 1.1rem;
-  font-size: 0.72rem;
-  color: rgba(236, 232, 223, 0.72);
-}
-
-.blackjack-score {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  margin: 1rem 0;
-  border: 1px solid rgba(232, 228, 223, 0.14);
-  background: rgba(232, 228, 223, 0.12);
-}
-
-.blackjack-score div {
-  min-height: 4.5rem;
-  padding: 0.85rem;
-  background: rgba(8, 8, 6, 0.74);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.blackjack-score span,
-.blackjack-wager span {
-  font-size: 0.62rem;
-  color: rgba(236, 232, 223, 0.54);
-}
-
-.blackjack-score strong,
-.blackjack-wager strong {
-  font-size: 1.32rem;
-  font-weight: 400;
-  color: #f2eee7;
+  gap: 0.85rem;
+  font-size: 0.64rem;
+  color: rgba(236, 232, 223, 0.62);
 }
 
 .blackjack-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
+  gap: 0.72rem;
   align-items: stretch;
 }
 
-.blackjack-table,
-.blackjack-controls {
+.blackjack-table {
   border: 1px solid rgba(232, 228, 223, 0.14);
   background: rgba(8, 8, 6, 0.5);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
@@ -3909,42 +3869,44 @@ body:has(.blackjack-page) {
   box-shadow: none;
 }
 
-.blackjack-cpu-tag {
-  min-height: 2rem;
+.blackjack-controls {
+  padding: 0;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-size: 0.65rem;
-  color: rgba(236, 232, 223, 0.55);
+  justify-content: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
 }
 
-.blackjack-avatar {
-  width: 1.8rem;
-  height: 1.8rem;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid rgba(232, 228, 223, 0.22);
-  border-radius: 50%;
-  color: rgba(236, 232, 223, 0.84);
-  font-size: 0.56rem;
+.blackjack-controls__hud {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.82rem;
+  font-size: 0.63rem;
+  color: rgba(236, 232, 223, 0.52);
 }
 
-.blackjack-controls {
-  padding: 1rem;
-  display: grid;
-  grid-template-columns: minmax(18rem, 22rem) minmax(18rem, 22rem) minmax(0, 1fr);
-  align-items: start;
-  gap: 1rem;
+.blackjack-controls__hud strong {
+  margin-left: 0.22rem;
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: rgba(236, 232, 223, 0.92);
 }
 
 .blackjack-panel {
-  border: 1px solid rgba(232, 228, 223, 0.14);
-  padding: 0.85rem;
-  background: rgba(232, 228, 223, 0.035);
+  padding: 0;
+  background: transparent;
 }
 
 .blackjack-panel.is-hidden {
   display: none;
+}
+
+.blackjack-panel--wager {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .blackjack-actions .is-hidden {
@@ -3970,19 +3932,20 @@ body:has(.blackjack-page) {
 }
 
 .blackjack-wager {
-  display: grid;
-  grid-template-columns: 2.4rem minmax(0, 1fr) 2.4rem;
-  align-items: stretch;
-  gap: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .blackjack-wager div {
-  min-height: 4rem;
-  border: 1px solid rgba(232, 228, 223, 0.14);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 0.72rem;
+  min-width: 2.4rem;
+  text-align: center;
+}
+
+.blackjack-wager strong {
+  font-size: 0.84rem;
+  font-weight: 400;
+  color: #f2eee7;
 }
 
 .blackjack-icon-button,
@@ -3997,25 +3960,27 @@ body:has(.blackjack-page) {
 }
 
 .blackjack-icon-button {
-  font-size: 1rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  font-size: 0.86rem;
 }
 
 .blackjack-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .blackjack-actions button,
 .blackjack-primary-action {
-  min-height: 2.8rem;
-  padding: 0 0.72rem;
-  font-size: 0.68rem;
+  min-height: 2.1rem;
+  padding: 0 0.82rem;
+  font-size: 0.63rem;
 }
 
 .blackjack-primary-action {
-  width: 100%;
-  margin-top: 0.7rem;
   background: rgba(236, 232, 223, 0.14);
 }
 
@@ -4032,23 +3997,7 @@ body:has(.blackjack-page) {
   opacity: 0.34;
 }
 
-.blackjack-round-log {
-  min-height: 9rem;
-  border-left: 1px solid rgba(232, 228, 223, 0.12);
-  padding-left: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.blackjack-round-log p {
-  font-size: 0.64rem;
-  line-height: 1.45;
-  color: rgba(236, 232, 223, 0.6);
-}
-
 @media (max-width: 980px) {
-  .blackjack-header,
   .blackjack-layout {
     grid-template-columns: 1fr;
   }
@@ -4062,15 +4011,7 @@ body:has(.blackjack-page) {
   }
 
   .blackjack-controls {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .blackjack-round-log {
-    grid-column: 1 / -1;
-    border-left: 0;
-    border-top: 1px solid rgba(232, 228, 223, 0.12);
-    padding-left: 0;
-    padding-top: 0.85rem;
+    justify-content: flex-start;
   }
 }
 
@@ -4087,9 +4028,9 @@ body:has(.blackjack-page) {
     gap: 0.72rem;
   }
 
-  .blackjack-score,
   .blackjack-controls {
-    grid-template-columns: 1fr;
+    justify-content: center;
+    gap: 0.6rem;
   }
 
   .blackjack-table {
@@ -4129,8 +4070,7 @@ body:has(.blackjack-page) {
   }
 
   .blackjack-header__meta {
-    flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.48rem;
   }
 }
 
