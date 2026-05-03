@@ -64,9 +64,10 @@ function _vfAttachListeners() {
   }, { passive: true });
 }
 
-function initVectorField() {
+function initVectorFieldCanvas() {
   var canvas = document.getElementById('vector-field');
   if (!canvas) return;
+  canvas.setAttribute('data-renderer', 'canvas');
 
   var isLandingPage = !!document.getElementById('landing');
   if (isLandingPage && window.location.hash === '#portfolio') {
@@ -1488,4 +1489,13 @@ function initVectorField() {
   }
 }
 
-initVectorField();
+window.initVectorFieldCanvas = initVectorFieldCanvas;
+window.initVectorField = function () {
+  if (typeof window.initVectorFieldWebGL === 'function' && window.initVectorFieldWebGL()) {
+    return;
+  }
+
+  initVectorFieldCanvas();
+};
+
+window.initVectorField();
