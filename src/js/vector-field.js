@@ -180,7 +180,7 @@ function initVectorFieldCanvas() {
   var portalHoldEnabled = touchCapable || isMobile;
   var portalHoldTriggered = false;
   var contactPulseAnchor = isContactPage ? document.querySelector('.contact-page__card') : null;
-  var contactPulseInterval = 2.2;
+  var contactPulseInterval = 0;
   var lastContactPulseTime = -10;
   var contactPulseHoverActive = false;
 
@@ -373,6 +373,8 @@ function initVectorFieldCanvas() {
   }
 
   function buildGrid() {
+    var previousParticles = particles;
+    var previousCols = gridCols;
     particles = [];
     var cols = Math.ceil(fieldWidth / spacing) + 1;
     var rows = Math.ceil(fieldHeight / spacing) + 1;
@@ -382,13 +384,13 @@ function initVectorFieldCanvas() {
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
         // --- DEPTH LAYERS: 0=front, 1=mid, 2=back ---
-        var layerRand = Math.random();
+        var layerRand = fieldNoise(row, col, 1);
         var layer = layerRand < 0.6 ? 0 : (layerRand < 0.85 ? 1 : 2);
         var px = col * spacing + spacing * 0.5;
         var py = row * spacing + spacing * 0.5;
-        var seed1 = Math.random() * 100;
-        var seed2 = Math.random() * 100;
-        var seed3 = Math.random() * 100;
+        var seed1 = fieldNoise(row, col, 2) * 100;
+        var seed2 = fieldNoise(row, col, 3) * 100;
+        var seed3 = fieldNoise(row, col, 4) * 100;
         var centerDx = centerX - px;
         var centerDy = centerY - py;
         var centerDistSq = centerDx * centerDx + centerDy * centerDy;
@@ -405,7 +407,8 @@ function initVectorFieldCanvas() {
         var easterStrength = easterLinear * easterLinear;
         var easterAngle = _atan2(easterDy, easterDx);
         var layerConfigEntry = layerConfig[layer];
-        var baseOpacity = (0.24 + Math.random() * 0.12) * opacityScale;
+        var baseOpacity = (0.24 + fieldNoise(row, col, 7) * 0.12) * opacityScale;
+        var prior = previousParticles && previousCols > 0 ? previousParticles[row * previousCols + col] : null;
 
         if (centerDistSq < blackHoleRadius * blackHoleRadius) {
           blackHoleStrength = _max(0, 1 - centerDist / blackHoleRadius);
@@ -416,7 +419,7 @@ function initVectorFieldCanvas() {
         particles.push({
           x: px,
           y: py,
-          currentAngle: startAngle, // start aligned for awakening
+          currentAngle: prior ? prior.currentAngle : startAngle, // start aligned for awakening
           baseOpacity: baseOpacity,
           baseOpacityLayer: baseOpacity * layerConfigEntry[0],
           seed1: seed1,
@@ -430,8 +433,8 @@ function initVectorFieldCanvas() {
           seed2Wave: seed2 * 5,
           seed3Wave: seed3 * 3,
           mouseWaveSeed: seed1 * 5,
-          drift: (Math.random() - 0.5) * 1.0,
-          mouseRadiusOffset: (Math.random() - 0.5) * 80,
+          drift: (fieldNoise(row, col, 5) - 0.5) * 1.0,
+          mouseRadiusOffset: (fieldNoise(row, col, 6) - 0.5) * 80,
           layer: layer,
           layerOpacity: layerConfigEntry[0],
           layerWidth: layerConfigEntry[1],
@@ -475,6 +478,14 @@ function initVectorFieldCanvas() {
     while (d > PI) d -= TWO_PI;
     while (d < -PI) d += TWO_PI;
     return d;
+  }
+
+  function fieldNoise(row, col, salt) {
+    var n = Math.imul(row + 1, 374761393) ^
+      Math.imul(col + 1, 668265263) ^
+      Math.imul(salt + 1, 224682251);
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
   }
 
   function spawnRipple(originX, originY, maxRadiusOverride) {
@@ -637,8 +648,7 @@ function initVectorFieldCanvas() {
 
   function resolveFrameInterval() {
     if (reducedMotion) return 1000 / 24;
-    if (isLandingPage || isContactPage) return 0;
-    return lowPowerDevice ? 1000 / 20 : 1000 / 28;
+    return 0;
   }
 
   function createStrokeBuckets(count) {
@@ -776,10 +786,8 @@ function initVectorFieldCanvas() {
     var mouseActive = mouseX > 0 && mouseY > 0;
     _vfScrollVelocity *= 0.9;
     _vfScrollKick *= 0.9;
-    if (isMobile || touchCapable) {
-      _vfScrollVelocity = 0;
-      _vfScrollKick = 0;
-    }
+    _vfScrollVelocity = 0;
+    _vfScrollKick = 0;
     if (_abs(_vfScrollVelocity) < 0.001) _vfScrollVelocity = 0;
     if (_vfScrollKick < 0.001) _vfScrollKick = 0;
     var scrollTilt = _max(-1, _min(1, _vfScrollVelocity / 10));
@@ -927,7 +935,7 @@ function initVectorFieldCanvas() {
     }
 
     if (isContactPage) {
-      if (time - lastContactPulseTime > contactPulseInterval) {
+      if (contactPulseInterval > 0 && time - lastContactPulseTime > contactPulseInterval) {
         var pulseCenter = resolveContactPulseCenter(pageScrollY);
         lastRippleTime = -10;
         spawnRipple(pulseCenter.x, pulseCenter.y, _max(window.innerWidth, window.innerHeight) * 0.72);
@@ -951,8 +959,8 @@ function initVectorFieldCanvas() {
       }
     }
 
-    // --- MOBILE DISCOVERY: first-touch ripple + idle nudges ---
-    if (isLandingPage) {
+    // --- MOBILE DISCOVERY: first-touch ripple ---
+    if (isLandingPage && touchCapable) {
       var isTouching = mouseActive;
 
       // #4: First touch anywhere → ripple from center
@@ -967,21 +975,6 @@ function initVectorFieldCanvas() {
         lastInteractionTime = time;
       }
 
-      // #5: Idle nudge — gentle ripple from center after no touch
-      if (!isTouching && hasEverTouched && time > awakenDuration) {
-        var idleDuration = time - lastInteractionTime;
-        if (idleDuration > idleNudgeInterval && time - lastIdleNudgeTime > idleNudgeCooldown) {
-          lastIdleNudgeTime = time;
-          lastRippleTime = -10;
-          spawnRipple();
-        }
-      }
-      // Also nudge if user has NEVER interacted and awakening is done
-      if (!hasEverTouched && time > awakenDuration + 1.5 && time - lastIdleNudgeTime > idleNudgeCooldown) {
-        lastIdleNudgeTime = time;
-        lastRippleTime = -10;
-        spawnRipple();
-      }
     }
 
     // Portal reveal + ripple trigger
@@ -1215,7 +1208,7 @@ function initVectorFieldCanvas() {
 
       if (_vfScrollKick > 0 && _vfScrollDirection !== 0) {
         var scrollAngle = _vfScrollDirection > 0 ? PI * 0.5 : -PI * 0.5;
-        var snapStrength = _min(1, _vfScrollKick * 1.35 + _abs(scrollTilt) * 0.3);
+        var snapStrength = _min(0.28, _vfScrollKick * 0.18 + _abs(scrollTilt) * 0.08);
         baseAngle = scrollAngle * snapStrength + baseAngle * (1 - snapStrength);
       }
 
@@ -1227,7 +1220,7 @@ function initVectorFieldCanvas() {
       var speed = returnSpeed;
 
       if (_vfScrollKick > 0) {
-        speed = _max(speed, 0.38 + _vfScrollKick * 0.22);
+        speed = _max(speed, 0.16 + _vfScrollKick * 0.08);
       }
 
       // --- AWAKENING: fade opacity in ---
@@ -1495,10 +1488,6 @@ function initVectorFieldCanvas() {
 
 window.initVectorFieldCanvas = initVectorFieldCanvas;
 window.initVectorField = function () {
-  if (typeof window.initVectorFieldWebGL === 'function' && window.initVectorFieldWebGL()) {
-    return;
-  }
-
   initVectorFieldCanvas();
 };
 

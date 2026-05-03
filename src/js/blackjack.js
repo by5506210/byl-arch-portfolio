@@ -59,7 +59,7 @@
       if (hand[i].rank === 'A') aces++;
     }
 
-    var soft = aces > 0;
+    var originalAces = aces;
     while (total > 21 && aces > 0) {
       total -= 10;
       aces--;
@@ -67,7 +67,7 @@
 
     return {
       total: total,
-      soft: soft && total <= 21,
+      soft: aces > 0 && originalAces > 0 && total <= 21,
       blackjack: hand.length === 2 && total === 21,
       bust: total > 21
     };
@@ -277,14 +277,16 @@
 
     function playerDoubleDown() {
       if (!canDoubleDown()) return;
-      state.playerBet = Math.min(state.playerBet * 2, state.chips);
+      state.playerBet *= 2;
       state.playerDoubled = true;
       state.player.push(draw(state.deck));
       finishRound();
     }
 
     function canDoubleDown() {
-      return state.phase === 'player-turn';
+      return state.phase === 'player-turn' &&
+        state.player.length === 2 &&
+        state.chips >= state.playerBet * 2;
     }
 
     function playCpu() {
@@ -389,7 +391,7 @@
       els.round.textContent = 'Round ' + Math.min(state.round, MAX_ROUNDS) + '/' + MAX_ROUNDS;
       els.message.textContent = message || '';
       els.chips.textContent = state.chips;
-      els.bet.textContent = state.playerBet || state.bet;
+      els.bet.textContent = isIdle ? state.bet : (state.playerBet || state.bet);
       els.cpuChips.textContent = state.cpuChips;
       els.wager.textContent = state.bet;
       els.dealerValue.textContent = handLabel(state.dealer, state.dealerHidden);

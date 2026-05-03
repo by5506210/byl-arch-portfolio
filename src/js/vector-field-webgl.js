@@ -93,6 +93,14 @@
     return d;
   }
 
+  function fieldNoise(row, col, salt) {
+    var n = Math.imul(row + 1, 374761393) ^
+      Math.imul(col + 1, 668265263) ^
+      Math.imul(salt + 1, 224682251);
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  }
+
   function replaceCanvasForFallback(canvas) {
     if (!canvas || !canvas.parentNode) return;
     var replacement = canvas.cloneNode(false);
@@ -256,7 +264,7 @@
     '',
     '  if (uScroll.x > 0.0 && abs(uScroll.y) > 0.0) {',
     '    float scrollAngle = uScroll.y > 0.0 ? PI * 0.5 : -PI * 0.5;',
-    '    float snapStrength = min(1.0, uScroll.x * 1.35 + abs(uScroll.z) * 0.3);',
+    '    float snapStrength = min(0.28, uScroll.x * 0.18 + abs(uScroll.z) * 0.08);',
     '    targetAngle = mix(targetAngle, scrollAngle, snapStrength);',
     '  }',
     '',
@@ -608,7 +616,7 @@
     this.easterCursorNear = 0;
     this.easterSuppression = 0;
 
-    this.contactPulseInterval = 2.2;
+    this.contactPulseInterval = 0;
     this.lastContactPulseTime = -10;
     this.contactPulseHoverActive = false;
 
@@ -835,8 +843,7 @@
 
   WebGLVectorField.prototype.resolveFrameInterval = function () {
     if (this.reducedMotion) return 1000 / 24;
-    if (this.isLandingPage || this.isContactPage) return 0;
-    return this.lowPowerDevice ? 1000 / 20 : 1000 / 28;
+    return 0;
   };
 
   WebGLVectorField.prototype.resize = function () {
@@ -937,16 +944,16 @@
 
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
-        var layerRand = Math.random();
+        var layerRand = fieldNoise(row, col, 1);
         var layer = layerRand < 0.6 ? 0 : (layerRand < 0.85 ? 1 : 2);
         var px = col * this.spacing + this.spacing * 0.5;
         var py = row * this.spacing + this.spacing * 0.5;
-        var seed1 = Math.random() * 100;
-        var seed2 = Math.random() * 100;
-        var seed3 = Math.random() * 100;
-        var drift = (Math.random() - 0.5) * 1.0;
-        var mouseRadiusOffset = (Math.random() - 0.5) * 80;
-        var baseOpacity = (0.24 + Math.random() * 0.12) * this.opacityScale;
+        var seed1 = fieldNoise(row, col, 2) * 100;
+        var seed2 = fieldNoise(row, col, 3) * 100;
+        var seed3 = fieldNoise(row, col, 4) * 100;
+        var drift = (fieldNoise(row, col, 5) - 0.5) * 1.0;
+        var mouseRadiusOffset = (fieldNoise(row, col, 6) - 0.5) * 80;
+        var baseOpacity = (0.24 + fieldNoise(row, col, 7) * 0.12) * this.opacityScale;
 
         positions[index * 2] = px;
         positions[index * 2 + 1] = py;
@@ -1426,7 +1433,7 @@
   };
 
   WebGLVectorField.prototype.updateLandingDiscovery = function (mouseActive) {
-    if (!this.isLandingPage) return;
+    if (!this.isLandingPage || !this.touchCapable) return;
 
     if (mouseActive && !this.hasEverTouched) {
       this.hasEverTouched = true;
@@ -1437,27 +1444,12 @@
     if (mouseActive) {
       this.lastInteractionTime = this.time;
     }
-
-    if (!mouseActive && this.hasEverTouched && this.time > this.awakenDuration) {
-      var idleDuration = this.time - this.lastInteractionTime;
-      if (idleDuration > this.idleNudgeInterval && this.time - this.lastIdleNudgeTime > this.idleNudgeCooldown) {
-        this.lastIdleNudgeTime = this.time;
-        this.lastRippleTime = -10;
-        this.spawnRipple();
-      }
-    }
-
-    if (!this.hasEverTouched && this.time > this.awakenDuration + 1.5 && this.time - this.lastIdleNudgeTime > this.idleNudgeCooldown) {
-      this.lastIdleNudgeTime = this.time;
-      this.lastRippleTime = -10;
-      this.spawnRipple();
-    }
   };
 
   WebGLVectorField.prototype.updateContactPulse = function (mouseActive, pageMouseX, pageMouseY, pageScrollY) {
     if (!this.isContactPage) return;
 
-    if (this.time - this.lastContactPulseTime > this.contactPulseInterval) {
+    if (this.contactPulseInterval > 0 && this.time - this.lastContactPulseTime > this.contactPulseInterval) {
       var pulseCenter = this.resolveContactPulseCenter(pageScrollY);
       this.lastRippleTime = -10;
       this.spawnRipple(pulseCenter.x, pulseCenter.y, Math.max(window.innerWidth, window.innerHeight) * 0.72);
@@ -1516,7 +1508,7 @@
     gl.uniform1f(u.uAwaken, awakenEased);
     gl.uniform2f(u.uMouse, pageMouseX, pageMouseY);
     gl.uniform1f(u.uMouseActive, mousePresence);
-    var scrollVectorShift = (this.isMobile || this.touchCapable) ? 0 : scrollKick;
+    var scrollVectorShift = 0;
     gl.uniform3f(u.uScroll, scrollVectorShift, scrollDirection, scrollVectorShift > 0 ? scrollTilt : 0);
     gl.uniform2f(u.uLine, this.lineLen, this.lineWidth);
     gl.uniform2f(u.uCenter, this.centerX, this.centerY);
