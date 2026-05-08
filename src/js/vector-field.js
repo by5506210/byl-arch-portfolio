@@ -147,6 +147,9 @@ function initVectorFieldCanvas() {
   var mouseInfluence = 220;
   var returnSpeed = 0.08;
   var followSpeed = 0.25;
+  var cursorTurnInnerRadius = 18;
+  var cursorTurnFullRadius = 58;
+  var maxAngleStepPerFrame = 0.26;
   var blackHoleRadius = 300;
 
   var centerX = 0;
@@ -239,6 +242,10 @@ function initVectorFieldCanvas() {
   var wakeMaxPoints = 12;
   var lastWakeX = -1000;
   var lastWakeY = -1000;
+  var smoothedMouseX = -1000;
+  var smoothedMouseY = -1000;
+  var smoothedMousePresence = 0;
+  var wasMouseActive = false;
 
   // --- MOBILE: gravitational current + discovery nudges ---
   var hasEverTouched = false;
@@ -478,6 +485,11 @@ function initVectorFieldCanvas() {
     while (d > PI) d -= TWO_PI;
     while (d < -PI) d += TWO_PI;
     return d;
+  }
+
+  function smoothstep(edge0, edge1, value) {
+    var t = _max(0, _min(1, (value - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
   }
 
   function fieldNoise(row, col, salt) {
@@ -784,6 +796,28 @@ function initVectorFieldCanvas() {
       if (mouseY > 0) mouseY += pageScrollY;
     }
     var mouseActive = mouseX > 0 && mouseY > 0;
+    var targetMousePresence = mouseActive ? 1 : 0;
+    var mousePresenceEase = 1 - Math.exp(-dt * (mouseActive ? 10 : 7));
+    smoothedMousePresence += (targetMousePresence - smoothedMousePresence) * mousePresenceEase;
+
+    if (mouseActive) {
+      if (!wasMouseActive || smoothedMouseX < -500 || smoothedMouseY < -500) {
+        smoothedMouseX = mouseX;
+        smoothedMouseY = mouseY;
+      } else {
+        var mouseFollowEase = 1 - Math.exp(-dt * 18);
+        smoothedMouseX += (mouseX - smoothedMouseX) * mouseFollowEase;
+        smoothedMouseY += (mouseY - smoothedMouseY) * mouseFollowEase;
+      }
+    } else if (smoothedMousePresence < 0.01) {
+      smoothedMouseX = -1000;
+      smoothedMouseY = -1000;
+    }
+    wasMouseActive = mouseActive;
+
+    var fieldMouseX = smoothedMouseX;
+    var fieldMouseY = smoothedMouseY;
+    var fieldMouseActive = smoothedMousePresence > 0.02 && fieldMouseX > 0 && fieldMouseY > 0;
     _vfScrollVelocity *= 0.9;
     _vfScrollKick *= 0.9;
     _vfScrollVelocity = 0;
@@ -918,13 +952,13 @@ function initVectorFieldCanvas() {
     }
 
     // --- WAKE TRAIL: record cursor path ---
-    if (mouseActive) {
-      var wdx = mouseX - lastWakeX;
-      var wdy = mouseY - lastWakeY;
+    if (fieldMouseActive) {
+      var wdx = fieldMouseX - lastWakeX;
+      var wdy = fieldMouseY - lastWakeY;
       if (wdx * wdx + wdy * wdy > 900) { // 30*30 = 900, skip sqrt
-        wakeTrail.push({ x: mouseX, y: mouseY, time: time });
-        lastWakeX = mouseX;
-        lastWakeY = mouseY;
+        wakeTrail.push({ x: fieldMouseX, y: fieldMouseY, time: time });
+        lastWakeX = fieldMouseX;
+        lastWakeY = fieldMouseY;
         // Hard cap
         while (wakeTrail.length > wakeMaxPoints) wakeTrail.shift();
       }
@@ -1078,14 +1112,14 @@ function initVectorFieldCanvas() {
     // --- Pre-compute per-frame easter egg cursor distance (invariant across particles) ---
     var eeSuppression = 0;
     var cursorNearEECached = 0;
-    if (isLandingPage && mouseActive) {
-      var _dceX = mouseX - easterEggX;
-      var _dceY = mouseY - easterEggY;
+    if (isLandingPage && fieldMouseActive) {
+      var _dceX = fieldMouseX - easterEggX;
+      var _dceY = fieldMouseY - easterEggY;
       var _dceSq = _dceX * _dceX + _dceY * _dceY;
       var _dce = _sqrt(_dceSq);
       eeSuppression = _max(0, 1 - _dce / 250);
-      eeSuppression = eeSuppression * eeSuppression;
-      cursorNearEECached = _max(0, 1 - _dce / 200);
+      eeSuppression = eeSuppression * eeSuppression * smoothedMousePresence;
+      cursorNearEECached = _max(0, 1 - _dce / 200) * smoothedMousePresence;
     }
 
     // --- Pre-compute squared radii for threshold comparisons ---
@@ -1218,6 +1252,7 @@ function initVectorFieldCanvas() {
       var drawLen = (lineLen * lcLen) + rippleLenBoost;
       var widthScale = 1;
       var speed = returnSpeed;
+      var cursorTurnBoost = 0;
 
       if (_vfScrollKick > 0) {
         speed = _max(speed, 0.16 + _vfScrollKick * 0.08);
@@ -1262,9 +1297,9 @@ function initVectorFieldCanvas() {
         }
       }
 
-      if (mouseActive) {
-        var dxM = mouseX - p.x;
-        var dyM = mouseY - p.y;
+      if (fieldMouseActive) {
+        var dxM = fieldMouseX - p.x;
+        var dyM = fieldMouseY - p.y;
         var distMSq = dxM * dxM + dyM * dyM;
 
         if (distMSq < maxMouseRadiusSq) {
@@ -1282,7 +1317,8 @@ function initVectorFieldCanvas() {
             var distM = _sqrt(distMSq);
             var mStrength = (1 - distM / particleMouseRadius);
             mStrength = mStrength * mStrength;
-            var mouseEffect = mStrength * (1 - bhResistance * 0.85);
+            var mouseEffect = mStrength * smoothedMousePresence * (1 - bhResistance * 0.85);
+            var mouseAngleEffect = mouseEffect * smoothstep(cursorTurnInnerRadius, cursorTurnFullRadius, distM);
 
             if (particleNearEE > 0) {
               var dimFactor = particleNearEE * mouseEffect;
@@ -1293,16 +1329,23 @@ function initVectorFieldCanvas() {
             }
 
             var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
-            targetAngle += mouseDiff * mouseEffect * 0.9;
+            targetAngle += mouseDiff * mouseAngleEffect * 0.72;
             drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
-            speed = _max(speed, followSpeed + mouseEffect * 0.4);
+            speed = _max(speed, followSpeed + mouseAngleEffect * 0.28);
+            cursorTurnBoost = _max(cursorTurnBoost, mouseAngleEffect);
           }
         }
       }
 
       if (bhResistance > 0.1) speed = _max(speed, returnSpeed + bhResistance * 0.35);
 
-      p.currentAngle += angleDiff(p.currentAngle, targetAngle) * speed;
+      var currentDiff = angleDiff(p.currentAngle, targetAngle);
+      var angleStep = currentDiff * speed;
+      var turnDt = dt > 0.001 ? dt : 0.016;
+      var maxAngleStep = _min(maxAngleStepPerFrame, (7.5 + cursorTurnBoost * 8 + bhResistance * 4) * turnDt);
+      if (angleStep > maxAngleStep) angleStep = maxAngleStep;
+      else if (angleStep < -maxAngleStep) angleStep = -maxAngleStep;
+      p.currentAngle += angleStep;
       while (p.currentAngle > PI) p.currentAngle -= TWO_PI;
       while (p.currentAngle < -PI) p.currentAngle += TWO_PI;
 
