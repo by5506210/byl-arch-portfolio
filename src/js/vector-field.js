@@ -67,6 +67,7 @@ function _vfAttachListeners() {
 function initVectorFieldCanvas() {
   var canvas = document.getElementById('vector-field');
   if (!canvas) return;
+  if (canvas.getAttribute('data-field') === 'dots') return;
   canvas.setAttribute('data-renderer', 'canvas');
 
   var isLandingPage = !!document.getElementById('landing');

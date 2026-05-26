@@ -275,6 +275,11 @@ img {
   opacity: 0.18;
 }
 
+.vector-field-bg[data-field="dots"] {
+  opacity: 0.42;
+  mix-blend-mode: multiply;
+}
+
 /* Portal cue — centered, hidden until cursor approaches */
 .landing__portal {
   --portal-charge: 0;
@@ -764,6 +769,17 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   counter-reset: portfolio-slides;
 }
 
+.slideshow__dot-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.38;
+  mix-blend-mode: multiply;
+}
+
 .slideshow__slide {
   --slide-card-x: 0px;
   --slide-card-y: 0px;
@@ -1017,11 +1033,16 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   transition: opacity 0.18s linear;
 }
 
+.slideshow__slide--divider > .slideshow__dot-field {
+  z-index: 1;
+  opacity: calc(var(--divider-bg-opacity) * 0.42);
+}
+
 .slideshow__divider-content {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3135,7 +3156,7 @@ body.custom-cursor-enabled .projects-helix__node {
    ABOUT PAGE
    ============================================ */
 .about {
-  background: var(--concrete);
+  background: transparent;
   min-height: 100vh;
   padding: 4.5rem 2rem 3rem;
   display: grid;
@@ -4473,7 +4494,7 @@ body:has(.contact-page) {
 }
 
 .contact-page .vector-field-bg {
-  opacity: 1;
+  opacity: 0.46;
   mix-blend-mode: multiply;
 }
 
@@ -5161,6 +5182,14 @@ body:has(.contact-page) {
 
   .slideshow__slide-img-wrapper--landscape {
     width: min(74vw, 360px);
+  }
+
+  .slideshow__slide--about {
+    --slide-card-scale: 0.92;
+  }
+
+  .slideshow__about-card {
+    width: min(46vw, 205px);
   }
 
   .slideshow__slide[data-project='eden-museum'] {
