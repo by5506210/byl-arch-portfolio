@@ -244,9 +244,9 @@
       return {
         spacing: isMobile ? 18 : 26,
         radius: isMobile ? 0.48 : 0.62,
-        alpha: this.isDividerField ? 0.22 : 0.18,
-        cursorRadius: isMobile ? 132 : 166,
-        cursorBoost: 2.35,
+        alpha: this.isDividerField ? 0.26 : 0.21,
+        cursorRadius: isMobile ? 180 : 235,
+        cursorBoost: 2.55,
         budget: 3600
       };
     }
@@ -255,9 +255,9 @@
       return {
         spacing: isMobile ? 17 : 26,
         radius: isMobile ? 0.58 : 0.78,
-        alpha: 0.23,
-        cursorRadius: isMobile ? 145 : 188,
-        cursorBoost: 2.5,
+        alpha: 0.27,
+        cursorRadius: isMobile ? 195 : 250,
+        cursorBoost: 2.65,
         budget: 3600
       };
     }
@@ -265,9 +265,9 @@
     return {
       spacing: isMobile ? 18 : 27,
       radius: isMobile ? 0.54 : 0.72,
-      alpha: 0.21,
-      cursorRadius: isMobile ? 140 : 182,
-      cursorBoost: 2.45,
+      alpha: 0.24,
+      cursorRadius: isMobile ? 190 : 245,
+      cursorBoost: 2.6,
       budget: 3600
     };
   };
@@ -578,7 +578,7 @@
     gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
     gl.uniform1f(this.locations.cursorBoost, this.cursorBoost);
     gl.uniform1f(this.locations.pixelRatio, this.backingScale);
-    gl.uniform3f(this.locations.color, 0.102, 0.102, 0.102);
+    gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.POINTS, 0, this.pointCount);
   };
 
