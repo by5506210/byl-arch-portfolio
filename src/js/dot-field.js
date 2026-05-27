@@ -244,7 +244,7 @@
       return {
         spacing: isMobile ? 18 : 26,
         radius: isMobile ? 0.48 : 0.62,
-        alpha: this.isDividerField ? 0.18 : 0.15,
+        alpha: this.isDividerField ? 0.22 : 0.18,
         cursorRadius: isMobile ? 132 : 166,
         cursorBoost: 2.35,
         budget: 3600
@@ -255,7 +255,7 @@
       return {
         spacing: isMobile ? 17 : 26,
         radius: isMobile ? 0.58 : 0.78,
-        alpha: 0.2,
+        alpha: 0.23,
         cursorRadius: isMobile ? 145 : 188,
         cursorBoost: 2.5,
         budget: 3600
@@ -265,7 +265,7 @@
     return {
       spacing: isMobile ? 18 : 27,
       radius: isMobile ? 0.54 : 0.72,
-      alpha: 0.18,
+      alpha: 0.21,
       cursorRadius: isMobile ? 140 : 182,
       cursorBoost: 2.45,
       budget: 3600

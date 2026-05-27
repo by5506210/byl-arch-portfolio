@@ -276,7 +276,7 @@ img {
 }
 
 .vector-field-bg[data-field="dots"] {
-  opacity: 0.42;
+  opacity: 0.48;
   mix-blend-mode: multiply;
 }
 
@@ -776,7 +776,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 100%;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.38;
+  opacity: 0.44;
   mix-blend-mode: multiply;
 }
 
@@ -1035,7 +1035,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .slideshow__slide--divider > .slideshow__dot-field {
   z-index: 1;
-  opacity: calc(var(--divider-bg-opacity) * 0.42);
+  opacity: calc(var(--divider-bg-opacity) * 0.5);
 }
 
 .slideshow__divider-content {
@@ -4494,7 +4494,7 @@ body:has(.contact-page) {
 }
 
 .contact-page .vector-field-bg {
-  opacity: 0.46;
+  opacity: 0.52;
   mix-blend-mode: multiply;
 }
 
