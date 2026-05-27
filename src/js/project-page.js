@@ -500,6 +500,10 @@ function initProjectsAtlas() {
   var entryReadyReleaseHandler = null;
   var entryReadyScheduled = false;
   var moodboardStripClickHandler = null;
+  var moodboardStripMouseEnterHandler = null;
+  var moodboardStripMouseMoveHandler = null;
+  var moodboardStripMouseLeaveHandler = null;
+  var moodboardHoverActive = false;
   var proximityNeedsStep = true;
   var PROXIMITY_TARGET_STEPS = 80;
   var HELIX_SYNC_POSITION_EPSILON = 0.28;
@@ -3068,7 +3072,26 @@ function initProjectsAtlas() {
   }
 
   function setMoodboardHover(active) {
-    helix.classList.toggle('projects-helix--moodboard-hover', !!active);
+    var nextActive = !!active && !!moodboardStripLink;
+    if (moodboardHoverActive === nextActive) return;
+    moodboardHoverActive = nextActive;
+    helix.classList.toggle('projects-helix--moodboard-hover', nextActive);
+
+    if (nextActive) {
+      document.dispatchEvent(new CustomEvent('byl:helix-strip-cursor-snap', {
+        detail: {
+          target: moodboardStripLink
+        }
+      }));
+      return;
+    }
+
+    document.dispatchEvent(new CustomEvent('byl:helix-cursor-clear', {
+      detail: {
+        target: moodboardStripLink,
+        source: 'moodboard-strip'
+      }
+    }));
   }
 
   function updateMoodboardHover(clientX, clientY, target) {
@@ -3170,7 +3193,19 @@ function initProjectsAtlas() {
       }
       beginMoodboardRewindNavigation(evt);
     };
+    moodboardStripMouseEnterHandler = function () {
+      setMoodboardHover(true);
+    };
+    moodboardStripMouseMoveHandler = function () {
+      setMoodboardHover(true);
+    };
+    moodboardStripMouseLeaveHandler = function () {
+      setMoodboardHover(false);
+    };
     moodboardStripLink.addEventListener('click', moodboardStripClickHandler);
+    moodboardStripLink.addEventListener('mouseenter', moodboardStripMouseEnterHandler);
+    moodboardStripLink.addEventListener('mousemove', moodboardStripMouseMoveHandler, { passive: true });
+    moodboardStripLink.addEventListener('mouseleave', moodboardStripMouseLeaveHandler);
   }
 
   var nodeHandlers = [];
@@ -3435,6 +3470,15 @@ function initProjectsAtlas() {
   function cleanupAtlas() {
     if (disposed) return;
     disposed = true;
+    if (moodboardHoverActive && moodboardStripLink) {
+      document.dispatchEvent(new CustomEvent('byl:helix-cursor-clear', {
+        detail: {
+          target: moodboardStripLink,
+          source: 'moodboard-strip'
+        }
+      }));
+    }
+    moodboardHoverActive = false;
     helix.classList.remove('projects-helix--is-ready');
     helix.classList.remove('projects-helix--is-entering');
     helix.classList.remove('projects-helix--webgl-thumbs');
@@ -3475,6 +3519,15 @@ function initProjectsAtlas() {
     stage.removeEventListener('click', handleStageClick);
     if (moodboardStripLink && moodboardStripClickHandler) {
       moodboardStripLink.removeEventListener('click', moodboardStripClickHandler);
+    }
+    if (moodboardStripLink && moodboardStripMouseEnterHandler) {
+      moodboardStripLink.removeEventListener('mouseenter', moodboardStripMouseEnterHandler);
+    }
+    if (moodboardStripLink && moodboardStripMouseMoveHandler) {
+      moodboardStripLink.removeEventListener('mousemove', moodboardStripMouseMoveHandler);
+    }
+    if (moodboardStripLink && moodboardStripMouseLeaveHandler) {
+      moodboardStripLink.removeEventListener('mouseleave', moodboardStripMouseLeaveHandler);
     }
 
     nodeHandlers.forEach(function (entry) {

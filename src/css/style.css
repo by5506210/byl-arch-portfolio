@@ -2501,10 +2501,29 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 82%;
   z-index: 80;
   display: block;
-  opacity: 0;
+  opacity: 1;
   pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
   clip-path: ellipse(50% 49% at 50% 50%);
+}
+
+.projects-helix__moodboard-strip::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(86px, 42%);
+  height: calc(100% - 18px);
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(17, 17, 15, 0.12);
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 18px 45px rgba(44, 36, 30, 0.08);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
 }
 
 .projects-helix__mode-badge {
@@ -3064,11 +3083,27 @@ body.custom-cursor-enabled .projects-helix__node {
 }
 
 .projects-helix--moodboard-hover .projects-helix__webgl canvas {
-  filter: contrast(1.06) brightness(1.025);
+  filter: contrast(1.14) brightness(1.04) saturate(1.04);
 }
 
 body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-helix__stage {
   cursor: pointer !important;
+}
+
+.projects-helix--moodboard-hover .projects-helix__moodboard-strip::before {
+  opacity: 1;
+}
+
+.projects-helix--moodboard-hover .projects-helix__node {
+  opacity: 0.16;
+  filter: blur(2px) saturate(0.7);
+  transition: opacity 0.18s ease, filter 0.18s ease;
+}
+
+.projects-helix--moodboard-hover .projects-helix__axis-notes,
+.projects-helix--moodboard-hover .projects-helix__floor-ring {
+  opacity: 0.22;
+  filter: blur(1px);
 }
 
 .projects-helix--moodboard-rewinding .projects-helix__stage {
@@ -3095,62 +3130,42 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   background:
     radial-gradient(92% 52% at 50% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 68%),
     linear-gradient(180deg, #f7f5ef 0%, #ece7dc 100%);
-  padding: clamp(5.2rem, 8vw, 7.8rem) clamp(0.7rem, 3.4vw, 3.2rem) clamp(2rem, 5vw, 4rem);
+  padding: clamp(3.6rem, 5.4vw, 4.9rem) clamp(0.55rem, 2.4vw, 2.2rem) clamp(1.5rem, 4vw, 3rem);
 }
 
 .moodboard-page__header {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(14rem, 0.36fr);
-  gap: clamp(1.2rem, 4vw, 4rem);
-  align-items: end;
-  width: min(1180px, 100%);
-  margin: 0 auto clamp(1.15rem, 3vw, 2.4rem);
+  width: min(1360px, 100%);
+  margin: 0 auto 0.62rem;
 }
 
 .moodboard-page__title {
   margin: 0;
   font-family: var(--font-primary);
-  font-size: clamp(2.4rem, 7.4vw, 7rem);
-  line-height: 0.9;
-  font-weight: 300;
-  letter-spacing: 0;
-  color: rgba(17, 17, 15, 0.92);
-}
-
-.moodboard-page__meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.45rem;
-  font-family: var(--font-primary);
-  font-size: 0.68rem;
-  line-height: 1.35;
-  color: rgba(17, 17, 15, 0.58);
-  text-align: right;
-}
-
-.moodboard-page__count {
-  color: rgba(17, 17, 15, 0.82);
+  font-size: 0.78rem;
+  line-height: 1.1;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(17, 17, 15, 0.78);
 }
 
 .moodboard-page__grid {
-  width: min(1180px, 100%);
+  width: min(1360px, 100%);
   margin: 0 auto;
-  columns: 4 205px;
-  column-gap: clamp(0.5rem, 1.25vw, 0.9rem);
+  columns: 5 172px;
+  column-gap: clamp(0.42rem, 0.95vw, 0.72rem);
 }
 
 .moodboard-page__item {
   position: relative;
   display: inline-block;
   width: 100%;
-  margin: 0 0 clamp(0.5rem, 1.25vw, 0.9rem);
+  margin: 0 0 clamp(0.42rem, 0.95vw, 0.72rem);
   break-inside: avoid;
   overflow: hidden;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.42);
-  border: 1px solid rgba(17, 17, 15, 0.08);
-  box-shadow: 0 10px 24px rgba(48, 42, 35, 0.08);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(17, 17, 15, 0.06);
+  box-shadow: 0 8px 18px rgba(48, 42, 35, 0.06);
 }
 
 .moodboard-page__item img {
@@ -3160,15 +3175,7 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 }
 
 .moodboard-page__item figcaption {
-  position: absolute;
-  left: 0.42rem;
-  bottom: 0.36rem;
-  font-family: var(--font-primary);
-  font-size: 0.52rem;
-  line-height: 1;
-  color: rgba(17, 17, 15, 0.74);
-  background: rgba(244, 242, 236, 0.72);
-  padding: 0.2rem 0.28rem;
+  display: none;
 }
 
 .project-nav-bar--moodboard,
@@ -3178,24 +3185,21 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 
 @media (max-width: 900px) {
   .moodboard-page__header {
-    grid-template-columns: 1fr;
-    align-items: start;
-    gap: 0.75rem;
-  }
-
-  .moodboard-page__meta {
-    align-items: flex-start;
-    text-align: left;
+    margin-bottom: 0.52rem;
   }
 }
 
 @media (max-width: 640px) {
   .moodboard-page {
-    padding: 4.35rem 0.48rem 1.2rem;
+    padding: 3.75rem 0.42rem 1rem;
   }
 
   .moodboard-page__header {
-    margin-bottom: 0.85rem;
+    margin-bottom: 0.48rem;
+  }
+
+  .moodboard-page__title {
+    font-size: 0.72rem;
   }
 
   .moodboard-page__grid {

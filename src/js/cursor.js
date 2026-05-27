@@ -78,6 +78,7 @@
 
   var _abs = Math.abs;
   var _min = Math.min;
+  var _max = Math.max;
   var _sqrt = Math.sqrt;
 
   function isLandingVisible() {
@@ -456,14 +457,52 @@
     });
   }
 
+  function setMoodboardStripSnapRect(target) {
+    if (!target || !target.getBoundingClientRect) return null;
+    var rect = target.getBoundingClientRect();
+    if (!rect || rect.width < 0.5 || rect.height < 0.5) return null;
+
+    var width = _min(86, _max(46, rect.width * 0.34));
+    var height = _max(96, rect.height - 18);
+    var top = rect.top + (rect.height - height) * 0.5;
+    var left = rect.left + rect.width * 0.5 - width * 0.5;
+    target.__cursorSnapRect = {
+      left: left,
+      top: top,
+      width: width,
+      height: height
+    };
+    return target.__cursorSnapRect;
+  }
+
+  function snapToMoodboardStrip(target) {
+    if (!target) return;
+    if (!setMoodboardStripSnapRect(target)) return;
+
+    beginSnap(target, {
+      padX: 14,
+      padY: 14,
+      radiusCap: 12,
+      radiusFactor: 0.5,
+      followTarget: true
+    });
+  }
+
   document.addEventListener('byl:helix-cursor-snap', function (e) {
     var node = e && e.detail ? e.detail.node : null;
     snapToHelixNode(node);
   });
 
-  document.addEventListener('byl:helix-cursor-clear', function () {
+  document.addEventListener('byl:helix-strip-cursor-snap', function (e) {
+    var target = e && e.detail ? e.detail.target : null;
+    snapToMoodboardStrip(target);
+  });
+
+  document.addEventListener('byl:helix-cursor-clear', function (e) {
     var helixNode = snapTarget && snapTarget.closest ? snapTarget.closest('.projects-helix__node') : null;
-    if (helixNode) setDefaultState();
+    var moodboardStrip = snapTarget && snapTarget.closest ? snapTarget.closest('.projects-helix__moodboard-strip') : null;
+    var target = e && e.detail ? e.detail.target : null;
+    if (helixNode || moodboardStrip || target === snapTarget) setDefaultState();
   });
 
   document.addEventListener('mouseover', function (e) {
@@ -474,6 +513,12 @@
     var navPreviewData = getNavPreviewData(navPreviewLink);
     if (navPreviewData) {
       showNavPreview(navPreviewLink, navPreviewData);
+      return;
+    }
+
+    var moodboardStrip = target.closest('.projects-helix__moodboard-strip');
+    if (moodboardStrip) {
+      snapToMoodboardStrip(moodboardStrip);
       return;
     }
 

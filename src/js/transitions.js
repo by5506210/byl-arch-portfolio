@@ -199,6 +199,9 @@
   function clearMoodboardRewindState(stateOverride) {
     var state = stateOverride || window.bylMoodboardRewind || moodboardRewindState;
     if (state && state.layerEl && state.layerEl.parentNode) state.layerEl.remove();
+    document.querySelectorAll('.moodboard-rewind-layer').forEach(function (layer) {
+      if (!state || layer !== state.layerEl) layer.remove();
+    });
     window.bylMoodboardRewind = null;
     clearStoredMoodboardRewind();
   }
@@ -489,6 +492,7 @@
 
         helixZoomState = null;
         moodboardRewindState = null;
+        clearMoodboardRewindState();
         manualNavigationInProgress = false;
         rememberCurrentPage();
       }
