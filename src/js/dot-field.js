@@ -1,5 +1,5 @@
 // ============================================
-// STATIC DOT FIELD - cursor-proximity background
+// WEBGL DOT FIELD - cursor-proximity background
 // ============================================
 
 (function () {
@@ -8,20 +8,49 @@
   var previousInitVectorField = window.initVectorField;
   var instances = [];
   var listenersAttached = false;
-  var mouseX = -1000;
-  var mouseY = -1000;
-  var touchInfluenceTimer = null;
+  var pointerX = -1000;
+  var pointerY = -1000;
+  var pointerClearTimer = null;
 
-  var DARK_DOT = '26, 26, 26';
-  var TAU = Math.PI * 2;
+  var VERTEX_SHADER = [
+    'attribute vec2 a_position;',
+    'attribute vec3 a_dot;',
+    'uniform vec2 u_resolution;',
+    'uniform vec2 u_mouse;',
+    'uniform float u_mousePresence;',
+    'uniform float u_cursorRadius;',
+    'uniform float u_cursorBoost;',
+    'uniform float u_pixelRatio;',
+    'varying float v_alpha;',
+    'void main() {',
+    '  vec2 zeroToOne = a_position / u_resolution;',
+    '  vec2 clipSpace = zeroToOne * 2.0 - 1.0;',
+    '  float cursorRadius = max(80.0, u_cursorRadius + a_dot.z);',
+    '  float distToMouse = distance(a_position, u_mouse);',
+    '  float strength = (1.0 - smoothstep(0.0, cursorRadius, distToMouse)) * u_mousePresence;',
+    '  float radius = a_dot.x * (1.0 + strength * u_cursorBoost);',
+    '  float alpha = a_dot.y * (1.0 + strength * 0.9);',
+    '  gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);',
+    '  gl_PointSize = max(1.0, radius * 2.0 * u_pixelRatio);',
+    '  v_alpha = min(alpha, 0.58);',
+    '}'
+  ].join('\n');
+
+  var FRAGMENT_SHADER = [
+    'precision mediump float;',
+    'uniform vec3 u_color;',
+    'varying float v_alpha;',
+    'void main() {',
+    '  vec2 point = gl_PointCoord - vec2(0.5);',
+    '  float dist = length(point) * 2.0;',
+    '  if (dist > 1.0) discard;',
+    '  float edge = 1.0 - smoothstep(0.62, 1.0, dist);',
+    '  gl_FragColor = vec4(u_color, v_alpha * edge);',
+    '}'
+  ].join('\n');
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
-  }
-
-  function smoothstep(edge0, edge1, value) {
-    var t = clamp((value - edge0) / Math.max(0.0001, edge1 - edge0), 0, 1);
-    return t * t * (3 - 2 * t);
   }
 
   function fieldNoise(row, col, salt) {
@@ -32,25 +61,83 @@
     return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
   }
 
+  function compileShader(gl, type, source) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      var error = gl.getShaderInfoLog(shader);
+      gl.deleteShader(shader);
+      throw new Error(error || 'Could not compile dot field shader');
+    }
+
+    return shader;
+  }
+
+  function createProgram(gl) {
+    var vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+    var fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+    var program = gl.createProgram();
+
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      var error = gl.getProgramInfoLog(program);
+      gl.deleteProgram(program);
+      throw new Error(error || 'Could not link dot field shader program');
+    }
+
+    return program;
+  }
+
+  function getDotCanvases(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var canvases = [];
+
+    if (scope.matches && scope.matches('canvas[data-field="dots"]')) {
+      canvases.push(scope);
+    }
+
+    var found = scope.querySelectorAll ? scope.querySelectorAll('canvas[data-field="dots"]') : [];
+    for (var i = 0; i < found.length; i++) {
+      if (canvases.indexOf(found[i]) === -1) canvases.push(found[i]);
+    }
+
+    return canvases;
+  }
+
+  function requestRenderAll() {
+    for (var i = 0; i < instances.length; i++) {
+      instances[i].requestRender();
+    }
+  }
+
   function attachListeners() {
     if (listenersAttached) return;
     listenersAttached = true;
 
     function setPointerPosition(clientX, clientY) {
-      if (touchInfluenceTimer) {
-        clearTimeout(touchInfluenceTimer);
-        touchInfluenceTimer = null;
+      if (pointerClearTimer) {
+        clearTimeout(pointerClearTimer);
+        pointerClearTimer = null;
       }
-      mouseX = clientX;
-      mouseY = clientY;
+      pointerX = clientX;
+      pointerY = clientY;
+      requestRenderAll();
     }
 
     function clearPointer(delay) {
-      if (touchInfluenceTimer) clearTimeout(touchInfluenceTimer);
-      touchInfluenceTimer = setTimeout(function () {
-        mouseX = -1000;
-        mouseY = -1000;
-        touchInfluenceTimer = null;
+      if (pointerClearTimer) clearTimeout(pointerClearTimer);
+      pointerClearTimer = setTimeout(function () {
+        pointerX = -1000;
+        pointerY = -1000;
+        pointerClearTimer = null;
+        requestRenderAll();
       }, delay || 0);
     }
 
@@ -95,22 +182,8 @@
     document.addEventListener('touchcancel', function () {
       clearPointer(80);
     }, { passive: true });
-  }
 
-  function getDotCanvases(root) {
-    var scope = root && root.querySelectorAll ? root : document;
-    var canvases = [];
-
-    if (scope.matches && scope.matches('canvas[data-field="dots"]')) {
-      canvases.push(scope);
-    }
-
-    var found = scope.querySelectorAll ? scope.querySelectorAll('canvas[data-field="dots"]') : [];
-    for (var i = 0; i < found.length; i++) {
-      if (canvases.indexOf(found[i]) === -1) canvases.push(found[i]);
-    }
-
-    return canvases;
+    window.addEventListener('scroll', requestRenderAll, { passive: true });
   }
 
   function stopInstances() {
@@ -122,9 +195,13 @@
 
   function DotField(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d', { alpha: true, desynchronized: true }) ||
-      canvas.getContext('2d', { alpha: true }) ||
-      canvas.getContext('2d');
+    this.gl = null;
+    this.program = null;
+    this.positionBuffer = null;
+    this.dotBuffer = null;
+    this.positionData = null;
+    this.dotData = null;
+    this.pointCount = 0;
 
     this.surface = canvas.getAttribute('data-field-surface') || 'page';
     this.isHomeField = this.surface.indexOf('home') === 0;
@@ -146,9 +223,6 @@
     this.baseAlpha = 0.12;
     this.cursorRadius = 185;
     this.cursorBoost = 2.4;
-    this.particles = [];
-    this.gridCols = 0;
-    this.gridRows = 0;
     this.mousePresence = 0;
     this.smoothedMouseX = -1000;
     this.smoothedMouseY = -1000;
@@ -156,7 +230,10 @@
     this.resizeFrame = null;
     this.raf = null;
     this.running = false;
+
     this.resizeHandler = this.scheduleResize.bind(this);
+    this.contextLostHandler = this.handleContextLost.bind(this);
+    this.contextRestoredHandler = this.handleContextRestored.bind(this);
     this.animate = this.animate.bind(this);
   }
 
@@ -226,13 +303,68 @@
   };
 
   DotField.prototype.init = function () {
-    if (!this.ctx) return;
-    this.canvas.setAttribute('data-renderer', 'dot-canvas');
+    var options = {
+      alpha: true,
+      antialias: false,
+      depth: false,
+      stencil: false,
+      preserveDrawingBuffer: false,
+      premultipliedAlpha: false
+    };
+
+    this.gl = this.canvas.getContext('webgl', options) ||
+      this.canvas.getContext('experimental-webgl', options);
+
+    if (!this.gl) {
+      this.canvas.setAttribute('data-renderer', 'dot-webgl-unavailable');
+      return;
+    }
+
+    try {
+      this.program = createProgram(this.gl);
+    } catch (error) {
+      this.canvas.setAttribute('data-renderer', 'dot-webgl-error');
+      return;
+    }
+
+    this.positionBuffer = this.gl.createBuffer();
+    this.dotBuffer = this.gl.createBuffer();
+    this.cacheLocations();
+    this.configureGL();
+
+    this.canvas.setAttribute('data-renderer', 'dot-webgl');
     this.canvas.style.pointerEvents = 'none';
-    this.resize();
+    this.canvas.addEventListener('webglcontextlost', this.contextLostHandler, false);
+    this.canvas.addEventListener('webglcontextrestored', this.contextRestoredHandler, false);
     window.addEventListener('resize', this.resizeHandler);
+
     this.running = true;
-    this.raf = requestAnimationFrame(this.animate);
+    this.resize();
+    this.draw();
+  };
+
+  DotField.prototype.cacheLocations = function () {
+    var gl = this.gl;
+    this.locations = {
+      position: gl.getAttribLocation(this.program, 'a_position'),
+      dot: gl.getAttribLocation(this.program, 'a_dot'),
+      resolution: gl.getUniformLocation(this.program, 'u_resolution'),
+      mouse: gl.getUniformLocation(this.program, 'u_mouse'),
+      mousePresence: gl.getUniformLocation(this.program, 'u_mousePresence'),
+      cursorRadius: gl.getUniformLocation(this.program, 'u_cursorRadius'),
+      cursorBoost: gl.getUniformLocation(this.program, 'u_cursorBoost'),
+      pixelRatio: gl.getUniformLocation(this.program, 'u_pixelRatio'),
+      color: gl.getUniformLocation(this.program, 'u_color')
+    };
+  };
+
+  DotField.prototype.configureGL = function () {
+    var gl = this.gl;
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.CULL_FACE);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.clearColor(0, 0, 0, 0);
   };
 
   DotField.prototype.stop = function () {
@@ -241,17 +373,56 @@
     this.raf = null;
     if (this.resizeFrame) cancelAnimationFrame(this.resizeFrame);
     this.resizeFrame = null;
+
     window.removeEventListener('resize', this.resizeHandler);
+    this.canvas.removeEventListener('webglcontextlost', this.contextLostHandler, false);
+    this.canvas.removeEventListener('webglcontextrestored', this.contextRestoredHandler, false);
+
+    if (this.gl) {
+      if (this.positionBuffer) this.gl.deleteBuffer(this.positionBuffer);
+      if (this.dotBuffer) this.gl.deleteBuffer(this.dotBuffer);
+      if (this.program) this.gl.deleteProgram(this.program);
+    }
+
+    this.positionBuffer = null;
+    this.dotBuffer = null;
+    this.program = null;
+    this.gl = null;
+  };
+
+  DotField.prototype.handleContextLost = function (event) {
+    event.preventDefault();
+    this.running = false;
+    if (this.raf) cancelAnimationFrame(this.raf);
+    this.raf = null;
+  };
+
+  DotField.prototype.handleContextRestored = function () {
+    this.gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
+    if (!this.gl) return;
+    this.program = createProgram(this.gl);
+    this.positionBuffer = this.gl.createBuffer();
+    this.dotBuffer = this.gl.createBuffer();
+    this.cacheLocations();
+    this.configureGL();
+    this.lastCanvasWidth = 0;
+    this.lastCanvasHeight = 0;
+    this.lastSpacing = 0;
+    this.running = true;
+    this.resize();
+    this.requestRender();
   };
 
   DotField.prototype.resize = function () {
+    if (!this.gl) return;
+
     var nextFieldWidth = window.innerWidth;
     var nextFieldHeight = this.resolveFieldHeight();
     var isMobile = nextFieldWidth < 768;
     var rawDpr = window.devicePixelRatio || 1;
-    var dprCap = isMobile ? 1.25 : 1.05;
+    var dprCap = isMobile ? 1.25 : 1.1;
     var nextDpr = Math.min(rawDpr, dprCap);
-    var pixelBudget = 1400000;
+    var pixelBudget = 1800000;
     var scaledPixels = nextFieldWidth * nextFieldHeight * nextDpr * nextDpr;
 
     this.fieldWidth = nextFieldWidth;
@@ -274,18 +445,20 @@
       this.canvas.height = canvasHeight;
       this.canvas.style.width = this.fieldWidth + 'px';
       this.canvas.style.height = this.fieldHeight + 'px';
+      this.gl.viewport(0, 0, canvasWidth, canvasHeight);
       this.lastCanvasWidth = canvasWidth;
       this.lastCanvasHeight = canvasHeight;
       this.lastFieldWidth = this.fieldWidth;
       this.lastFieldHeight = this.fieldHeight;
     }
 
-    this.ctx.setTransform(this.backingScale, 0, 0, this.backingScale, 0, 0);
-
     if (gridChanged) {
       this.buildGrid();
+      this.uploadBuffers();
       this.lastSpacing = this.spacing;
     }
+
+    this.requestRender();
   };
 
   DotField.prototype.scheduleResize = function () {
@@ -298,13 +471,12 @@
   };
 
   DotField.prototype.buildGrid = function () {
-    var previous = this.particles;
-    var previousCols = this.gridCols;
-    var particles = [];
     var cols = Math.ceil(this.fieldWidth / this.spacing) + 2;
     var rows = Math.ceil(this.fieldHeight / this.spacing) + 2;
-    this.gridCols = cols;
-    this.gridRows = rows;
+    var count = cols * rows;
+    var positions = new Float32Array(count * 2);
+    var dotData = new Float32Array(count * 3);
+    var index = 0;
 
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
@@ -315,100 +487,113 @@
         var layerRand = fieldNoise(row, col, 1);
         var layerSize = layerRand < 0.58 ? 1 : (layerRand < 0.86 ? 0.78 : 0.58);
         var layerAlpha = layerRand < 0.58 ? 1 : (layerRand < 0.86 ? 0.68 : 0.42);
-        var prior = previous && previousCols > 0 ? previous[row * previousCols + col] : null;
         var radius = this.baseRadius * layerSize * (0.72 + fieldNoise(row, col, 5) * 0.76);
+        var alpha = this.baseAlpha * layerAlpha * (0.58 + fieldNoise(row, col, 6) * 0.78);
+        var cursorOffset = (fieldNoise(row, col, 7) - 0.5) * 54;
 
-        particles.push({
-          x: x,
-          y: y,
-          baseRadius: radius,
-          currentRadius: prior ? prior.currentRadius : radius,
-          baseAlpha: this.baseAlpha * layerAlpha * (0.58 + fieldNoise(row, col, 6) * 0.78),
-          cursorOffset: (fieldNoise(row, col, 7) - 0.5) * 54
-        });
+        positions[index * 2] = x;
+        positions[index * 2 + 1] = y;
+        dotData[index * 3] = radius;
+        dotData[index * 3 + 1] = alpha;
+        dotData[index * 3 + 2] = cursorOffset;
+        index++;
       }
     }
 
-    this.particles = particles;
+    this.positionData = positions;
+    this.dotData = dotData;
+    this.pointCount = count;
   };
 
-  DotField.prototype.updateMouse = function (dt, pageScrollY) {
-    var pageMouseX = mouseX;
-    var pageMouseY = mouseY;
-    if (!this.isHomeField && pageMouseY > 0) pageMouseY += pageScrollY;
+  DotField.prototype.uploadBuffers = function () {
+    var gl = this.gl;
+    if (!gl || !this.positionData || !this.dotData) return;
 
-    var mouseActive = pageMouseX > 0 && pageMouseY > 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.positionData, gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dotBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.dotData, gl.STATIC_DRAW);
+  };
+
+  DotField.prototype.resolveMouse = function () {
+    var mouseX = pointerX;
+    var mouseY = pointerY;
+    if (!this.isHomeField && mouseY > 0) {
+      mouseY += window.scrollY || window.pageYOffset || 0;
+    }
+    return { x: mouseX, y: mouseY };
+  };
+
+  DotField.prototype.updateMouse = function (dt) {
+    var mouse = this.resolveMouse();
+    var mouseActive = mouse.x > 0 && mouse.y > 0;
     var targetPresence = mouseActive ? 1 : 0;
     var presenceEase = 1 - Math.exp(-dt * (mouseActive ? 10 : 7));
+    var priorPresence = this.mousePresence;
+    var priorX = this.smoothedMouseX;
+    var priorY = this.smoothedMouseY;
+
     this.mousePresence += (targetPresence - this.mousePresence) * presenceEase;
 
     if (mouseActive) {
       if (this.smoothedMouseX < -500 || this.smoothedMouseY < -500) {
-        this.smoothedMouseX = pageMouseX;
-        this.smoothedMouseY = pageMouseY;
+        this.smoothedMouseX = mouse.x;
+        this.smoothedMouseY = mouse.y;
       } else {
         var followEase = 1 - Math.exp(-dt * 18);
-        this.smoothedMouseX += (pageMouseX - this.smoothedMouseX) * followEase;
-        this.smoothedMouseY += (pageMouseY - this.smoothedMouseY) * followEase;
+        this.smoothedMouseX += (mouse.x - this.smoothedMouseX) * followEase;
+        this.smoothedMouseY += (mouse.y - this.smoothedMouseY) * followEase;
       }
     } else if (this.mousePresence < 0.01) {
       this.smoothedMouseX = -1000;
       this.smoothedMouseY = -1000;
     }
+
+    return Math.abs(priorPresence - this.mousePresence) > 0.001 ||
+      Math.abs(priorX - this.smoothedMouseX) > 0.05 ||
+      Math.abs(priorY - this.smoothedMouseY) > 0.05;
   };
 
-  DotField.prototype.draw = function (dt, pageScrollY) {
-    var ctx = this.ctx;
-    var visibleTop = 0;
-    var visibleBottom = this.fieldHeight;
+  DotField.prototype.draw = function () {
+    var gl = this.gl;
+    if (!gl || !this.program || !this.pointCount) return;
 
-    if (!this.isHomeField && !this.isContactPage) {
-      var padding = this.spacing * 3;
-      visibleTop = Math.max(0, pageScrollY - padding);
-      visibleBottom = Math.min(this.fieldHeight, pageScrollY + window.innerHeight + padding);
-    }
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
-    ctx.clearRect(0, visibleTop, this.fieldWidth, Math.max(1, visibleBottom - visibleTop));
+    gl.useProgram(this.program);
 
-    var mouseActive = this.mousePresence > 0.02 && this.smoothedMouseX > 0 && this.smoothedMouseY > 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+    gl.enableVertexAttribArray(this.locations.position);
+    gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
 
-    for (var i = 0; i < this.particles.length; i++) {
-      var particle = this.particles[i];
-      if (particle.y < visibleTop - this.spacing || particle.y > visibleBottom + this.spacing) continue;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dotBuffer);
+    gl.enableVertexAttribArray(this.locations.dot);
+    gl.vertexAttribPointer(this.locations.dot, 3, gl.FLOAT, false, 0, 0);
 
-      var targetRadius = particle.baseRadius;
-      var targetAlpha = particle.baseAlpha;
+    gl.uniform2f(this.locations.resolution, this.fieldWidth, this.fieldHeight);
+    gl.uniform2f(this.locations.mouse, this.smoothedMouseX, this.smoothedMouseY);
+    gl.uniform1f(this.locations.mousePresence, clamp(this.mousePresence, 0, 1));
+    gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
+    gl.uniform1f(this.locations.cursorBoost, this.cursorBoost);
+    gl.uniform1f(this.locations.pixelRatio, this.backingScale);
+    gl.uniform3f(this.locations.color, 0.102, 0.102, 0.102);
+    gl.drawArrays(gl.POINTS, 0, this.pointCount);
+  };
 
-      if (mouseActive) {
-        var dx = particle.x - this.smoothedMouseX;
-        var dy = particle.y - this.smoothedMouseY;
-        var cursorRadius = Math.max(80, this.cursorRadius + particle.cursorOffset);
-        var dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < cursorRadius) {
-          var strength = (1 - smoothstep(0, cursorRadius, dist)) * this.mousePresence;
-          targetRadius = particle.baseRadius * (1 + strength * this.cursorBoost);
-          targetAlpha = particle.baseAlpha * (1 + strength * 0.9);
-        }
-      }
-
-      var ease = 1 - Math.exp(-dt * (this.reducedMotion ? 10 : 14));
-      particle.currentRadius += (targetRadius - particle.currentRadius) * ease;
-
-      if (targetAlpha <= 0.002 || particle.currentRadius <= 0.04) continue;
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.currentRadius, 0, TAU);
-      ctx.fillStyle = 'rgba(' + DARK_DOT + ', ' + clamp(targetAlpha, 0, 0.58).toFixed(4) + ')';
-      ctx.fill();
-    }
+  DotField.prototype.requestRender = function () {
+    if (!this.running || this.raf || !this.gl) return;
+    this.raf = requestAnimationFrame(this.animate);
   };
 
   DotField.prototype.animate = function (timestamp) {
-    if (!this.running) return;
+    if (!this.running || !this.gl) return;
+
+    this.raf = null;
 
     if (document.hidden) {
       this.lastFrameTime = 0;
-      this.raf = requestAnimationFrame(this.animate);
       return;
     }
 
@@ -417,24 +602,20 @@
       this.scheduleResize();
     }
 
-    var minFrameMs = this.reducedMotion ? 1000 / 24 : 0;
-    if (!this.lastFrameTime) this.lastFrameTime = minFrameMs > 0 ? timestamp - minFrameMs : timestamp;
-    var elapsedMs = timestamp - this.lastFrameTime;
-
-    if (minFrameMs > 0 && elapsedMs < minFrameMs) {
-      this.raf = requestAnimationFrame(this.animate);
-      return;
-    }
-
-    var dt = elapsedMs / 1000;
-    this.lastFrameTime = minFrameMs > 0 ? timestamp - (elapsedMs % minFrameMs) : timestamp;
+    if (!this.lastFrameTime) this.lastFrameTime = timestamp;
+    var dt = (timestamp - this.lastFrameTime) / 1000;
+    this.lastFrameTime = timestamp;
     if (dt > 0.1) dt = 0.05;
+    if (dt <= 0) dt = 1 / 60;
 
-    var pageScrollY = window.scrollY || window.pageYOffset || 0;
-    this.updateMouse(dt, pageScrollY);
-    this.draw(dt, pageScrollY);
+    var changed = this.updateMouse(dt);
+    this.draw();
 
-    this.raf = requestAnimationFrame(this.animate);
+    if (changed) {
+      this.raf = requestAnimationFrame(this.animate);
+    } else {
+      this.lastFrameTime = 0;
+    }
   };
 
   function initDotField(root) {
