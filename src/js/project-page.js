@@ -457,6 +457,7 @@ function initProjectsAtlas() {
   var primaryNode = null;
   var helixNavigationInProgress = false;
   var nodeHitCache = [];
+  var moodboardThreadHitCache = [];
   var pointerClientX = 0;
   var pointerClientY = 0;
   var pointerHoverNode = null;
@@ -1625,6 +1626,8 @@ function initProjectsAtlas() {
     var tempProjectedRibbon = new THREE.Vector3();
     var ribbonTexture = null;
     var ribbonMeshRef = null;
+    var threadHitSourcePoints = [];
+    var tempProjectedThread = { x: 0, y: 0, z: 0 };
     var useWebglThumbLayer = false;
     var webglThumbsReady = 0;
     var webglThumbReadyTotal = 0;
@@ -2154,6 +2157,7 @@ function initProjectsAtlas() {
           Math.cos(theta) * helixRadius
         ));
       }
+      threadHitSourcePoints = threadPoints;
 
       addLine(
         threadPoints,
@@ -2288,6 +2292,25 @@ function initProjectsAtlas() {
       return target;
     }
 
+    function syncMoodboardThreadHitCache(width, height, projectionMatrix) {
+      if (!threadHitSourcePoints.length) {
+        moodboardThreadHitCache = [];
+        return;
+      }
+
+      var nextHits = [];
+      for (var i = 0; i < threadHitSourcePoints.length; i++) {
+        projectNodePoint(threadHitSourcePoints[i], projectionMatrix, width, height, tempProjectedThread);
+        if (!isFinite(tempProjectedThread.x) || !isFinite(tempProjectedThread.y)) continue;
+        nextHits.push({
+          x: snapToDevicePixel(tempProjectedThread.x),
+          y: snapToDevicePixel(tempProjectedThread.y),
+          depth: clamp(1 - (tempProjectedThread.z + 1) * 0.5, 0, 1)
+        });
+      }
+      moodboardThreadHitCache = nextHits;
+    }
+
     function updateThumbTextureCrop(data, planeWidth, planeHeight, proximity) {
       if (!data || !data.thumbMesh || !data.thumbMesh.userData) return;
       var texture = data.thumbMesh.userData.thumbTexture;
@@ -2394,6 +2417,8 @@ function initProjectsAtlas() {
         .multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
         .multiply(group.matrixWorld);
       var projectionMatrix = tempNodeProjectionMatrix.elements;
+
+      syncMoodboardThreadHitCache(width, height, projectionMatrix);
 
       nodes.forEach(function (node, index) {
         var data = nodeData[index];
@@ -2546,6 +2571,8 @@ function initProjectsAtlas() {
       clearGroup();
       clearThumbScene();
       nodeScreenState = [];
+      threadHitSourcePoints = [];
+      moodboardThreadHitCache = [];
       if (ribbonTexture && ribbonTexture.dispose) ribbonTexture.dispose();
       ribbonTexture = null;
       ribbonMeshRef = null;
@@ -2969,123 +2996,159 @@ function initProjectsAtlas() {
     return bestValue > 0.045 ? bestNode : null;
   }
 
-  function pointSegmentDistanceSq(px, py, ax, ay, bx, by) {
+  function getPointSegmentProjection(px, py, ax, ay, bx, by) {
     var dx = bx - ax;
     var dy = by - ay;
     if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) {
-      dx = px - ax;
-      dy = py - ay;
-      return dx * dx + dy * dy;
+      return {
+        x: ax,
+        y: ay,
+        angle: 0
+      };
     }
 
     var t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
     t = clamp(t, 0, 1);
     var cx = ax + dx * t;
     var cy = ay + dy * t;
-    dx = px - cx;
-    dy = py - cy;
-    return dx * dx + dy * dy;
+    return {
+      x: cx,
+      y: cy,
+      angle: Math.atan2(dy, dx)
+    };
   }
 
-  function isMoodboardStripHit(clientX, clientY) {
+  function getMoodboardStripHit(clientX, clientY) {
+    if (!isFinite(clientX) || !isFinite(clientY)) return null;
     var rect = getStageRect();
     var localX = clientX - rect.left;
     var localY = clientY - rect.top;
-    if (localX < 0 || localY < 0 || localX > rect.width || localY > rect.height) return false;
+    if (localX < 0 || localY < 0 || localX > rect.width || localY > rect.height) return null;
 
     var isTouchTuned = shouldUseTouchTunedHelix();
-    var validHits = nodeHitCache
-      .filter(function (hit) {
+    var sources = [];
+    var validThreadHits = moodboardThreadHitCache.filter(function (hit) {
+      return hit && isFinite(hit.x) && isFinite(hit.y);
+    });
+    if (validThreadHits.length >= 2) {
+      sources.push({
+        hits: validThreadHits,
+        preserveOrder: true
+      });
+    } else {
+      var validHits = nodeHitCache.filter(function (hit) {
         return hit && isFinite(hit.x) && isFinite(hit.y);
-      })
-      .sort(function (a, b) {
-        return a.y - b.y;
       });
-
-    if (validHits.length >= 2) {
-      var minY = validHits[0].y;
-      var maxY = validHits[validHits.length - 1].y;
-      var yPad = isTouchTuned ? 54 : 70;
-      if (localY >= minY - yPad && localY <= maxY + yPad) {
-        var nearestSq = Infinity;
-        for (var i = 0; i < validHits.length - 1; i++) {
-          var a = validHits[i];
-          var b = validHits[i + 1];
-          nearestSq = Math.min(nearestSq, pointSegmentDistanceSq(localX, localY, a.x, a.y, b.x, b.y));
-        }
-
-        var tolerance = Math.max(
-          isTouchTuned ? 64 : 86,
-          Math.min(isTouchTuned ? 136 : 180, rect.width * (isTouchTuned ? 0.19 : 0.115))
-        );
-        if (nearestSq <= tolerance * tolerance) return true;
+      if (validHits.length >= 2) {
+        sources.push({
+          hits: validHits,
+          preserveOrder: false
+        });
       }
+
+      sources.push({
+        hits: nodes
+          .map(function (node) {
+            var style = window.getComputedStyle ? window.getComputedStyle(node) : null;
+            var x = style ? parseFloat(style.getPropertyValue('--x')) : NaN;
+            var y = style ? parseFloat(style.getPropertyValue('--y')) : NaN;
+            return isFinite(x) && isFinite(y) ? { x: x, y: y } : null;
+          })
+          .filter(function (hit) {
+            return !!hit;
+          })
+          .sort(function (a, b) {
+            return a.y - b.y;
+          }),
+        preserveOrder: true
+      });
     }
 
-    var styleHits = nodes
-      .map(function (node) {
-        var style = window.getComputedStyle ? window.getComputedStyle(node) : null;
-        var x = style ? parseFloat(style.getPropertyValue('--x')) : NaN;
-        var y = style ? parseFloat(style.getPropertyValue('--y')) : NaN;
-        return isFinite(x) && isFinite(y) ? { x: x, y: y } : null;
-      })
-      .filter(function (hit) {
-        return !!hit;
-      })
-      .sort(function (a, b) {
-        return a.y - b.y;
-      });
-
-    if (styleHits.length >= 2) {
-      var styleMinY = styleHits[0].y;
-      var styleMaxY = styleHits[styleHits.length - 1].y;
-      var styleYPad = isTouchTuned ? 58 : 76;
-      if (localY >= styleMinY - styleYPad && localY <= styleMaxY + styleYPad) {
-        var styleNearestSq = Infinity;
-        for (var j = 0; j < styleHits.length - 1; j++) {
-          var styleA = styleHits[j];
-          var styleB = styleHits[j + 1];
-          styleNearestSq = Math.min(styleNearestSq, pointSegmentDistanceSq(localX, localY, styleA.x, styleA.y, styleB.x, styleB.y));
-        }
-
-        var styleTolerance = Math.max(
-          isTouchTuned ? 72 : 96,
-          Math.min(isTouchTuned ? 148 : 204, rect.width * (isTouchTuned ? 0.21 : 0.135))
-        );
-        if (styleNearestSq <= styleTolerance * styleTolerance) return true;
-      }
-    }
-
-    var top = rect.height * 0.12;
-    var bottom = rect.height * 0.88;
-    if (localY < top || localY > bottom) return false;
-
-    var progress = (localY - top) / Math.max(1, bottom - top);
-    var centerX = rect.width * (isTouchTuned ? 0.5 : fallbackCenterBias);
-    centerX += Math.sin(progress * Math.PI * 2.18 + baseViewAngle + fallbackRotation) * rect.width * (isTouchTuned ? 0.18 : 0.22);
-    var fallbackTolerance = Math.max(
-      isTouchTuned ? 68 : 92,
-      Math.min(isTouchTuned ? 142 : 188, rect.width * (isTouchTuned ? 0.2 : 0.12))
+    var best = null;
+    var yPad = isTouchTuned ? 42 : 46;
+    var tolerance = Math.max(
+      isTouchTuned ? 42 : 34,
+      Math.min(isTouchTuned ? 72 : 58, rect.width * (isTouchTuned ? 0.09 : 0.042))
     );
 
-    return Math.abs(localX - centerX) <= fallbackTolerance;
+    sources.forEach(function (source) {
+      var hits = source ? source.hits : null;
+      if (!hits || hits.length < 2) return;
+      var sorted = source.preserveOrder ? hits : hits.slice().sort(function (a, b) {
+        return a.y - b.y;
+      });
+      var minY = Infinity;
+      var maxY = -Infinity;
+      for (var rangeIndex = 0; rangeIndex < sorted.length; rangeIndex++) {
+        minY = Math.min(minY, sorted[rangeIndex].y);
+        maxY = Math.max(maxY, sorted[rangeIndex].y);
+      }
+      if (localY < minY - yPad || localY > maxY + yPad) return;
+
+      for (var i = 0; i < sorted.length - 1; i++) {
+        var a = sorted[i];
+        var b = sorted[i + 1];
+        var projection = getPointSegmentProjection(localX, localY, a.x, a.y, b.x, b.y);
+        var dx = localX - projection.x;
+        var dy = localY - projection.y;
+        var distSq = dx * dx + dy * dy;
+        if (!best || distSq < best.distSq) {
+          best = {
+            distSq: distSq,
+            x: projection.x,
+            y: projection.y,
+            angle: projection.angle
+          };
+        }
+      }
+    });
+
+    if (!best || best.distSq > tolerance * tolerance) return null;
+
+    var snapSize = isTouchTuned ? 58 : 46;
+    return {
+      localX: best.x,
+      localY: best.y,
+      angle: best.angle,
+      snapSize: snapSize,
+      snapRect: {
+        left: rect.left + best.x - snapSize * 0.5,
+        top: rect.top + best.y - snapSize * 0.5,
+        width: snapSize,
+        height: snapSize
+      }
+    };
   }
 
-  function setMoodboardHover(active) {
+  function isMoodboardStripHit(clientX, clientY) {
+    return !!getMoodboardStripHit(clientX, clientY);
+  }
+
+  function setMoodboardHover(active, hit) {
     var nextActive = !!active && !!moodboardStripLink;
-    if (moodboardHoverActive === nextActive) return;
+    if (nextActive && hit) {
+      moodboardStripLink.__cursorSnapRect = hit.snapRect;
+      stage.style.setProperty('--moodboard-snap-x', hit.localX.toFixed(2) + 'px');
+      stage.style.setProperty('--moodboard-snap-y', hit.localY.toFixed(2) + 'px');
+      stage.style.setProperty('--moodboard-snap-size', hit.snapSize.toFixed(2) + 'px');
+    }
+    if (moodboardHoverActive === nextActive && !nextActive) return;
     moodboardHoverActive = nextActive;
     helix.classList.toggle('projects-helix--moodboard-hover', nextActive);
 
     if (nextActive) {
       document.dispatchEvent(new CustomEvent('byl:helix-strip-cursor-snap', {
         detail: {
-          target: moodboardStripLink
+          target: moodboardStripLink,
+          rect: moodboardStripLink.__cursorSnapRect
         }
       }));
       return;
     }
 
+    stage.style.removeProperty('--moodboard-snap-x');
+    stage.style.removeProperty('--moodboard-snap-y');
+    stage.style.removeProperty('--moodboard-snap-size');
     document.dispatchEvent(new CustomEvent('byl:helix-cursor-clear', {
       detail: {
         target: moodboardStripLink,
@@ -3096,11 +3159,12 @@ function initProjectsAtlas() {
 
   function updateMoodboardHover(clientX, clientY, target) {
     if (disposed || helixNavigationInProgress) return;
-    if (target && target.closest && target.closest('.projects-helix__node')) {
+    if (findNodeBySnapRect(clientX, clientY, 12)) {
       setMoodboardHover(false);
       return;
     }
-    setMoodboardHover(isMoodboardStripHit(clientX, clientY));
+    var hit = getMoodboardStripHit(clientX, clientY);
+    setMoodboardHover(!!hit, hit);
   }
 
   function updateTouchHover(clientX, clientY, moved) {
@@ -3236,6 +3300,11 @@ function initProjectsAtlas() {
     };
     var onClick = function (evt) {
       if (disposed) return;
+      if (isMoodboardStripHit(evt.clientX, evt.clientY) && findNodeBySnapRect(evt.clientX, evt.clientY, 4) !== node) {
+        evt.preventDefault();
+        beginMoodboardRewindNavigation(evt);
+        return;
+      }
       if (isTouchNavigationClick() || helix.classList.contains('projects-helix--webgl-thumbs')) {
         if (suppressNextCoarseClickNode === node) {
           evt.preventDefault();
@@ -3331,6 +3400,9 @@ function initProjectsAtlas() {
       lastPointerEventTarget = target || null;
       lastPointerEventHoverNode = target && target.closest ? target.closest('.projects-helix__node') : null;
     }
+    if (moodboardHoverActive && !findNodeBySnapRect(pointerClientX, pointerClientY, 12)) {
+      lastPointerEventHoverNode = null;
+    }
     pointerHoverNode = lastPointerEventHoverNode;
     updateProximity(pointerClientX, pointerClientY, pointerHoverNode);
   }
@@ -3425,19 +3497,29 @@ function initProjectsAtlas() {
   function handleStageClick(evt) {
     if (disposed || helixNavigationInProgress || !evt) return;
     if (evt.defaultPrevented) return;
-    if (evt.target && evt.target.closest && evt.target.closest('.projects-helix__node')) return;
+    var targetNode = evt.target && evt.target.closest ? evt.target.closest('.projects-helix__node') : null;
+    var snapRectNode = findNodeBySnapRect(evt.clientX, evt.clientY, 16);
     if (evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1) return;
     if (suppressNextMoodboardClick) {
       suppressNextMoodboardClick = false;
       return;
     }
+    if (moodboardHoverActive && isMoodboardStripHit(evt.clientX, evt.clientY)) {
+      evt.preventDefault();
+      beginMoodboardRewindNavigation(evt);
+      return;
+    }
+    if (targetNode && snapRectNode === targetNode) return;
 
-    if (isMoodboardStripHit(evt.clientX, evt.clientY)) {
+    var nextNode = snapRectNode;
+    if (!nextNode && isMoodboardStripHit(evt.clientX, evt.clientY)) {
       beginMoodboardRewindNavigation(evt);
       return;
     }
 
-    var nextNode = findTouchNode(evt.clientX, evt.clientY);
+    if (!nextNode) {
+      nextNode = findTouchNode(evt.clientX, evt.clientY);
+    }
     if (!nextNode) {
       return;
     }
@@ -3478,6 +3560,9 @@ function initProjectsAtlas() {
         }
       }));
     }
+    stage.style.removeProperty('--moodboard-snap-x');
+    stage.style.removeProperty('--moodboard-snap-y');
+    stage.style.removeProperty('--moodboard-snap-size');
     moodboardHoverActive = false;
     helix.classList.remove('projects-helix--is-ready');
     helix.classList.remove('projects-helix--is-entering');

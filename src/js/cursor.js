@@ -475,14 +475,18 @@
     return target.__cursorSnapRect;
   }
 
-  function snapToMoodboardStrip(target) {
+  function snapToMoodboardStrip(target, rectOverride) {
     if (!target) return;
-    if (!setMoodboardStripSnapRect(target)) return;
+    if (rectOverride && rectOverride.width > 0.5 && rectOverride.height > 0.5) {
+      target.__cursorSnapRect = rectOverride;
+    } else if (!setMoodboardStripSnapRect(target)) {
+      return;
+    }
 
     beginSnap(target, {
-      padX: 14,
-      padY: 14,
-      radiusCap: 12,
+      padX: 12,
+      padY: 12,
+      radiusCap: 999,
       radiusFactor: 0.5,
       followTarget: true
     });
@@ -495,14 +499,20 @@
 
   document.addEventListener('byl:helix-strip-cursor-snap', function (e) {
     var target = e && e.detail ? e.detail.target : null;
-    snapToMoodboardStrip(target);
+    var rect = e && e.detail ? e.detail.rect : null;
+    snapToMoodboardStrip(target, rect);
   });
 
   document.addEventListener('byl:helix-cursor-clear', function (e) {
     var helixNode = snapTarget && snapTarget.closest ? snapTarget.closest('.projects-helix__node') : null;
     var moodboardStrip = snapTarget && snapTarget.closest ? snapTarget.closest('.projects-helix__moodboard-strip') : null;
     var target = e && e.detail ? e.detail.target : null;
-    if (helixNode || moodboardStrip || target === snapTarget) setDefaultState();
+    var source = e && e.detail ? e.detail.source : '';
+    if (moodboardStrip) {
+      if (target === snapTarget || source === 'moodboard-strip') setDefaultState();
+      return;
+    }
+    if (helixNode || target === snapTarget) setDefaultState();
   });
 
   document.addEventListener('mouseover', function (e) {

@@ -2495,32 +2495,28 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__moodboard-strip {
   position: absolute;
-  left: 40%;
-  top: 9%;
-  width: 20%;
-  height: 82%;
+  inset: 0;
   z-index: 80;
   display: block;
   opacity: 1;
-  pointer-events: auto;
+  pointer-events: none;
   -webkit-tap-highlight-color: transparent;
-  clip-path: ellipse(50% 49% at 50% 50%);
 }
 
 .projects-helix__moodboard-strip::before {
   content: '';
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(86px, 42%);
-  height: calc(100% - 18px);
+  left: var(--moodboard-snap-x, 50%);
+  top: var(--moodboard-snap-y, 50%);
+  width: calc(var(--moodboard-snap-size, 46px) * 1.22);
+  height: calc(var(--moodboard-snap-size, 46px) * 1.22);
   transform: translate(-50%, -50%);
-  border: 1px solid rgba(17, 17, 15, 0.12);
-  border-radius: 999px;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  border: 1px solid rgba(17, 17, 15, 0.16);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.18) inset,
-    0 18px 45px rgba(44, 36, 30, 0.08);
+    0 14px 34px rgba(44, 36, 30, 0.1);
   opacity: 0;
   transition: opacity 0.18s ease;
   pointer-events: none;
