@@ -2493,6 +2493,20 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 1px;
 }
 
+.projects-helix__moodboard-strip {
+  position: absolute;
+  left: 40%;
+  top: 9%;
+  width: 20%;
+  height: 82%;
+  z-index: 80;
+  display: block;
+  opacity: 0;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  clip-path: ellipse(50% 49% at 50% 50%);
+}
+
 .projects-helix__mode-badge {
   position: absolute;
   left: 0.75rem;
@@ -3046,6 +3060,151 @@ body.custom-cursor-enabled .projects-helix__node {
 
   .projects-helix__axis-note i {
     width: 20px;
+  }
+}
+
+.projects-helix--moodboard-hover .projects-helix__webgl canvas {
+  filter: contrast(1.06) brightness(1.025);
+}
+
+body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-helix__stage {
+  cursor: pointer !important;
+}
+
+.projects-helix--moodboard-rewinding .projects-helix__stage {
+  pointer-events: none;
+}
+
+.moodboard-rewind-layer {
+  overflow: hidden;
+  contain: paint;
+}
+
+.moodboard-rewind-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(17, 17, 15, 0.034) 1px, transparent 1px) 0 0 / 100% 18px,
+    radial-gradient(70% 48% at 50% 0%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0));
+  opacity: 0.48;
+}
+
+.moodboard-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(92% 52% at 50% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 68%),
+    linear-gradient(180deg, #f7f5ef 0%, #ece7dc 100%);
+  padding: clamp(5.2rem, 8vw, 7.8rem) clamp(0.7rem, 3.4vw, 3.2rem) clamp(2rem, 5vw, 4rem);
+}
+
+.moodboard-page__header {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(14rem, 0.36fr);
+  gap: clamp(1.2rem, 4vw, 4rem);
+  align-items: end;
+  width: min(1180px, 100%);
+  margin: 0 auto clamp(1.15rem, 3vw, 2.4rem);
+}
+
+.moodboard-page__title {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: clamp(2.4rem, 7.4vw, 7rem);
+  line-height: 0.9;
+  font-weight: 300;
+  letter-spacing: 0;
+  color: rgba(17, 17, 15, 0.92);
+}
+
+.moodboard-page__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  font-family: var(--font-primary);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: rgba(17, 17, 15, 0.58);
+  text-align: right;
+}
+
+.moodboard-page__count {
+  color: rgba(17, 17, 15, 0.82);
+}
+
+.moodboard-page__grid {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  columns: 4 205px;
+  column-gap: clamp(0.5rem, 1.25vw, 0.9rem);
+}
+
+.moodboard-page__item {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 clamp(0.5rem, 1.25vw, 0.9rem);
+  break-inside: avoid;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(17, 17, 15, 0.08);
+  box-shadow: 0 10px 24px rgba(48, 42, 35, 0.08);
+}
+
+.moodboard-page__item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.moodboard-page__item figcaption {
+  position: absolute;
+  left: 0.42rem;
+  bottom: 0.36rem;
+  font-family: var(--font-primary);
+  font-size: 0.52rem;
+  line-height: 1;
+  color: rgba(17, 17, 15, 0.74);
+  background: rgba(244, 242, 236, 0.72);
+  padding: 0.2rem 0.28rem;
+}
+
+.project-nav-bar--moodboard,
+.project-nav-bar--moodboard.project-nav-bar--solid {
+  background: rgba(247, 245, 239, 0.94);
+}
+
+@media (max-width: 900px) {
+  .moodboard-page__header {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 0.75rem;
+  }
+
+  .moodboard-page__meta {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .moodboard-page {
+    padding: 4.35rem 0.48rem 1.2rem;
+  }
+
+  .moodboard-page__header {
+    margin-bottom: 0.85rem;
+  }
+
+  .moodboard-page__grid {
+    columns: 2 132px;
+    column-gap: 0.48rem;
+  }
+
+  .moodboard-page__item {
+    margin-bottom: 0.48rem;
   }
 }
 

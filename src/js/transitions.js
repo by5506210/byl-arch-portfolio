@@ -6,9 +6,11 @@
   if (typeof barba === 'undefined' || typeof gsap === 'undefined') return;
   var DEFAULT_PAGE_BG = '#f4f2ec';
   var PROJECTS_PAGE_BG = '#ffffff';
+  var MOODBOARD_PAGE_BG = '#f4f2ec';
 
   function getPageBackground(namespace) {
     if (namespace === 'projects') return PROJECTS_PAGE_BG;
+    if (namespace === 'moodboard') return MOODBOARD_PAGE_BG;
     if (namespace === 'blackjack') return '#080806';
     return DEFAULT_PAGE_BG;
   }
@@ -32,7 +34,9 @@
 
   var manualNavigationInProgress = false;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
+  var MOODBOARD_REWIND_KEY = 'bylMoodboardRewind';
   var helixZoomState = null;
+  var moodboardRewindState = null;
 
   function extractPathFromHref(href) {
     try {
@@ -89,6 +93,41 @@
     } catch (err) {}
   }
 
+  function readStoredMoodboardRewind() {
+    var raw = null;
+    try {
+      raw = sessionStorage.getItem(MOODBOARD_REWIND_KEY);
+    } catch (err) {
+      return null;
+    }
+    if (!raw) return null;
+
+    var parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      try {
+        sessionStorage.removeItem(MOODBOARD_REWIND_KEY);
+      } catch (removeErr) {}
+      return null;
+    }
+
+    if (!parsed || !isFreshTimestamp(parsed.timestamp)) {
+      try {
+        sessionStorage.removeItem(MOODBOARD_REWIND_KEY);
+      } catch (clearErr) {}
+      return null;
+    }
+
+    return parsed;
+  }
+
+  function clearStoredMoodboardRewind() {
+    try {
+      sessionStorage.removeItem(MOODBOARD_REWIND_KEY);
+    } catch (err) {}
+  }
+
   function ensureHelixClone(state) {
     if (!state || !state.src) return null;
 
@@ -139,6 +178,31 @@
     clearStoredHelixZoom();
   }
 
+  function ensureMoodboardRewindLayer(state) {
+    if (!state) return null;
+    if (state.layerEl && state.layerEl.parentNode) return state;
+
+    var layer = document.createElement('div');
+    layer.className = 'moodboard-rewind-layer';
+    layer.style.position = 'fixed';
+    layer.style.inset = '0';
+    layer.style.zIndex = '11980';
+    layer.style.pointerEvents = 'none';
+    layer.style.background = 'linear-gradient(180deg, #fbfaf7 0%, #f1eee7 100%)';
+    layer.style.transform = 'translate3d(0, 0, 0)';
+    layer.style.willChange = 'transform, opacity';
+    document.body.appendChild(layer);
+    state.layerEl = layer;
+    return state;
+  }
+
+  function clearMoodboardRewindState(stateOverride) {
+    var state = stateOverride || window.bylMoodboardRewind || moodboardRewindState;
+    if (state && state.layerEl && state.layerEl.parentNode) state.layerEl.remove();
+    window.bylMoodboardRewind = null;
+    clearStoredMoodboardRewind();
+  }
+
   function resolveHelixZoomState(nextHref) {
     var globalState = window.bylHelixThumbZoom;
     if (globalState && globalState.active && globalState.src && isFreshTimestamp(globalState.timestamp)) {
@@ -146,6 +210,20 @@
     }
 
     var storedState = readStoredHelixZoom();
+    if (storedState && samePath(storedState.path || storedState.href, nextHref)) {
+      return storedState;
+    }
+
+    return null;
+  }
+
+  function resolveMoodboardRewindState(nextHref) {
+    var globalState = window.bylMoodboardRewind;
+    if (globalState && globalState.active && isFreshTimestamp(globalState.timestamp)) {
+      if (samePath(globalState.path || globalState.href, nextHref)) return globalState;
+    }
+
+    var storedState = readStoredMoodboardRewind();
     if (storedState && samePath(storedState.path || storedState.href, nextHref)) {
       return storedState;
     }
@@ -215,6 +293,35 @@
     });
   }
 
+  function playMoodboardArrival(container, state) {
+    var visualState = ensureMoodboardRewindLayer(state);
+    if (!visualState || !visualState.layerEl) return null;
+
+    gsap.set(overlay, { opacity: 0 });
+    gsap.set(visualState.layerEl, { y: 0, opacity: 1 });
+    gsap.set(container, { opacity: 1, y: 28 });
+
+    return new Promise(function (resolve) {
+      gsap.timeline({
+        onComplete: function () {
+          clearMoodboardRewindState(visualState);
+          moodboardRewindState = null;
+          resolve();
+        }
+      })
+        .to(container, {
+          y: 0,
+          duration: 0.54,
+          ease: 'power3.out'
+        }, 0)
+        .to(visualState.layerEl, {
+          y: window.innerHeight,
+          duration: 0.58,
+          ease: 'power3.inOut'
+        }, 0.02);
+    });
+  }
+
   function playInitialHelixArrivalIfNeeded() {
     var container = document.querySelector('[data-barba="container"]');
     if (!container) return;
@@ -270,13 +377,24 @@
 
       leave: function (data) {
         var nextNamespace = data.next && data.next.namespace ? data.next.namespace : '';
-        helixZoomState = resolveHelixZoomState((data.next && data.next.url && (data.next.url.href || data.next.url.path)) || '');
+        var nextHref = (data.next && data.next.url && (data.next.url.href || data.next.url.path)) || '';
+        helixZoomState = resolveHelixZoomState(nextHref);
+        moodboardRewindState = resolveMoodboardRewindState(nextHref);
         if (helixZoomState) {
           overlay.style.opacity = '0';
           return gsap.timeline()
             .to(data.current.container, {
               opacity: 0,
               duration: 0.2,
+              ease: 'power1.inOut'
+            });
+        }
+        if (moodboardRewindState) {
+          overlay.style.opacity = '0';
+          return gsap.timeline()
+            .to(data.current.container, {
+              opacity: 0,
+              duration: 0.12,
               ease: 'power1.inOut'
             });
         }
@@ -317,6 +435,12 @@
           if (helixTl) return helixTl;
           clearHelixZoomState();
           helixZoomState = null;
+        }
+        if (moodboardRewindState) {
+          var moodboardTl = playMoodboardArrival(data.next.container, moodboardRewindState);
+          if (moodboardTl) return moodboardTl;
+          clearMoodboardRewindState();
+          moodboardRewindState = null;
         }
 
         gsap.set(data.next.container, { opacity: isProjectsPage ? 1 : 0, y: 12 });
@@ -364,6 +488,7 @@
         if (cursorEl) cursorEl.classList.add('cursor--dark');
 
         helixZoomState = null;
+        moodboardRewindState = null;
         manualNavigationInProgress = false;
         rememberCurrentPage();
       }

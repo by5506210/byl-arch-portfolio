@@ -112,12 +112,14 @@ function initNavBar(rootContainer) {
 
   var hero = scope.querySelector('.project-hero');
   var isProjectsHelix = !!scope.querySelector('.projects-helix');
-  var isProjectDetail = !!scope.querySelector('.project-page, .coming-soon-page');
+  var isMoodboard = !!scope.querySelector('.moodboard-page');
+  var isProjectDetail = !!scope.querySelector('.project-page, .coming-soon-page') || isMoodboard;
 
   // Build the unified bar
   var bar = document.createElement('div');
   bar.classList.add('project-nav-bar');
   if (isProjectsHelix) bar.classList.add('project-nav-bar--projects-helix');
+  if (isMoodboard) bar.classList.add('project-nav-bar--moodboard');
   if (isProjectDetail) bar.classList.add('project-nav-bar--has-back');
 
   if (isProjectDetail) {
@@ -435,6 +437,7 @@ function initProjectsAtlas() {
   var stage = helix.querySelector('.projects-helix__stage');
   var nodes = Array.prototype.slice.call(helix.querySelectorAll('.projects-helix__node'));
   var webglMount = helix.querySelector('.projects-helix__webgl');
+  var moodboardStripLink = helix.querySelector('.projects-helix__moodboard-strip');
   var guides = helix.querySelector('.projects-helix__guides');
   var axisPath = helix.querySelector('.projects-helix__axis');
   var threadPath = helix.querySelector('.projects-helix__thread');
@@ -464,6 +467,7 @@ function initProjectsAtlas() {
   var touchStartY = 0;
   var touchInteractionMoved = false;
   var suppressNextCoarseClickNode = null;
+  var suppressNextMoodboardClick = false;
   var lastTouchInteractionTime = 0;
   var touchSelectedNode = null;
   var proximityTarget = new WeakMap();
@@ -473,6 +477,7 @@ function initProjectsAtlas() {
   var exclusiveProximityNode = null;
   var cursorSnapNode = null;
   var HELIX_ZOOM_KEY = 'bylHelixThumbZoom';
+  var MOODBOARD_REWIND_KEY = 'bylMoodboardRewind';
   var performanceProfile = getHelixPerformanceProfile();
   var isIPhoneDevice = detectIPhoneDevice();
   var WEBGL_MIN_FRAME_MS = performanceProfile.webglMinFrameMs;
@@ -494,6 +499,7 @@ function initProjectsAtlas() {
   var entryReadyTimer = null;
   var entryReadyReleaseHandler = null;
   var entryReadyScheduled = false;
+  var moodboardStripClickHandler = null;
   var proximityNeedsStep = true;
   var PROXIMITY_TARGET_STEPS = 80;
   var HELIX_SYNC_POSITION_EPSILON = 0.28;
@@ -700,6 +706,14 @@ function initProjectsAtlas() {
     }
   }
 
+  function storeMoodboardRewindState(payload) {
+    try {
+      sessionStorage.setItem(MOODBOARD_REWIND_KEY, JSON.stringify(payload));
+    } catch (err) {
+      // Session storage can fail in strict privacy modes; the transition still runs in-page.
+    }
+  }
+
   function beginHelixThumbNavigation(node, evt) {
     if (!node || helixNavigationInProgress) {
       if (evt) evt.preventDefault();
@@ -805,6 +819,131 @@ function initProjectsAtlas() {
         duration: 0.38,
         ease: 'power2.out'
       }, 0.02);
+
+    return true;
+  }
+
+  function beginMoodboardRewindNavigation(evt) {
+    if (helixNavigationInProgress) {
+      if (evt) evt.preventDefault();
+      return true;
+    }
+    if (evt && (evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1)) {
+      return false;
+    }
+
+    var href = 'moodboard.html';
+    var absoluteHref = resolveAbsoluteHref(href);
+    var payload = {
+      active: true,
+      source: 'projects-helix-ribbon',
+      href: absoluteHref,
+      path: resolvePathname(absoluteHref),
+      timestamp: Date.now()
+    };
+
+    if (evt) evt.preventDefault();
+    helixNavigationInProgress = true;
+    helix.classList.add('projects-helix--moodboard-rewinding');
+    clearVisualState();
+
+    var layer = document.createElement('div');
+    layer.className = 'moodboard-rewind-layer';
+    layer.style.position = 'fixed';
+    layer.style.inset = '0';
+    layer.style.zIndex = '11980';
+    layer.style.pointerEvents = 'none';
+    layer.style.background = 'linear-gradient(180deg, #fbfaf7 0%, #f1eee7 100%)';
+    layer.style.transform = 'translate3d(0, 100%, 0)';
+    layer.style.willChange = 'transform, opacity';
+
+    var scan = document.createElement('div');
+    scan.className = 'moodboard-rewind-layer__scan';
+    scan.style.position = 'absolute';
+    scan.style.left = '0';
+    scan.style.right = '0';
+    scan.style.top = '0';
+    scan.style.height = '1px';
+    scan.style.background = 'rgba(17, 17, 15, 0.18)';
+    scan.style.boxShadow = '0 0 24px rgba(17, 17, 15, 0.08)';
+    layer.appendChild(scan);
+    document.body.appendChild(layer);
+
+    payload.layerEl = layer;
+    window.bylMoodboardRewind = payload;
+    storeMoodboardRewindState({
+      href: payload.href,
+      path: payload.path,
+      timestamp: payload.timestamp
+    });
+
+    function continueNavigation() {
+      try {
+        if (window.barba && typeof window.barba.go === 'function') {
+          window.barba.go(href);
+          return;
+        }
+        window.location.href = href;
+      } catch (err) {
+        helixNavigationInProgress = false;
+        helix.classList.remove('projects-helix--moodboard-rewinding');
+        stage.style.opacity = '';
+        stage.style.transform = '';
+        if (webglMount) webglMount.style.filter = '';
+        if (layer.parentNode) layer.remove();
+        window.bylMoodboardRewind = null;
+        try {
+          sessionStorage.removeItem(MOODBOARD_REWIND_KEY);
+        } catch (removeErr) {}
+      }
+    }
+
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof gsap === 'undefined' || reduceMotion) {
+      layer.style.transform = 'translate3d(0, 0, 0)';
+      continueNavigation();
+      return true;
+    }
+
+    gsap.timeline({
+      defaults: { overwrite: true },
+      onComplete: continueNavigation
+    })
+      .set(stage, {
+        transformOrigin: '50% 82%',
+        willChange: 'transform, opacity'
+      }, 0)
+      .to(stage, {
+        y: Math.round(window.innerHeight * 0.12),
+        scaleX: 0.99,
+        scaleY: 0.94,
+        opacity: 0.78,
+        duration: 0.16,
+        ease: 'power1.out'
+      }, 0)
+      .to(stage, {
+        y: Math.round(window.innerHeight * 1.02),
+        scaleX: 0.96,
+        scaleY: 0.64,
+        opacity: 0,
+        duration: 0.54,
+        ease: 'power3.in'
+      }, 0.12)
+      .to(webglMount, {
+        filter: 'blur(7px) saturate(0.82)',
+        duration: 0.42,
+        ease: 'power2.in'
+      }, 0.08)
+      .to(layer, {
+        y: '0%',
+        duration: 0.54,
+        ease: 'power3.inOut'
+      }, 0.18)
+      .to(scan, {
+        y: window.innerHeight,
+        duration: 0.54,
+        ease: 'power3.inOut'
+      }, 0.18);
 
     return true;
   }
@@ -2826,6 +2965,121 @@ function initProjectsAtlas() {
     return bestValue > 0.045 ? bestNode : null;
   }
 
+  function pointSegmentDistanceSq(px, py, ax, ay, bx, by) {
+    var dx = bx - ax;
+    var dy = by - ay;
+    if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) {
+      dx = px - ax;
+      dy = py - ay;
+      return dx * dx + dy * dy;
+    }
+
+    var t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
+    t = clamp(t, 0, 1);
+    var cx = ax + dx * t;
+    var cy = ay + dy * t;
+    dx = px - cx;
+    dy = py - cy;
+    return dx * dx + dy * dy;
+  }
+
+  function isMoodboardStripHit(clientX, clientY) {
+    var rect = getStageRect();
+    var localX = clientX - rect.left;
+    var localY = clientY - rect.top;
+    if (localX < 0 || localY < 0 || localX > rect.width || localY > rect.height) return false;
+
+    var isTouchTuned = shouldUseTouchTunedHelix();
+    var validHits = nodeHitCache
+      .filter(function (hit) {
+        return hit && isFinite(hit.x) && isFinite(hit.y);
+      })
+      .sort(function (a, b) {
+        return a.y - b.y;
+      });
+
+    if (validHits.length >= 2) {
+      var minY = validHits[0].y;
+      var maxY = validHits[validHits.length - 1].y;
+      var yPad = isTouchTuned ? 54 : 70;
+      if (localY >= minY - yPad && localY <= maxY + yPad) {
+        var nearestSq = Infinity;
+        for (var i = 0; i < validHits.length - 1; i++) {
+          var a = validHits[i];
+          var b = validHits[i + 1];
+          nearestSq = Math.min(nearestSq, pointSegmentDistanceSq(localX, localY, a.x, a.y, b.x, b.y));
+        }
+
+        var tolerance = Math.max(
+          isTouchTuned ? 64 : 86,
+          Math.min(isTouchTuned ? 136 : 180, rect.width * (isTouchTuned ? 0.19 : 0.115))
+        );
+        if (nearestSq <= tolerance * tolerance) return true;
+      }
+    }
+
+    var styleHits = nodes
+      .map(function (node) {
+        var style = window.getComputedStyle ? window.getComputedStyle(node) : null;
+        var x = style ? parseFloat(style.getPropertyValue('--x')) : NaN;
+        var y = style ? parseFloat(style.getPropertyValue('--y')) : NaN;
+        return isFinite(x) && isFinite(y) ? { x: x, y: y } : null;
+      })
+      .filter(function (hit) {
+        return !!hit;
+      })
+      .sort(function (a, b) {
+        return a.y - b.y;
+      });
+
+    if (styleHits.length >= 2) {
+      var styleMinY = styleHits[0].y;
+      var styleMaxY = styleHits[styleHits.length - 1].y;
+      var styleYPad = isTouchTuned ? 58 : 76;
+      if (localY >= styleMinY - styleYPad && localY <= styleMaxY + styleYPad) {
+        var styleNearestSq = Infinity;
+        for (var j = 0; j < styleHits.length - 1; j++) {
+          var styleA = styleHits[j];
+          var styleB = styleHits[j + 1];
+          styleNearestSq = Math.min(styleNearestSq, pointSegmentDistanceSq(localX, localY, styleA.x, styleA.y, styleB.x, styleB.y));
+        }
+
+        var styleTolerance = Math.max(
+          isTouchTuned ? 72 : 96,
+          Math.min(isTouchTuned ? 148 : 204, rect.width * (isTouchTuned ? 0.21 : 0.135))
+        );
+        if (styleNearestSq <= styleTolerance * styleTolerance) return true;
+      }
+    }
+
+    var top = rect.height * 0.12;
+    var bottom = rect.height * 0.88;
+    if (localY < top || localY > bottom) return false;
+
+    var progress = (localY - top) / Math.max(1, bottom - top);
+    var centerX = rect.width * (isTouchTuned ? 0.5 : fallbackCenterBias);
+    centerX += Math.sin(progress * Math.PI * 2.18 + baseViewAngle + fallbackRotation) * rect.width * (isTouchTuned ? 0.18 : 0.22);
+    var fallbackTolerance = Math.max(
+      isTouchTuned ? 68 : 92,
+      Math.min(isTouchTuned ? 142 : 188, rect.width * (isTouchTuned ? 0.2 : 0.12))
+    );
+
+    return Math.abs(localX - centerX) <= fallbackTolerance;
+  }
+
+  function setMoodboardHover(active) {
+    helix.classList.toggle('projects-helix--moodboard-hover', !!active);
+  }
+
+  function updateMoodboardHover(clientX, clientY, target) {
+    if (disposed || helixNavigationInProgress) return;
+    if (target && target.closest && target.closest('.projects-helix__node')) {
+      setMoodboardHover(false);
+      return;
+    }
+    setMoodboardHover(isMoodboardStripHit(clientX, clientY));
+  }
+
   function updateTouchHover(clientX, clientY, moved) {
     var nextNode = findTouchNode(clientX, clientY);
     pointerClientX = clientX;
@@ -2906,6 +3160,17 @@ function initProjectsAtlas() {
       setRenderMode('fallback', webglFailureReason || 'webgl unavailable');
       scheduleHelixReadyState();
     }
+  }
+
+  if (moodboardStripLink) {
+    moodboardStripClickHandler = function (evt) {
+      if (evt) {
+        evt.stopPropagation();
+        if (typeof evt.stopImmediatePropagation === 'function') evt.stopImmediatePropagation();
+      }
+      beginMoodboardRewindNavigation(evt);
+    };
+    moodboardStripLink.addEventListener('click', moodboardStripClickHandler);
   }
 
   var nodeHandlers = [];
@@ -3049,6 +3314,7 @@ function initProjectsAtlas() {
     if (isCoarsePointer()) return;
     pointerClientX = evt.clientX;
     pointerClientY = evt.clientY;
+    updateMoodboardHover(evt.clientX, evt.clientY, evt.target);
     schedulePointerInputFrame('mouse', evt.target, false);
   }
 
@@ -3064,6 +3330,7 @@ function initProjectsAtlas() {
     pointerEventTarget = null;
     lastPointerEventTarget = null;
     lastPointerEventHoverNode = null;
+    setMoodboardHover(false);
     if (selectedNode) {
       activateSelection(selectedNode);
       return;
@@ -3082,6 +3349,7 @@ function initProjectsAtlas() {
     var touch = getPrimaryTouch(evt);
     if (!touch) return;
     lastTouchInteractionTime = Date.now();
+    suppressNextMoodboardClick = false;
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
     touchInteractionMoved = false;
@@ -3110,6 +3378,9 @@ function initProjectsAtlas() {
     if (touchInteractionMoved && touchHoverNode) {
       suppressNextCoarseClickNode = touchHoverNode;
     }
+    if (touchInteractionMoved && !touchHoverNode) {
+      suppressNextMoodboardClick = true;
+    }
     if (suppressNextCoarseClickNode && evt && evt.cancelable) {
       evt.preventDefault();
     }
@@ -3121,9 +3392,20 @@ function initProjectsAtlas() {
     if (evt.defaultPrevented) return;
     if (evt.target && evt.target.closest && evt.target.closest('.projects-helix__node')) return;
     if (evt.metaKey || evt.ctrlKey || evt.shiftKey || evt.altKey || evt.button === 1) return;
+    if (suppressNextMoodboardClick) {
+      suppressNextMoodboardClick = false;
+      return;
+    }
+
+    if (isMoodboardStripHit(evt.clientX, evt.clientY)) {
+      beginMoodboardRewindNavigation(evt);
+      return;
+    }
 
     var nextNode = findTouchNode(evt.clientX, evt.clientY);
-    if (!nextNode) return;
+    if (!nextNode) {
+      return;
+    }
 
     evt.preventDefault();
     if (
@@ -3156,6 +3438,8 @@ function initProjectsAtlas() {
     helix.classList.remove('projects-helix--is-ready');
     helix.classList.remove('projects-helix--is-entering');
     helix.classList.remove('projects-helix--webgl-thumbs');
+    helix.classList.remove('projects-helix--moodboard-hover');
+    helix.classList.remove('projects-helix--moodboard-rewinding');
 
     if (pendingThreeLoader) pendingThreeLoader.cancelled = true;
     if (resizeFrame) cancelAnimationFrame(resizeFrame);
@@ -3189,6 +3473,9 @@ function initProjectsAtlas() {
     stage.removeEventListener('touchend', handleStageTouchEnd);
     stage.removeEventListener('touchcancel', handleStageTouchEnd);
     stage.removeEventListener('click', handleStageClick);
+    if (moodboardStripLink && moodboardStripClickHandler) {
+      moodboardStripLink.removeEventListener('click', moodboardStripClickHandler);
+    }
 
     nodeHandlers.forEach(function (entry) {
       entry.node.removeEventListener('mouseenter', entry.onMouseEnter);
