@@ -780,6 +780,10 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   mix-blend-mode: multiply;
 }
 
+.site.site--revealing .slideshow__dot-field {
+  opacity: 0.66;
+}
+
 .slideshow__slide {
   --slide-card-x: 0px;
   --slide-card-y: 0px;

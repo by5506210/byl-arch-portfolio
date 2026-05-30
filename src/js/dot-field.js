@@ -11,6 +11,13 @@
   var pointerX = -1000;
   var pointerY = -1000;
   var pointerClearTimer = null;
+  var revealState = {
+    active: false,
+    x: window.innerWidth * 0.5,
+    y: window.innerHeight * 0.5,
+    radius: 0,
+    progress: 0
+  };
 
   var VERTEX_SHADER = [
     'attribute vec2 a_position;',
@@ -21,18 +28,39 @@
     'uniform float u_cursorRadius;',
     'uniform float u_cursorBoost;',
     'uniform float u_pixelRatio;',
+    'uniform vec2 u_revealCenter;',
+    'uniform vec4 u_reveal;',
     'varying float v_alpha;',
     'void main() {',
-    '  vec2 zeroToOne = a_position / u_resolution;',
-    '  vec2 clipSpace = zeroToOne * 2.0 - 1.0;',
     '  float cursorRadius = max(80.0, u_cursorRadius + a_dot.z);',
     '  float distToMouse = distance(a_position, u_mouse);',
     '  float strength = (1.0 - smoothstep(0.0, cursorRadius, distToMouse)) * u_mousePresence;',
     '  float radius = a_dot.x * (1.0 + strength * u_cursorBoost);',
     '  float alpha = a_dot.y * (1.0 + strength * 0.9);',
+    '  vec2 animatedPosition = a_position;',
+    '  if (u_reveal.x > 0.5) {',
+    '    vec2 revealDelta = a_position - u_revealCenter;',
+    '    float revealDist = length(revealDelta);',
+    '    vec2 revealDir = revealDist > 0.001 ? revealDelta / revealDist : vec2(0.0, -1.0);',
+    '    float revealProgress = clamp(u_reveal.z, 0.0, 1.0);',
+    '    float motionScale = mix(1.0, 0.38, clamp(u_reveal.w, 0.0, 1.0));',
+    '    float bandWidth = mix(92.0, 146.0, revealProgress);',
+    '    float edge = 1.0 - smoothstep(0.0, bandWidth, abs(revealDist - u_reveal.y));',
+    '    float insideWake = smoothstep(0.0, 1.0, u_reveal.y - revealDist);',
+    '    float behind = max(0.0, u_reveal.y - revealDist);',
+    '    float wakeFalloff = (1.0 - smoothstep(18.0, 260.0, behind)) * insideWake;',
+    '    float seed = fract(sin(dot(a_position + a_dot.zz, vec2(0.017, 0.031))) * 43758.5453);',
+    '    float ripple = 0.5 + 0.5 * sin(behind * 0.085 - revealProgress * 24.0 + seed * 6.28318);',
+    '    float rippleStrength = wakeFalloff * (0.35 + ripple * 0.65);',
+    '    animatedPosition += revealDir * (edge * (8.0 + ripple * 6.5) + rippleStrength * 4.5) * motionScale;',
+    '    radius *= 1.0 + (edge * 4.2 + rippleStrength * 2.0) * motionScale;',
+    '    alpha = alpha * (1.0 + edge * 2.8 + rippleStrength * 1.65) + edge * 0.16 + rippleStrength * 0.075;',
+    '  }',
+    '  vec2 zeroToOne = animatedPosition / u_resolution;',
+    '  vec2 clipSpace = zeroToOne * 2.0 - 1.0;',
     '  gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);',
     '  gl_PointSize = max(1.0, radius * 2.0 * u_pixelRatio);',
-    '  v_alpha = min(alpha, 0.58);',
+    '  v_alpha = min(alpha, u_reveal.x > 0.5 ? 0.82 : 0.58);',
     '}'
   ].join('\n');
 
@@ -115,6 +143,15 @@
     for (var i = 0; i < instances.length; i++) {
       instances[i].requestRender();
     }
+  }
+
+  function setDotFieldTransition(config) {
+    revealState.active = !!(config && config.active);
+    revealState.x = config && typeof config.x === 'number' ? config.x : window.innerWidth * 0.5;
+    revealState.y = config && typeof config.y === 'number' ? config.y : window.innerHeight * 0.5;
+    revealState.radius = config && typeof config.radius === 'number' ? Math.max(0, config.radius) : 0;
+    revealState.progress = config && typeof config.progress === 'number' ? clamp(config.progress, 0, 1) : 0;
+    requestRenderAll();
   }
 
   function attachListeners() {
@@ -354,6 +391,8 @@
       cursorRadius: gl.getUniformLocation(this.program, 'u_cursorRadius'),
       cursorBoost: gl.getUniformLocation(this.program, 'u_cursorBoost'),
       pixelRatio: gl.getUniformLocation(this.program, 'u_pixelRatio'),
+      revealCenter: gl.getUniformLocation(this.program, 'u_revealCenter'),
+      reveal: gl.getUniformLocation(this.program, 'u_reveal'),
       color: gl.getUniformLocation(this.program, 'u_color')
     };
   };
@@ -578,6 +617,15 @@
     gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
     gl.uniform1f(this.locations.cursorBoost, this.cursorBoost);
     gl.uniform1f(this.locations.pixelRatio, this.backingScale);
+    var revealActive = this.isHomeField && revealState.active;
+    gl.uniform2f(this.locations.revealCenter, revealState.x, revealState.y);
+    gl.uniform4f(
+      this.locations.reveal,
+      revealActive ? 1 : 0,
+      revealActive ? revealState.radius : 0,
+      revealActive ? revealState.progress : 0,
+      this.reducedMotion ? 1 : 0
+    );
     gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.POINTS, 0, this.pointCount);
   };
@@ -643,6 +691,7 @@
 
   window.initDotField = initDotField;
   window.initVectorField = initFieldDispatcher;
+  window.setDotFieldTransition = setDotFieldTransition;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {

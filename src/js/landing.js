@@ -270,6 +270,16 @@
         progress: progress
       });
     }
+
+    if (typeof window.setDotFieldTransition === 'function') {
+      window.setDotFieldTransition({
+        active: true,
+        x: window.innerWidth * 0.5,
+        y: window.innerHeight * 0.5,
+        radius: radius,
+        progress: progress
+      });
+    }
   }
 
   function clearRevealState() {
@@ -311,6 +321,14 @@
 
     if (typeof window.setVectorFieldTransition === 'function') {
       window.setVectorFieldTransition({
+        active: false,
+        radius: 0,
+        progress: 1
+      });
+    }
+
+    if (typeof window.setDotFieldTransition === 'function') {
+      window.setDotFieldTransition({
         active: false,
         radius: 0,
         progress: 1
@@ -402,6 +420,14 @@
     landing.style.display = 'none';
     document.body.style.background = '#f4f2ec';
     clearRevealState();
+
+    if (typeof window.setDotFieldTransition === 'function') {
+      window.setDotFieldTransition({
+        active: false,
+        radius: 0,
+        progress: 1
+      });
+    }
 
     if (site) {
       site.style.display = 'block';
