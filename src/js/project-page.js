@@ -1734,8 +1734,9 @@ function initProjectsAtlas() {
 
     function createRibbonTexture() {
       var sourceImages = getRibbonSourceImages();
-      // Pack many smaller thumbnails along the strip (denser = smaller individual images).
-      var frameCount = Math.max(48, sourceImages.length * 3);
+      // One cell per source image (no repeats) — with the full photo set this fills the strip
+      // densely while avoiding the uncanny repetition of cycling a small set.
+      var frameCount = Math.max(48, sourceImages.length);
       var isTouchSizedTexture = shouldUseTouchTunedHelix();
       // Use the GPU's full texture budget so the dense cells stay reasonably crisp.
       var maxTextureSize = (renderer.capabilities && renderer.capabilities.maxTextureSize) || 4096;

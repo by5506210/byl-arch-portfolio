@@ -301,28 +301,28 @@
     var items = container.querySelectorAll('.moodboard-page__item');
     if (!items.length) return null;
 
-    // The rewind/swirl layer only exists when arriving via the spiral; the image cascade runs
-    // on every moodboard arrival regardless, so the images never just pop in.
-    var visualState = state ? ensureMoodboardRewindLayer(state) : null;
-    var layerEl = visualState && visualState.layerEl ? visualState.layerEl : null;
+    // Any swirl/rewind layer from the spiral transition lives on <body> and survives the barba
+    // page swap — fade it out fast here so the image cascade is fully visible, instead of the
+    // cascade finishing hidden behind it (which read as the images just popping in).
+    var layers = Array.prototype.slice.call(document.querySelectorAll('.moodboard-rewind-layer'));
 
     gsap.set(overlay, { opacity: 0 });
-    if (layerEl) gsap.set(layerEl, { y: 0, opacity: 1 });
-    gsap.set(container, { opacity: 1, y: 12 });
+    gsap.set(container, { opacity: 1, y: 0 });
     gsap.set(items, { opacity: 0, scale: 0.9, y: 18, transformOrigin: '50% 60%' });
 
     return new Promise(function (resolve) {
       var tl = gsap.timeline({
         onComplete: function () {
           gsap.set(items, { clearProps: 'transform,opacity' });
-          clearMoodboardRewindState(visualState);
+          layers.forEach(function (el) { if (el.parentNode) el.remove(); });
+          window.bylMoodboardRewind = null;
+          clearStoredMoodboardRewind();
           moodboardRewindState = null;
           resolve();
         }
       });
-      tl.to(container, { y: 0, duration: 0.46, ease: 'power3.out' }, 0);
-      if (layerEl) {
-        tl.to(layerEl, { opacity: 0, duration: 0.42, ease: 'power2.out' }, 0.02);
+      if (layers.length) {
+        tl.to(layers, { opacity: 0, duration: 0.28, ease: 'power2.out' }, 0);
       }
       tl.to(items, {
         opacity: 1,
@@ -330,8 +330,8 @@
         y: 0,
         duration: 0.55,
         ease: 'power2.out',
-        stagger: { each: 0.018, from: 'start' }
-      }, 0.08);
+        stagger: { each: 0.02, from: 'start' }
+      }, 0.05);
     });
   }
 
