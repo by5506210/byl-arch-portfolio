@@ -544,6 +544,10 @@ function initProjectsAtlas() {
     if (disposed || !helix.isConnected) return;
     helix.classList.add('projects-helix--is-ready');
     helix.classList.remove('projects-helix--is-entering');
+    // Play the spiral entrance (reverse of the moodboard coil-up): it descends in from the top.
+    if (webglHelix && typeof webglHelix.startEntranceTransition === 'function') {
+      webglHelix.startEntranceTransition();
+    }
     invalidateStageRect();
     if (readyRectTimer) window.clearTimeout(readyRectTimer);
     readyRectTimer = window.setTimeout(function () {
@@ -905,7 +909,7 @@ function initProjectsAtlas() {
     }
 
     if (webglHelix && typeof webglHelix.startMoodboardTransition === 'function') {
-      webglHelix.startMoodboardTransition(1050);
+      webglHelix.startMoodboardTransition(820);
     }
 
     gsap.timeline({
@@ -918,21 +922,21 @@ function initProjectsAtlas() {
         willChange: 'transform, opacity'
       }, 0)
       .to(stage, {
-        '--moodboard-node-shrink': 0.04,
+        '--moodboard-node-shrink': 0.02,
         '--moodboard-node-fade': 0,
-        duration: 0.72,
+        duration: 0.5,
         ease: 'power2.in'
-      }, 0.06)
+      }, 0.04)
       .to(webglMount, {
         filter: 'contrast(1.14) brightness(1.05) saturate(1.06)',
-        duration: 0.22,
+        duration: 0.18,
         ease: 'power1.out'
       }, 0)
       .to(layer, {
         opacity: 1,
-        duration: 0.42,
+        duration: 0.34,
         ease: 'power2.in'
-      }, 0.62);
+      }, 0.46);
 
     return true;
   }
@@ -1626,7 +1630,13 @@ function initProjectsAtlas() {
     var moodboardTransition = {
       active: false,
       start: 0,
-      duration: 1050,
+      duration: 820,
+      progress: 0
+    };
+    var entranceTransition = {
+      active: false,
+      start: 0,
+      duration: 880,
       progress: 0
     };
     // Cached helix dimensions so the moodboard transition can lift the spiral fully out of frame.
@@ -2531,20 +2541,41 @@ function initProjectsAtlas() {
         var rawTransitionProgress = (now - moodboardTransition.start) / Math.max(1, moodboardTransition.duration);
         moodboardTransition.progress = clamp(rawTransitionProgress, 0, 1);
         var p = moodboardTransition.progress;
-        // Smoothstep rise out the top; quadratic spin ramp so the spiral visibly coils as it lifts.
         var liftEase = p * p * (3 - 2 * p);
+        // Front-load the shrink so it reads clearly even on a wide desktop before it lifts away.
+        var shrinkEase = Math.pow(p, 0.55);
         var spinRamp = p * p;
         var coilLift = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
-        group.rotation.y += delta * (0.0011 + spinRamp * 0.011);
+        group.rotation.y += delta * (0.0014 + spinRamp * 0.013);
         group.position.y = liftEase * coilLift;
-        // Shrink the whole spiral as it coils upward so it recedes into the distance.
-        group.scale.setScalar(1 - liftEase * 0.55);
+        group.scale.setScalar(1 - shrinkEase * 0.72);
         if (ribbonMeshRef) {
-          // Ribbon and black thread coil upward at clearly different rates so they read as two
-          // separate forms (depth) — the ribbon leads in both rotation and rise.
           ribbonMeshRef.rotation.y += delta * spinRamp * 0.0042;
           ribbonMeshRef.position.y = liftEase * transitionHelixHeight * 0.55;
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
+        }
+      } else if (entranceTransition.active) {
+        var erp = clamp((now - entranceTransition.start) / Math.max(1, entranceTransition.duration), 0, 1);
+        entranceTransition.progress = erp;
+        // Exact reverse of the coil-up: the spiral descends in from above, growing + settling.
+        var settle = 1 - Math.pow(1 - erp, 3);
+        var away = 1 - settle;
+        var entCoil = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
+        group.rotation.y += delta * (0.0014 + away * away * 0.013);
+        group.position.y = away * entCoil;
+        group.scale.setScalar(1 - away * 0.72);
+        if (ribbonMeshRef) {
+          ribbonMeshRef.rotation.y += delta * away * away * 0.0042;
+          ribbonMeshRef.position.y = away * transitionHelixHeight * 0.55;
+        }
+        if (erp >= 1) {
+          entranceTransition.active = false;
+          group.position.y = 0;
+          group.scale.setScalar(1);
+          if (ribbonMeshRef) {
+            ribbonMeshRef.position.y = 0;
+            ribbonMeshRef.rotation.y = 0;
+          }
         }
       } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && (ribbonMeshRef.position.y !== 0 || ribbonMeshRef.rotation.y !== 0))) {
         group.position.y = 0;
@@ -2679,6 +2710,14 @@ function initProjectsAtlas() {
         moodboardTransition.start = performance.now();
         moodboardTransition.duration = duration || 820;
         moodboardTransition.progress = 0;
+        ensureAnimation();
+      },
+      startEntranceTransition: function (duration) {
+        moodboardTransition.active = false;
+        entranceTransition.active = true;
+        entranceTransition.start = performance.now();
+        entranceTransition.duration = duration || 880;
+        entranceTransition.progress = 0;
         ensureAnimation();
       }
     };
