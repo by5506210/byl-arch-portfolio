@@ -2200,11 +2200,13 @@ function initProjectsAtlas() {
         height: helixHeight,
         startAngle: startAngle,
         phaseShift: ribbonPhaseShift,
-        startT: 0,
+        // Extend only the ribbon's top end up past the helix so it spirals out through the
+        // "roof" — a taller visible strip and a taller tap target. Black thread is unchanged.
+        startT: -0.7,
         endT: ribbonEndT,
         width: isMobile ? 0.28 : 0.34,
         tilt: isMobile ? 0.026 : 0.04,
-        segments: isMobile ? performanceProfile.ribbonSegmentsMobile : performanceProfile.ribbonSegmentsDesktop
+        segments: Math.round((isMobile ? performanceProfile.ribbonSegmentsMobile : performanceProfile.ribbonSegmentsDesktop) * 1.7)
       });
       if (ribbonMesh) {
         ribbonMeshRef = ribbonMesh;
