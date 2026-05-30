@@ -2458,6 +2458,13 @@ body.portfolio-transition-active .slideshow__scroll-hint {
     transform 0.92s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Desktop: nudge the whole spiral a touch lower in the viewport. */
+@media (min-width: 901px) {
+  .projects-helix--is-ready .projects-helix__stage {
+    transform: translate3d(0, 48px, 0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .projects-helix--is-ready .projects-helix__stage {
     transition: none;

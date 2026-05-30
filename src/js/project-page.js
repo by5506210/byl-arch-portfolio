@@ -1922,11 +1922,14 @@ function initProjectsAtlas() {
 
       var material = new THREE.MeshBasicMaterial({
         map: ribbonTexture,
-        transparent: true,
-        opacity: 0.92,
+        // Opaque + depth-write so the ribbon occludes itself correctly (near wrap over far wrap)
+        // and sorts properly against the thread/dots — kills the ambiguous-figure overlaps.
+        transparent: false,
+        opacity: 1,
         side: THREE.DoubleSide,
-        depthWrite: false,
-        alphaTest: 0.02,
+        depthWrite: true,
+        depthTest: true,
+        alphaTest: 0.06,
         vertexColors: true
       });
 
@@ -2478,7 +2481,7 @@ function initProjectsAtlas() {
         var connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
         var depth = clamp(1 - (tempProjectedPoint.z + 1) * 0.5, 0, 1);
         var fog = clamp(1 - depth, 0, 1);
-        var hitThreshold = (width <= 820 ? 126 : 148) * (0.9 + depth * 0.7);
+        var hitThreshold = (width <= 820 ? 90 : 148) * (0.9 + depth * 0.7);
         var geometry = data.geometry || getNodeComputedGeometry(node);
         geometry.anchorX = anchorX;
         geometry.anchorY = anchorY;
@@ -3064,7 +3067,7 @@ function initProjectsAtlas() {
 
       var dx = localX - hit.x;
       var dy = localY - hit.y;
-      var threshold = (hit.threshold || 140) * 1.06;
+      var threshold = (hit.threshold || 140) * 0.78;
       var distSq = dx * dx + dy * dy;
       var thresholdSq = threshold * threshold;
       if (distSq >= thresholdSq) return;
@@ -3078,7 +3081,7 @@ function initProjectsAtlas() {
       }
     });
 
-    return bestValue > 0.045 ? bestNode : null;
+    return bestValue > 0.08 ? bestNode : null;
   }
 
   function getPointSegmentProjection(px, py, ax, ay, bx, by) {
