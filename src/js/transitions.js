@@ -493,6 +493,13 @@
       },
 
       after: function () {
+        // Drop any transform GSAP left on the container, so it isn't a stacking context that
+        // would trap the projects spiral's z-index below the nav (that broke the ribbon bleed
+        // on SPA navigation — it only worked on a full refresh).
+        var afterContainer = document.querySelector('[data-barba="container"]');
+        if (afterContainer && typeof gsap !== 'undefined') {
+          gsap.set(afterContainer, { clearProps: 'transform' });
+        }
         var oldTitle = document.querySelector('.slideshow__current-title');
         if (oldTitle) oldTitle.remove();
         var oldProgress = document.querySelector('.slideshow__progress');

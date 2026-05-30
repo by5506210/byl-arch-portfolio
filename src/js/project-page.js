@@ -118,7 +118,10 @@ function initNavBar(rootContainer) {
   // Build the unified bar
   var bar = document.createElement('div');
   bar.classList.add('project-nav-bar');
-  if (isProjectsHelix) bar.classList.add('project-nav-bar--projects-helix');
+  if (isProjectsHelix) {
+    bar.classList.add('project-nav-bar--projects-helix');
+    document.body.classList.add('is-projects-spiral');
+  }
   if (isMoodboard) bar.classList.add('project-nav-bar--moodboard');
   if (isProjectDetail) bar.classList.add('project-nav-bar--has-back');
 
@@ -150,6 +153,7 @@ function initNavBar(rootContainer) {
   document.body.appendChild(bar);
   registerProjectPageCleanup(function () {
     if (bar.parentNode) bar.parentNode.removeChild(bar);
+    document.body.classList.remove('is-projects-spiral');
   });
 
   // If hero exists, show/hide bar style on scroll
@@ -2557,16 +2561,21 @@ function initProjectsAtlas() {
       } else if (entranceTransition.active) {
         var erp = clamp((now - entranceTransition.start) / Math.max(1, entranceTransition.duration), 0, 1);
         entranceTransition.progress = erp;
-        // Exact reverse of the coil-up: the spiral descends in from above, growing + settling.
-        var settle = 1 - Math.pow(1 - erp, 3);
-        var away = 1 - settle;
+        // Play the coil-up EXACTLY backwards (time-eased): revP runs 1 -> 0, fed through the same
+        // lift/shrink/spin curves as the coil-up, so the spiral starts where the coil-up ends
+        // (up, shrunk, spun) and settles into the identical resting transform — no mismatch.
+        var ease = 1 - Math.pow(1 - erp, 3);
+        var revP = 1 - ease;
+        var liftEaseR = revP * revP * (3 - 2 * revP);
+        var shrinkEaseR = Math.pow(revP, 0.55);
+        var spinRampR = revP * revP;
         var entCoil = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
-        group.rotation.y += delta * (0.0014 + away * away * 0.013);
-        group.position.y = away * entCoil;
-        group.scale.setScalar(1 - away * 0.72);
+        group.rotation.y += delta * (0.0014 + spinRampR * 0.013);
+        group.position.y = liftEaseR * entCoil;
+        group.scale.setScalar(1 - shrinkEaseR * 0.72);
         if (ribbonMeshRef) {
-          ribbonMeshRef.rotation.y += delta * away * away * 0.0042;
-          ribbonMeshRef.position.y = away * transitionHelixHeight * 0.55;
+          ribbonMeshRef.rotation.y += delta * spinRampR * 0.0042;
+          ribbonMeshRef.position.y = liftEaseR * transitionHelixHeight * 0.55;
         }
         if (erp >= 1) {
           entranceTransition.active = false;
@@ -2718,6 +2727,11 @@ function initProjectsAtlas() {
         entranceTransition.start = performance.now();
         entranceTransition.duration = duration || 880;
         entranceTransition.progress = 0;
+        // Snap to the up/away start state immediately so the first visible frame doesn't pop.
+        var entCoil = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
+        group.position.y = entCoil;
+        group.scale.setScalar(0.28);
+        if (ribbonMeshRef) ribbonMeshRef.position.y = transitionHelixHeight * 0.55;
         ensureAnimation();
       }
     };

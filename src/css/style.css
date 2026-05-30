@@ -2385,12 +2385,15 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-index.projects-helix {
   min-height: 100dvh;
   padding: 4.65rem 1rem 0.9rem;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.99) 0%, rgba(255, 255, 255, 0.95) 30%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(180deg, #ffffff 0%, #f6f3ee 100%);
-  /* Keep this section's background out of the top padding band: now that the section sits above
-     the nav, the nav still shows through there while the ribbon canvas overlaps it. */
-  background-clip: content-box;
+  /* Transparent: the page background lives on <body> (body.is-projects-spiral) so this section
+     can sit above the nav without covering it or leaving a clipped-edge strip. */
+  background: transparent;
+}
+
+/* Page background for the projects spiral page — on <body> so it stays behind the nav while
+   the spiral section is raised above it. Plain white (no beige) to match the page. */
+body.is-projects-spiral {
+  background-color: #ffffff;
 }
 
 .projects-helix {
@@ -2454,22 +2457,21 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 .projects-helix--is-entering .projects-helix__stage {
   opacity: 0;
   pointer-events: none;
-  transform: translate3d(0, -52px, 0) scale(0.985);
 }
 
 .projects-helix--is-ready .projects-helix__stage {
   opacity: 1;
   pointer-events: auto;
-  transform: translate3d(0, 0, 0) scale(1);
-  transition:
-    opacity 0.62s ease,
-    transform 0.92s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Only fade in — the spatial entrance is the WebGL coil-down, so don't animate transform
+     here (it used to fight the 3D motion and feel uncanny). */
+  transition: opacity 0.62s ease;
 }
 
-/* Desktop: nudge the whole spiral a touch lower in the viewport. */
+/* Desktop: nudge the whole spiral a touch lower in the viewport. Static (not tied to the
+   reveal state) so it never animates and fights the WebGL entrance. */
 @media (min-width: 901px) {
-  .projects-helix--is-ready .projects-helix__stage {
-    transform: translate3d(0, 48px, 0) scale(1);
+  .projects-helix__stage {
+    transform: translate3d(0, 48px, 0);
   }
 }
 
@@ -5153,8 +5155,9 @@ body:has(.contact-page) {
 
 .project-nav-bar--projects-helix,
 .project-nav-bar--projects-helix.project-nav-bar--solid {
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: none;
+  box-shadow: none;
 }
 
 .project-nav-bar__links {
