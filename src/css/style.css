@@ -2388,12 +2388,19 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.99) 0%, rgba(255, 255, 255, 0.95) 30%, rgba(255, 255, 255, 0) 60%),
     linear-gradient(180deg, #ffffff 0%, #f6f3ee 100%);
+  /* Keep this section's background out of the top padding band: now that the section sits above
+     the nav, the nav still shows through there while the ribbon canvas overlaps it. */
+  background-clip: content-box;
 }
 
 .projects-helix {
   position: relative;
-  overflow: hidden;
+  /* Let the spiral canvas bleed above the stage and sit above the nav (z 55) so the ribbon can
+     overlap it. pointer-events:none lets nav clicks pass through; the stage re-enables them. */
+  overflow: visible;
   isolation: isolate;
+  z-index: 60;
+  pointer-events: none;
 }
 
 .projects-helix::before,
@@ -2441,6 +2448,7 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   transform-origin: 50% 8%;
   will-change: transform, opacity;
   touch-action: none;
+  pointer-events: auto;
 }
 
 .projects-helix--is-entering .projects-helix__stage {
@@ -2473,7 +2481,11 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 
 .projects-helix__webgl {
   position: absolute;
-  inset: 0;
+  /* Extend the canvas up over the nav (must match canvasTopBleed = 130 in project-page.js). */
+  top: -130px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 2;
   pointer-events: none;
 }

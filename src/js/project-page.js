@@ -1595,6 +1595,11 @@ function initProjectsAtlas() {
     var nodeScreenState = [];
     var viewportWidth = 1;
     var viewportHeight = 1;
+    // The 3D canvas renders this many px TALLER than the stage and is shifted up over the nav,
+    // so the ribbon can spiral out and bleed over the top navigation bar. Projected thumbnails
+    // and hit areas subtract this so they stay aligned to the stage. Must match the
+    // `.projects-helix__webgl { top: -130px }` rule in the CSS.
+    var canvasTopBleed = 130;
     var frameId = 0;
     var lastFrameTime = 0;
     var lastNodeSyncTime = 0;
@@ -2119,7 +2124,7 @@ function initProjectsAtlas() {
         if (!isFinite(tempProjectedRibbon.x) || !isFinite(tempProjectedRibbon.y)) continue;
         nextHits.push({
           x: snapToDevicePixel((tempProjectedRibbon.x * 0.5 + 0.5) * width),
-          y: snapToDevicePixel((-tempProjectedRibbon.y * 0.5 + 0.5) * height),
+          y: snapToDevicePixel((-tempProjectedRibbon.y * 0.5 + 0.5) * height - canvasTopBleed),
           depth: clamp(1 - (tempProjectedRibbon.z + 1) * 0.5, 0, 1)
         });
       }
@@ -2325,7 +2330,9 @@ function initProjectsAtlas() {
       var projectedZ = (matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14]) * invW;
 
       target.x = (projectedX * 0.5 + 0.5) * width;
-      target.y = (-projectedY * 0.5 + 0.5) * height;
+      // Subtract the canvas top-bleed so DOM thumbnails/hits land in stage-local coords even
+      // though the WebGL canvas extends above the stage.
+      target.y = (-projectedY * 0.5 + 0.5) * height - canvasTopBleed;
       target.z = projectedZ;
       return target;
     }
@@ -2597,15 +2604,20 @@ function initProjectsAtlas() {
       if (!useMobilePixelCap && viewportPixels > 1800000) {
         targetPixelRatio = Math.min(targetPixelRatio, 0.9);
       }
+      // Render the canvas taller than the stage by canvasTopBleed px (it extends up over the
+      // nav). Keep the helix scale referenced to the stage height and add the extra room at the
+      // top of the frustum, so the helix stays put and only the upper ribbon fills the new space.
+      var canvasHeight = height + canvasTopBleed;
+      var worldPerPixel = frustumSize / height;
       viewportWidth = width;
-      viewportHeight = height;
+      viewportHeight = canvasHeight;
 
       renderer.setPixelRatio(targetPixelRatio);
-      renderer.setSize(width, height, false);
+      renderer.setSize(width, canvasHeight, false);
       thumbCamera.left = 0;
       thumbCamera.right = width;
       thumbCamera.top = 0;
-      thumbCamera.bottom = height;
+      thumbCamera.bottom = canvasHeight;
       thumbCamera.updateProjectionMatrix();
 
       // Orthographic top-corner (architectural axonometric) with upright axis.
@@ -2613,15 +2625,15 @@ function initProjectsAtlas() {
 
       camera.left = (-frustumSize * aspect) * 0.5;
       camera.right = (frustumSize * aspect) * 0.5;
-      camera.top = frustumSize * 0.5;
+      camera.top = frustumSize * 0.5 + canvasTopBleed * worldPerPixel;
       camera.bottom = -frustumSize * 0.5;
       camera.updateProjectionMatrix();
 
       useWebglThumbLayer = false;
-      buildWorld(width, height, frustumSize);
+      buildWorld(width, canvasHeight, frustumSize);
       renderSceneWithThumbs();
       lastNodeSyncTime = performance.now();
-      syncNodes(width, height, lastNodeSyncTime);
+      syncNodes(width, canvasHeight, lastNodeSyncTime);
       ensureAnimation();
     }
 
