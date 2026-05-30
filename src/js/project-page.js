@@ -1734,17 +1734,21 @@ function initProjectsAtlas() {
 
     function createRibbonTexture() {
       var sourceImages = getRibbonSourceImages();
-      var frameCount = Math.max(24, sourceImages.length * 2);
+      // One crisp frame per source image (no doubling) so photos aren't squished into tiny cells.
+      var frameCount = Math.max(24, sourceImages.length);
       var isTouchSizedTexture = shouldUseTouchTunedHelix();
-      var frameW = isTouchSizedTexture ? 28 : 22;
-      var frameH = isTouchSizedTexture ? 16 : 13;
+      // Render each image at high resolution, capped so the atlas never exceeds the GPU limit.
+      var maxTextureSize = (renderer.capabilities && renderer.capabilities.maxTextureSize) || 4096;
+      var maxCanvasWidth = Math.min(4000, maxTextureSize);
+      var frameW = Math.min(isTouchSizedTexture ? 120 : 104, Math.floor(maxCanvasWidth / frameCount));
+      var frameH = Math.min(isTouchSizedTexture ? 148 : 132, maxTextureSize);
       var canvas = document.createElement('canvas');
       canvas.width = frameCount * frameW;
       canvas.height = frameH;
       var ctx = canvas.getContext('2d');
       if (!ctx) return null;
       ctx.imageSmoothingEnabled = true;
-      if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = isTouchSizedTexture ? 'high' : 'medium';
+      if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
       var texture = new THREE.CanvasTexture(canvas);
       var pendingDecodeRefresh = false;
 
@@ -2521,16 +2525,18 @@ function initProjectsAtlas() {
         // Shrink the whole spiral as it coils upward so it recedes into the distance.
         group.scale.setScalar(1 - liftEase * 0.55);
         if (ribbonMeshRef) {
-          // The inspo ribbon breaks away and shoots upward far faster than the black spiral thread.
-          var ribbonLead = Math.pow(p, 0.62);
-          ribbonMeshRef.position.y = ribbonLead * transitionHelixHeight * 1.9;
+          // Inspo ribbon spirals upward just slightly faster than the black spiral — a touch more
+          // rotation and lift for a subtle depth/parallax effect (not a fast break-away).
+          ribbonMeshRef.rotation.y += delta * spinRamp * 0.0018;
+          ribbonMeshRef.position.y = liftEase * transitionHelixHeight * 0.18;
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
         }
-      } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && ribbonMeshRef.position.y !== 0)) {
+      } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && (ribbonMeshRef.position.y !== 0 || ribbonMeshRef.rotation.y !== 0))) {
         group.position.y = 0;
         group.scale.setScalar(1);
         if (ribbonMeshRef) {
           ribbonMeshRef.position.y = 0;
+          ribbonMeshRef.rotation.y = 0;
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92;
         }
       }

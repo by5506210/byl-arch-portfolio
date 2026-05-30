@@ -342,6 +342,26 @@
     });
   }
 
+  function playInitialMoodboardRevealIfNeeded() {
+    var page = document.querySelector('.moodboard-page');
+    if (!page) return;
+    var items = page.querySelectorAll('.moodboard-page__item');
+    if (!items.length || typeof gsap === 'undefined') return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Reference images rise + expand in with a staggered cascade instead of just appearing.
+    gsap.set(items, { opacity: 0, scale: 0.9, y: 18, transformOrigin: '50% 60%' });
+    gsap.to(items, {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      duration: 0.55,
+      ease: 'power2.out',
+      stagger: { each: 0.018, from: 'start' },
+      onComplete: function () { gsap.set(items, { clearProps: 'transform,opacity' }); }
+    });
+  }
+
   function playInitialHelixArrivalIfNeeded() {
     var container = document.querySelector('[data-barba="container"]');
     if (!container) return;
@@ -384,6 +404,7 @@
 
   window.bylNavigateWithOverlay = navigateWithOverlay;
   playInitialHelixArrivalIfNeeded();
+  playInitialMoodboardRevealIfNeeded();
 
   barba.init({
     preventRunning: true,
