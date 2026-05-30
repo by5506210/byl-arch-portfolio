@@ -43,8 +43,10 @@
     '    float revealDist = length(revealDelta);',
     '    vec2 revealDir = revealDist > 0.001 ? revealDelta / revealDist : vec2(0.0, -1.0);',
     '    float revealProgress = clamp(u_reveal.z, 0.0, 1.0);',
-    '    float motionScale = mix(1.0, 0.38, clamp(u_reveal.w, 0.0, 1.0));',
-    '    float bandWidth = mix(92.0, 146.0, revealProgress);',
+    '    float damp = clamp(u_reveal.w, 0.0, 1.0);',
+    '    float motionScale = mix(1.0, 0.38, damp);',
+    '    float alphaScale = mix(1.0, 0.48, damp);',
+    '    float bandWidth = mix(92.0, 146.0, revealProgress) * mix(1.0, 0.72, damp);',
     '    float edge = 1.0 - smoothstep(0.0, bandWidth, abs(revealDist - u_reveal.y));',
     '    float insideWake = smoothstep(0.0, 1.0, u_reveal.y - revealDist);',
     '    float behind = max(0.0, u_reveal.y - revealDist);',
@@ -54,13 +56,13 @@
     '    float rippleStrength = wakeFalloff * (0.35 + ripple * 0.65);',
     '    animatedPosition += revealDir * (edge * (8.0 + ripple * 6.5) + rippleStrength * 4.5) * motionScale;',
     '    radius *= 1.0 + (edge * 4.2 + rippleStrength * 2.0) * motionScale;',
-    '    alpha = alpha * (1.0 + edge * 2.8 + rippleStrength * 1.65) + edge * 0.16 + rippleStrength * 0.075;',
+    '    alpha = alpha * (1.0 + (edge * 2.8 + rippleStrength * 1.65) * alphaScale) + (edge * 0.16 + rippleStrength * 0.075) * alphaScale;',
     '  }',
     '  vec2 zeroToOne = animatedPosition / u_resolution;',
     '  vec2 clipSpace = zeroToOne * 2.0 - 1.0;',
     '  gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);',
     '  gl_PointSize = max(1.0, radius * 2.0 * u_pixelRatio);',
-    '  v_alpha = min(alpha, u_reveal.x > 0.5 ? 0.82 : 0.58);',
+    '  v_alpha = min(alpha, u_reveal.x > 0.5 ? mix(0.82, 0.62, clamp(u_reveal.w, 0.0, 1.0)) : 0.58);',
     '}'
   ].join('\n');
 
@@ -618,13 +620,14 @@
     gl.uniform1f(this.locations.cursorBoost, this.cursorBoost);
     gl.uniform1f(this.locations.pixelRatio, this.backingScale);
     var revealActive = this.isHomeField && revealState.active;
+    var revealDamp = this.reducedMotion ? 1 : (window.innerWidth < 768 ? 0.72 : 0);
     gl.uniform2f(this.locations.revealCenter, revealState.x, revealState.y);
     gl.uniform4f(
       this.locations.reveal,
       revealActive ? 1 : 0,
       revealActive ? revealState.radius : 0,
       revealActive ? revealState.progress : 0,
-      this.reducedMotion ? 1 : 0
+      revealDamp
     );
     gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.POINTS, 0, this.pointCount);
