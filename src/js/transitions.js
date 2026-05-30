@@ -296,62 +296,48 @@
     });
   }
 
-  function playMoodboardArrival(container, state) {
-    if (!container || typeof gsap === 'undefined') return null;
+  // Restart the CSS reveal animation on the moodboard items. CSS auto-plays it on a fresh
+  // render (refresh/reload); on a barba SPA insert we re-trigger it explicitly so it always
+  // runs. Items have base opacity:0 in CSS, so toggling `animation` never causes a flash.
+  function retriggerMoodboardItems(container) {
+    if (!container) return;
     var items = container.querySelectorAll('.moodboard-page__item');
-    if (!items.length) return null;
-
-    // Any swirl/rewind layer from the spiral transition lives on <body> and survives the barba
-    // page swap — fade it out fast here so the image cascade is fully visible, instead of the
-    // cascade finishing hidden behind it (which read as the images just popping in).
-    var layers = Array.prototype.slice.call(document.querySelectorAll('.moodboard-rewind-layer'));
-
-    gsap.set(overlay, { opacity: 0 });
-    gsap.set(container, { opacity: 1, y: 0 });
-    gsap.set(items, { opacity: 0, scale: 0.9, y: 18, transformOrigin: '50% 60%' });
-
-    return new Promise(function (resolve) {
-      var tl = gsap.timeline({
-        onComplete: function () {
-          gsap.set(items, { clearProps: 'transform,opacity' });
-          layers.forEach(function (el) { if (el.parentNode) el.remove(); });
-          window.bylMoodboardRewind = null;
-          clearStoredMoodboardRewind();
-          moodboardRewindState = null;
-          resolve();
-        }
-      });
-      if (layers.length) {
-        tl.to(layers, { opacity: 0, duration: 0.28, ease: 'power2.out' }, 0);
-      }
-      tl.to(items, {
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        duration: 0.55,
-        ease: 'power2.out',
-        stagger: { each: 0.02, from: 'start' }
-      }, 0.05);
-    });
+    if (!items.length) return;
+    for (var i = 0; i < items.length; i++) {
+      items[i].style.setProperty('--i', i);
+      items[i].style.animation = 'none';
+    }
+    void container.offsetWidth; // force reflow so the animation restarts
+    for (var j = 0; j < items.length; j++) {
+      items[j].style.animation = '';
+    }
   }
 
-  function playInitialMoodboardRevealIfNeeded() {
-    var page = document.querySelector('.moodboard-page');
-    if (!page) return;
-    var items = page.querySelectorAll('.moodboard-page__item');
-    if (!items.length || typeof gsap === 'undefined') return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  function playMoodboardArrival(container, state) {
+    if (!container || typeof gsap === 'undefined') return null;
 
-    // Reference images rise + expand in with a staggered cascade instead of just appearing.
-    gsap.set(items, { opacity: 0, scale: 0.9, y: 18, transformOrigin: '50% 60%' });
-    gsap.to(items, {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      duration: 0.55,
-      ease: 'power2.out',
-      stagger: { each: 0.018, from: 'start' },
-      onComplete: function () { gsap.set(items, { clearProps: 'transform,opacity' }); }
+    // The image cascade itself is a CSS animation (see .moodboard-page__item) — here we only
+    // reveal the container and clear any swirl/rewind layer left over from the spiral
+    // transition (it lives on <body> and survives the barba swap, so it must be removed or it
+    // covers the cascade). We also re-trigger the CSS reveal for the SPA-insert case.
+    var layers = Array.prototype.slice.call(document.querySelectorAll('.moodboard-rewind-layer'));
+    gsap.set(overlay, { opacity: 0 });
+    gsap.set(container, { opacity: 1, y: 0 });
+    retriggerMoodboardItems(container);
+
+    return new Promise(function (resolve) {
+      var done = function () {
+        layers.forEach(function (el) { if (el.parentNode) el.remove(); });
+        window.bylMoodboardRewind = null;
+        clearStoredMoodboardRewind();
+        moodboardRewindState = null;
+        resolve();
+      };
+      if (layers.length) {
+        gsap.to(layers, { opacity: 0, duration: 0.3, ease: 'power2.out', onComplete: done });
+      } else {
+        done();
+      }
     });
   }
 
@@ -397,7 +383,6 @@
 
   window.bylNavigateWithOverlay = navigateWithOverlay;
   playInitialHelixArrivalIfNeeded();
-  playInitialMoodboardRevealIfNeeded();
 
   barba.init({
     preventRunning: true,
