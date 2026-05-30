@@ -1734,14 +1734,15 @@ function initProjectsAtlas() {
 
     function createRibbonTexture() {
       var sourceImages = getRibbonSourceImages();
-      // One crisp frame per source image (no doubling) so photos aren't squished into tiny cells.
-      var frameCount = Math.max(24, sourceImages.length);
+      // Pack many smaller thumbnails along the strip (denser = smaller individual images).
+      var frameCount = Math.max(48, sourceImages.length * 3);
       var isTouchSizedTexture = shouldUseTouchTunedHelix();
-      // Render each image at high resolution, capped so the atlas never exceeds the GPU limit.
+      // Use the GPU's full texture budget so the dense cells stay reasonably crisp.
       var maxTextureSize = (renderer.capabilities && renderer.capabilities.maxTextureSize) || 4096;
-      var maxCanvasWidth = Math.min(4000, maxTextureSize);
-      var frameW = Math.min(isTouchSizedTexture ? 120 : 104, Math.floor(maxCanvasWidth / frameCount));
-      var frameH = Math.min(isTouchSizedTexture ? 148 : 132, maxTextureSize);
+      var maxCanvasWidth = Math.min(8192, maxTextureSize);
+      // Landscape cell aspect (~1.5:1) matches each strip segment, so images aren't stretched.
+      var frameW = Math.max(24, Math.floor(maxCanvasWidth / frameCount));
+      var frameH = Math.max(16, Math.round(frameW / 1.5));
       var canvas = document.createElement('canvas');
       canvas.width = frameCount * frameW;
       canvas.height = frameH;
@@ -1834,16 +1835,16 @@ function initProjectsAtlas() {
         scheduleRibbonDecodeRefresh();
       }
 
-      texture.generateMipmaps = false;
-      texture.minFilter = THREE.LinearFilter;
+      // Mipmaps (WebGL2) + full anisotropy keep the angled, minified ribbon strip anti-aliased
+      // instead of shimmering. Falls back to plain linear on WebGL1.
+      var canMipmap = !!(renderer.capabilities && renderer.capabilities.isWebGL2);
+      texture.generateMipmaps = canMipmap;
+      texture.minFilter = canMipmap ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
       texture.wrapS = THREE.ClampToEdgeWrapping;
       texture.wrapT = THREE.ClampToEdgeWrapping;
       if (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) {
-        texture.anisotropy = Math.min(
-          performanceProfile.anisotropyCap,
-          renderer.capabilities.getMaxAnisotropy()
-        );
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       }
       if ('colorSpace' in texture && THREE.SRGBColorSpace) {
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -2200,13 +2201,14 @@ function initProjectsAtlas() {
         height: helixHeight,
         startAngle: startAngle,
         phaseShift: ribbonPhaseShift,
-        // Extend only the ribbon's top end up past the helix so it spirals out through the
-        // "roof" — a taller visible strip and a taller tap target. Black thread is unchanged.
-        startT: -0.7,
+        // Spiral the ribbon's top well past the helix so its top edge sits off-screen (an extra
+        // turn up, and more on mobile where the viewport is taller). Black thread is unchanged.
+        startT: isMobile ? -2.4 : -1.6,
         endT: ribbonEndT,
         width: isMobile ? 0.28 : 0.34,
         tilt: isMobile ? 0.026 : 0.04,
-        segments: Math.round((isMobile ? performanceProfile.ribbonSegmentsMobile : performanceProfile.ribbonSegmentsDesktop) * 1.7)
+        // Dense segmentation so the long strip's facets/polygons are not visible.
+        segments: isMobile ? 240 : 200
       });
       if (ribbonMesh) {
         ribbonMeshRef = ribbonMesh;
@@ -2527,10 +2529,10 @@ function initProjectsAtlas() {
         // Shrink the whole spiral as it coils upward so it recedes into the distance.
         group.scale.setScalar(1 - liftEase * 0.55);
         if (ribbonMeshRef) {
-          // Inspo ribbon spirals upward just slightly faster than the black spiral — a touch more
-          // rotation and lift for a subtle depth/parallax effect (not a fast break-away).
-          ribbonMeshRef.rotation.y += delta * spinRamp * 0.0018;
-          ribbonMeshRef.position.y = liftEase * transitionHelixHeight * 0.18;
+          // Ribbon and black thread coil upward at clearly different rates so they read as two
+          // separate forms (depth) — the ribbon leads in both rotation and rise.
+          ribbonMeshRef.rotation.y += delta * spinRamp * 0.0042;
+          ribbonMeshRef.position.y = liftEase * transitionHelixHeight * 0.55;
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
         }
       } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && (ribbonMeshRef.position.y !== 0 || ribbonMeshRef.rotation.y !== 0))) {

@@ -297,48 +297,41 @@
   }
 
   function playMoodboardArrival(container, state) {
-    var visualState = ensureMoodboardRewindLayer(state);
-    if (!visualState || !visualState.layerEl) return null;
+    if (!container || typeof gsap === 'undefined') return null;
+    var items = container.querySelectorAll('.moodboard-page__item');
+    if (!items.length) return null;
 
-    var items = container ? container.querySelectorAll('.moodboard-page__item') : [];
+    // The rewind/swirl layer only exists when arriving via the spiral; the image cascade runs
+    // on every moodboard arrival regardless, so the images never just pop in.
+    var visualState = state ? ensureMoodboardRewindLayer(state) : null;
+    var layerEl = visualState && visualState.layerEl ? visualState.layerEl : null;
 
     gsap.set(overlay, { opacity: 0 });
-    gsap.set(visualState.layerEl, { y: 0, opacity: 1 });
-    gsap.set(container, { opacity: 1, y: 14 });
-    if (items.length) {
-      gsap.set(items, { opacity: 0, scale: 0.82, transformOrigin: '50% 50%' });
-    }
+    if (layerEl) gsap.set(layerEl, { y: 0, opacity: 1 });
+    gsap.set(container, { opacity: 1, y: 12 });
+    gsap.set(items, { opacity: 0, scale: 0.9, y: 18, transformOrigin: '50% 60%' });
 
     return new Promise(function (resolve) {
       var tl = gsap.timeline({
         onComplete: function () {
-          if (items.length) gsap.set(items, { clearProps: 'transform,opacity' });
+          gsap.set(items, { clearProps: 'transform,opacity' });
           clearMoodboardRewindState(visualState);
           moodboardRewindState = null;
           resolve();
         }
-      })
-        .to(container, {
-          y: 0,
-          duration: 0.46,
-          ease: 'power3.out'
-        }, 0)
-        .to(visualState.layerEl, {
-          opacity: 0,
-          duration: 0.42,
-          ease: 'power2.out'
-        }, 0.02);
-
-      // Stagger the reference images expanding in as the spiral hands off to the moodboard.
-      if (items.length) {
-        tl.to(items, {
-          opacity: 1,
-          scale: 1,
-          duration: 0.5,
-          ease: 'power2.out',
-          stagger: { each: 0.02, from: 'start' }
-        }, 0.1);
+      });
+      tl.to(container, { y: 0, duration: 0.46, ease: 'power3.out' }, 0);
+      if (layerEl) {
+        tl.to(layerEl, { opacity: 0, duration: 0.42, ease: 'power2.out' }, 0.02);
       }
+      tl.to(items, {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.55,
+        ease: 'power2.out',
+        stagger: { each: 0.018, from: 'start' }
+      }, 0.08);
     });
   }
 
@@ -471,13 +464,14 @@
       enter: function (data) {
         var nextNamespace = data.next && data.next.namespace ? data.next.namespace : '';
         var isProjectsPage = nextNamespace === 'projects';
+        var isMoodboard = nextNamespace === 'moodboard';
         if (helixZoomState) {
           var helixTl = playHelixArrival(data.next.container, helixZoomState);
           if (helixTl) return helixTl;
           clearHelixZoomState();
           helixZoomState = null;
         }
-        if (moodboardRewindState) {
+        if (isMoodboard) {
           var moodboardTl = playMoodboardArrival(data.next.container, moodboardRewindState);
           if (moodboardTl) return moodboardTl;
           clearMoodboardRewindState();
