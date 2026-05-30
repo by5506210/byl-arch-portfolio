@@ -183,12 +183,12 @@
     if (state.layerEl && state.layerEl.parentNode) return state;
 
     var layer = document.createElement('div');
-    layer.className = 'moodboard-rewind-layer';
+    layer.className = 'moodboard-rewind-layer moodboard-swirl-layer';
     layer.style.position = 'fixed';
     layer.style.inset = '0';
     layer.style.zIndex = '11980';
     layer.style.pointerEvents = 'none';
-    layer.style.background = 'linear-gradient(180deg, #fbfaf7 0%, #f1eee7 100%)';
+    layer.style.background = 'linear-gradient(180deg, rgba(251, 250, 247, 0.1) 0%, rgba(241, 238, 231, 0.92) 100%)';
     layer.style.transform = 'translate3d(0, 0, 0)';
     layer.style.willChange = 'transform, opacity';
     document.body.appendChild(layer);
@@ -302,7 +302,7 @@
 
     gsap.set(overlay, { opacity: 0 });
     gsap.set(visualState.layerEl, { y: 0, opacity: 1 });
-    gsap.set(container, { opacity: 1, y: 28 });
+    gsap.set(container, { opacity: 1, y: 18 });
 
     return new Promise(function (resolve) {
       gsap.timeline({
@@ -314,13 +314,13 @@
       })
         .to(container, {
           y: 0,
-          duration: 0.54,
+          duration: 0.48,
           ease: 'power3.out'
         }, 0)
         .to(visualState.layerEl, {
-          y: window.innerHeight,
-          duration: 0.58,
-          ease: 'power3.inOut'
+          opacity: 0,
+          duration: 0.42,
+          ease: 'power2.out'
         }, 0.02);
     });
   }

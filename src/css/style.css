@@ -2508,21 +2508,30 @@ body.portfolio-transition-active .slideshow__scroll-hint {
 }
 
 .projects-helix__moodboard-strip::before {
-  content: '';
+  content: 'INSPO';
   position: absolute;
   left: var(--moodboard-snap-x, 50%);
   top: var(--moodboard-snap-y, 50%);
-  width: calc(var(--moodboard-snap-size, 46px) * 1.22);
-  height: calc(var(--moodboard-snap-size, 46px) * 1.22);
-  transform: translate(-50%, -50%);
-  border: 1px solid rgba(17, 17, 15, 0.16);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--moodboard-snap-w, 78px);
+  height: var(--moodboard-snap-h, 34px);
+  transform: translate(-50%, -50%) rotate(var(--moodboard-snap-angle, 0rad));
+  border: 1px solid rgba(17, 17, 15, 0.2);
+  border-radius: 2px;
+  font-family: var(--font-primary);
+  font-size: 0.48rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  color: rgba(17, 17, 15, 0.78);
+  background: rgba(250, 248, 241, 0.76);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
-    0 14px 34px rgba(44, 36, 30, 0.1);
+    0 0 0 1px rgba(255, 255, 255, 0.24) inset,
+    0 12px 30px rgba(44, 36, 30, 0.12);
   opacity: 0;
-  transition: opacity 0.18s ease;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
 }
 
@@ -2757,6 +2766,8 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   --thumb-skew-y: -30deg;
   --hit-w: 120px;
   --hit-h: 92px;
+  --moodboard-node-shrink: 1;
+  --moodboard-node-fade: 1;
   --arm-length: 0px;
   --arm-angle: 0;
   --helix-dx: 0px;
@@ -2769,9 +2780,9 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   height: 0;
   display: block;
   color: inherit;
-  transform: translate3d(var(--x), var(--y), 0) translate(-50%, -50%) scale(calc(var(--node-base-scale) + var(--depth) * var(--node-depth-scale) + var(--proximity) * var(--node-proximity-scale)));
+  transform: translate3d(var(--x), var(--y), 0) translate(-50%, -50%) scale(calc((var(--node-base-scale) + var(--depth) * var(--node-depth-scale) + var(--proximity) * var(--node-proximity-scale)) * var(--moodboard-node-shrink)));
   transform-origin: center center;
-  opacity: calc((0.24 + var(--depth) * 0.6 + var(--proximity) * 0.36) * (1 - var(--fog) * 0.34) * var(--focus-dim));
+  opacity: calc((0.24 + var(--depth) * 0.6 + var(--proximity) * 0.36) * (1 - var(--fog) * 0.34) * var(--focus-dim) * var(--moodboard-node-fade));
   transition: none;
   will-change: transform, opacity;
   -webkit-backface-visibility: hidden;
@@ -3092,6 +3103,7 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 
 .projects-helix--moodboard-hover .projects-helix__moodboard-strip::before {
   opacity: 1;
+  transform: translate(-50%, -50%) rotate(var(--moodboard-snap-angle, 0rad)) scale(1.04);
 }
 
 .projects-helix--moodboard-hover .projects-helix__node {
@@ -3110,6 +3122,10 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   pointer-events: none;
 }
 
+.projects-helix--moodboard-rewinding .projects-helix__node {
+  filter: blur(1px) saturate(0.72);
+}
+
 .moodboard-rewind-layer {
   overflow: hidden;
   contain: paint;
@@ -3123,6 +3139,13 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
     linear-gradient(rgba(17, 17, 15, 0.034) 1px, transparent 1px) 0 0 / 100% 18px,
     radial-gradient(70% 48% at 50% 0%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0));
   opacity: 0.48;
+}
+
+.moodboard-swirl-layer::before {
+  background:
+    radial-gradient(58% 44% at 50% 18%, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0) 72%),
+    linear-gradient(180deg, rgba(247, 245, 239, 0.16), rgba(236, 231, 220, 0.72));
+  opacity: 0.82;
 }
 
 .moodboard-page {
