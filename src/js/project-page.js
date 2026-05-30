@@ -2544,16 +2544,21 @@ function initProjectsAtlas() {
         group.position.y = liftEase * coilLift;
         group.scale.setScalar(1 - shrinkEase * 0.72);
         if (ribbonMeshRef) {
-          ribbonMeshRef.rotation.y += delta * spinRamp * 0.0042;
-          ribbonMeshRef.position.y = liftEase * transitionHelixHeight * 0.55;
+          // Slurp the inner ribbon up like a spaghetti noodle: it whips upward and shrinks
+          // toward a point (accelerating), far more than the spiral as a whole.
+          var suck = Math.pow(p, 1.6);
+          ribbonMeshRef.rotation.y += delta * (spinRamp * 0.0042 + suck * 0.012);
+          ribbonMeshRef.position.y = (liftEase * 0.55 + suck * 0.95) * transitionHelixHeight;
+          ribbonMeshRef.scale.setScalar(1 - suck * 0.82);
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
         }
-      } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && (ribbonMeshRef.position.y !== 0 || ribbonMeshRef.rotation.y !== 0))) {
+      } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && (ribbonMeshRef.position.y !== 0 || ribbonMeshRef.rotation.y !== 0 || ribbonMeshRef.scale.x !== 1))) {
         group.position.y = 0;
         group.scale.setScalar(1);
         if (ribbonMeshRef) {
           ribbonMeshRef.position.y = 0;
           ribbonMeshRef.rotation.y = 0;
+          ribbonMeshRef.scale.setScalar(1);
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92;
         }
       }
