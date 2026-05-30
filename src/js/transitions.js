@@ -300,13 +300,19 @@
     var visualState = ensureMoodboardRewindLayer(state);
     if (!visualState || !visualState.layerEl) return null;
 
+    var items = container ? container.querySelectorAll('.moodboard-page__item') : [];
+
     gsap.set(overlay, { opacity: 0 });
     gsap.set(visualState.layerEl, { y: 0, opacity: 1 });
-    gsap.set(container, { opacity: 1, y: 18 });
+    gsap.set(container, { opacity: 1, y: 14 });
+    if (items.length) {
+      gsap.set(items, { opacity: 0, scale: 0.82, transformOrigin: '50% 50%' });
+    }
 
     return new Promise(function (resolve) {
-      gsap.timeline({
+      var tl = gsap.timeline({
         onComplete: function () {
+          if (items.length) gsap.set(items, { clearProps: 'transform,opacity' });
           clearMoodboardRewindState(visualState);
           moodboardRewindState = null;
           resolve();
@@ -314,7 +320,7 @@
       })
         .to(container, {
           y: 0,
-          duration: 0.48,
+          duration: 0.46,
           ease: 'power3.out'
         }, 0)
         .to(visualState.layerEl, {
@@ -322,6 +328,17 @@
           duration: 0.42,
           ease: 'power2.out'
         }, 0.02);
+
+      // Stagger the reference images expanding in as the spiral hands off to the moodboard.
+      if (items.length) {
+        tl.to(items, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.5,
+          ease: 'power2.out',
+          stagger: { each: 0.02, from: 'start' }
+        }, 0.1);
+      }
     });
   }
 

@@ -2518,14 +2518,21 @@ function initProjectsAtlas() {
         var coilLift = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
         group.rotation.y += delta * (0.0011 + spinRamp * 0.011);
         group.position.y = liftEase * coilLift;
-        group.scale.setScalar(1 + liftEase * 0.05);
-        if (ribbonMeshRef && ribbonMeshRef.material) {
-          ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
+        // Shrink the whole spiral as it coils upward so it recedes into the distance.
+        group.scale.setScalar(1 - liftEase * 0.55);
+        if (ribbonMeshRef) {
+          // The inspo ribbon breaks away and shoots upward far faster than the black spiral thread.
+          var ribbonLead = Math.pow(p, 0.62);
+          ribbonMeshRef.position.y = ribbonLead * transitionHelixHeight * 1.9;
+          if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
         }
-      } else if (group.position.y !== 0 || group.scale.x !== 1) {
+      } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && ribbonMeshRef.position.y !== 0)) {
         group.position.y = 0;
         group.scale.setScalar(1);
-        if (ribbonMeshRef && ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92;
+        if (ribbonMeshRef) {
+          ribbonMeshRef.position.y = 0;
+          if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92;
+        }
       }
 
       if (proximityNeedsStep) {
@@ -2533,7 +2540,9 @@ function initProjectsAtlas() {
       }
       syncWebglThumbs(viewportWidth, viewportHeight);
       renderSceneWithThumbs();
-      if (!lastNodeSyncTime || (now - lastNodeSyncTime) >= performanceProfile.nodeSyncMinMs) {
+      if (moodboardTransition.active || !lastNodeSyncTime || (now - lastNodeSyncTime) >= performanceProfile.nodeSyncMinMs) {
+        // Sync the DOM thumbnails every frame during the moodboard transition so the
+        // shrink-and-lift stays smooth instead of stepping at the throttled sync rate.
         syncNodes(viewportWidth, viewportHeight, now);
         lastNodeSyncTime = now;
       }
@@ -3175,6 +3184,26 @@ function initProjectsAtlas() {
         }
       }
     });
+
+    // Extend the snappable strip straight up to the top of the stage ("through the roof")
+    // so it stays a tall, easy target to click — especially for touch.
+    var topHit = null;
+    for (var si = 0; si < sources.length; si++) {
+      var shits = sources[si] && sources[si].hits;
+      if (!shits) continue;
+      for (var hi = 0; hi < shits.length; hi++) {
+        if (shits[hi] && (!topHit || shits[hi].y < topHit.y)) topHit = shits[hi];
+      }
+    }
+    if (topHit) {
+      var colProj = getPointSegmentProjection(localX, localY, topHit.x, topHit.y, topHit.x, 0);
+      var cdx = localX - colProj.x;
+      var cdy = localY - colProj.y;
+      var cDistSq = cdx * cdx + cdy * cdy;
+      if (!best || cDistSq < best.distSq) {
+        best = { distSq: cDistSq, x: colProj.x, y: colProj.y, angle: colProj.angle };
+      }
+    }
 
     if (!best || best.distSq > tolerance * tolerance) return null;
 

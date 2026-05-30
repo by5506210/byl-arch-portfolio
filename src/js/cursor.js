@@ -478,14 +478,24 @@
   function snapToMoodboardStrip(target, rectOverride) {
     if (!target) return;
     if (rectOverride && rectOverride.width > 0.5 && rectOverride.height > 0.5) {
-      target.__cursorSnapRect = rectOverride;
+      // Snap as a clean circle centred on the ribbon point rather than stretching the
+      // cursor across the strip (which produced the oval pill shape).
+      var cx = rectOverride.left + rectOverride.width * 0.5;
+      var cy = rectOverride.top + rectOverride.height * 0.5;
+      var diameter = 30;
+      target.__cursorSnapRect = {
+        left: cx - diameter * 0.5,
+        top: cy - diameter * 0.5,
+        width: diameter,
+        height: diameter
+      };
     } else if (!setMoodboardStripSnapRect(target)) {
       return;
     }
 
     beginSnap(target, {
-      padX: 12,
-      padY: 12,
+      padX: 0,
+      padY: 0,
       radiusCap: 999,
       radiusFactor: 0.5,
       followTarget: true
