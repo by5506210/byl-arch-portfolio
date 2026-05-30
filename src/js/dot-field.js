@@ -11,6 +11,7 @@
   var pointerX = -1000;
   var pointerY = -1000;
   var pointerClearTimer = null;
+  var pointerInputBlockedUntil = 0;
   var revealState = {
     active: false,
     x: window.innerWidth * 0.5,
@@ -147,12 +148,33 @@
     }
   }
 
+  function resetPointerState() {
+    if (pointerClearTimer) {
+      clearTimeout(pointerClearTimer);
+      pointerClearTimer = null;
+    }
+
+    pointerX = -1000;
+    pointerY = -1000;
+
+    for (var i = 0; i < instances.length; i++) {
+      if (typeof instances[i].resetMouseState === 'function') {
+        instances[i].resetMouseState();
+      }
+    }
+  }
+
   function setDotFieldTransition(config) {
+    var wasActive = revealState.active;
     revealState.active = !!(config && config.active);
     revealState.x = config && typeof config.x === 'number' ? config.x : window.innerWidth * 0.5;
     revealState.y = config && typeof config.y === 'number' ? config.y : window.innerHeight * 0.5;
     revealState.radius = config && typeof config.radius === 'number' ? Math.max(0, config.radius) : 0;
     revealState.progress = config && typeof config.progress === 'number' ? clamp(config.progress, 0, 1) : 0;
+    if (revealState.active || wasActive) {
+      pointerInputBlockedUntil = Date.now() + 220;
+      resetPointerState();
+    }
     requestRenderAll();
   }
 
@@ -161,6 +183,11 @@
     listenersAttached = true;
 
     function setPointerPosition(clientX, clientY) {
+      if (revealState.active || Date.now() < pointerInputBlockedUntil) {
+        resetPointerState();
+        return;
+      }
+
       if (pointerClearTimer) {
         clearTimeout(pointerClearTimer);
         pointerClearTimer = null;
@@ -564,6 +591,14 @@
       mouseY += window.scrollY || window.pageYOffset || 0;
     }
     return { x: mouseX, y: mouseY };
+  };
+
+  DotField.prototype.resetMouseState = function () {
+    this.mousePresence = 0;
+    this.smoothedMouseX = -1000;
+    this.smoothedMouseY = -1000;
+    this.lastFrameTime = 0;
+    this.requestRender();
   };
 
   DotField.prototype.updateMouse = function (dt) {
