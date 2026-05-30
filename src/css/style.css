@@ -2457,21 +2457,22 @@ body.is-projects-spiral {
 .projects-helix--is-entering .projects-helix__stage {
   opacity: 0;
   pointer-events: none;
+  transform: translate3d(0, -52px, 0) scale(0.985);
 }
 
 .projects-helix--is-ready .projects-helix__stage {
   opacity: 1;
   pointer-events: auto;
-  /* Only fade in — the spatial entrance is the WebGL coil-down, so don't animate transform
-     here (it used to fight the 3D motion and feel uncanny). */
-  transition: opacity 0.62s ease;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    opacity 0.62s ease,
+    transform 0.92s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Desktop: nudge the whole spiral a touch lower in the viewport. Static (not tied to the
-   reveal state) so it never animates and fights the WebGL entrance. */
+/* Desktop: nudge the whole spiral a touch lower in the viewport. */
 @media (min-width: 901px) {
-  .projects-helix__stage {
-    transform: translate3d(0, 48px, 0);
+  .projects-helix--is-ready .projects-helix__stage {
+    transform: translate3d(0, 48px, 0) scale(1);
   }
 }
 

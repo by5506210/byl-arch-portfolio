@@ -548,10 +548,6 @@ function initProjectsAtlas() {
     if (disposed || !helix.isConnected) return;
     helix.classList.add('projects-helix--is-ready');
     helix.classList.remove('projects-helix--is-entering');
-    // Play the spiral entrance (reverse of the moodboard coil-up): it descends in from the top.
-    if (webglHelix && typeof webglHelix.startEntranceTransition === 'function') {
-      webglHelix.startEntranceTransition();
-    }
     invalidateStageRect();
     if (readyRectTimer) window.clearTimeout(readyRectTimer);
     readyRectTimer = window.setTimeout(function () {
@@ -1637,12 +1633,6 @@ function initProjectsAtlas() {
       duration: 820,
       progress: 0
     };
-    var entranceTransition = {
-      active: false,
-      start: 0,
-      duration: 880,
-      progress: 0
-    };
     // Cached helix dimensions so the moodboard transition can lift the spiral fully out of frame.
     var transitionHelixHeight = 10.2;
     var transitionIsMobile = false;
@@ -2558,34 +2548,6 @@ function initProjectsAtlas() {
           ribbonMeshRef.position.y = liftEase * transitionHelixHeight * 0.55;
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
         }
-      } else if (entranceTransition.active) {
-        var erp = clamp((now - entranceTransition.start) / Math.max(1, entranceTransition.duration), 0, 1);
-        entranceTransition.progress = erp;
-        // Play the coil-up EXACTLY backwards (time-eased): revP runs 1 -> 0, fed through the same
-        // lift/shrink/spin curves as the coil-up, so the spiral starts where the coil-up ends
-        // (up, shrunk, spun) and settles into the identical resting transform — no mismatch.
-        var ease = 1 - Math.pow(1 - erp, 3);
-        var revP = 1 - ease;
-        var liftEaseR = revP * revP * (3 - 2 * revP);
-        var shrinkEaseR = Math.pow(revP, 0.55);
-        var spinRampR = revP * revP;
-        var entCoil = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
-        group.rotation.y += delta * (0.0014 + spinRampR * 0.013);
-        group.position.y = liftEaseR * entCoil;
-        group.scale.setScalar(1 - shrinkEaseR * 0.72);
-        if (ribbonMeshRef) {
-          ribbonMeshRef.rotation.y += delta * spinRampR * 0.0042;
-          ribbonMeshRef.position.y = liftEaseR * transitionHelixHeight * 0.55;
-        }
-        if (erp >= 1) {
-          entranceTransition.active = false;
-          group.position.y = 0;
-          group.scale.setScalar(1);
-          if (ribbonMeshRef) {
-            ribbonMeshRef.position.y = 0;
-            ribbonMeshRef.rotation.y = 0;
-          }
-        }
       } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && (ribbonMeshRef.position.y !== 0 || ribbonMeshRef.rotation.y !== 0))) {
         group.position.y = 0;
         group.scale.setScalar(1);
@@ -2719,19 +2681,6 @@ function initProjectsAtlas() {
         moodboardTransition.start = performance.now();
         moodboardTransition.duration = duration || 820;
         moodboardTransition.progress = 0;
-        ensureAnimation();
-      },
-      startEntranceTransition: function (duration) {
-        moodboardTransition.active = false;
-        entranceTransition.active = true;
-        entranceTransition.start = performance.now();
-        entranceTransition.duration = duration || 880;
-        entranceTransition.progress = 0;
-        // Snap to the up/away start state immediately so the first visible frame doesn't pop.
-        var entCoil = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
-        group.position.y = entCoil;
-        group.scale.setScalar(0.28);
-        if (ribbonMeshRef) ribbonMeshRef.position.y = transitionHelixHeight * 0.55;
         ensureAnimation();
       }
     };
