@@ -44,9 +44,9 @@
     '    vec2 revealDir = revealDist > 0.001 ? revealDelta / revealDist : vec2(0.0, -1.0);',
     '    float revealProgress = clamp(u_reveal.z, 0.0, 1.0);',
     '    float damp = clamp(u_reveal.w, 0.0, 1.0);',
-    '    float motionScale = mix(1.0, 0.38, damp);',
-    '    float alphaScale = mix(1.0, 0.48, damp);',
-    '    float bandWidth = mix(92.0, 146.0, revealProgress) * mix(1.0, 0.72, damp);',
+    '    float motionScale = mix(1.0, 0.28, damp);',
+    '    float alphaScale = mix(1.0, 0.38, damp);',
+    '    float bandWidth = mix(92.0, 146.0, revealProgress) * mix(1.0, 0.62, damp);',
     '    float edge = 1.0 - smoothstep(0.0, bandWidth, abs(revealDist - u_reveal.y));',
     '    float insideWake = smoothstep(0.0, 1.0, u_reveal.y - revealDist);',
     '    float behind = max(0.0, u_reveal.y - revealDist);',
@@ -62,7 +62,7 @@
     '  vec2 clipSpace = zeroToOne * 2.0 - 1.0;',
     '  gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);',
     '  gl_PointSize = max(1.0, radius * 2.0 * u_pixelRatio);',
-    '  v_alpha = min(alpha, u_reveal.x > 0.5 ? mix(0.82, 0.62, clamp(u_reveal.w, 0.0, 1.0)) : 0.58);',
+    '  v_alpha = min(alpha, u_reveal.x > 0.5 ? mix(0.82, 0.56, clamp(u_reveal.w, 0.0, 1.0)) : 0.58);',
     '}'
   ].join('\n');
 
@@ -615,12 +615,17 @@
 
     gl.uniform2f(this.locations.resolution, this.fieldWidth, this.fieldHeight);
     gl.uniform2f(this.locations.mouse, this.smoothedMouseX, this.smoothedMouseY);
-    gl.uniform1f(this.locations.mousePresence, clamp(this.mousePresence, 0, 1));
     gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
     gl.uniform1f(this.locations.cursorBoost, this.cursorBoost);
     gl.uniform1f(this.locations.pixelRatio, this.backingScale);
     var revealActive = this.isHomeField && revealState.active;
-    var revealDamp = this.reducedMotion ? 1 : (window.innerWidth < 768 ? 0.72 : 0);
+    var revealInteractionPresence = 1;
+    if (revealActive) {
+      revealInteractionPresence = clamp((revealState.progress - 0.92) / 0.08, 0, 1);
+      revealInteractionPresence = revealInteractionPresence * revealInteractionPresence * (3 - 2 * revealInteractionPresence);
+    }
+    gl.uniform1f(this.locations.mousePresence, clamp(this.mousePresence * revealInteractionPresence, 0, 1));
+    var revealDamp = this.reducedMotion ? 1 : (window.innerWidth < 768 ? 0.9 : 0);
     gl.uniform2f(this.locations.revealCenter, revealState.x, revealState.y);
     gl.uniform4f(
       this.locations.reveal,
