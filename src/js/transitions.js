@@ -535,4 +535,27 @@
       background: DEFAULT_PAGE_BG
     });
   });
+
+  // Entering the Blackjack Room is a full page load (the link opts out of barba),
+  // so dim the current page to black first — the room itself then raises the lights.
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href$="blackjack.html"]');
+    if (!link) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
+    if (link.target === '_blank') return;
+
+    e.preventDefault();
+    var href = link.getAttribute('href');
+    var container = document.querySelector('[data-barba="container"]') || document.body;
+    overlay.style.background = '#060605';
+    overlay.style.opacity = '0';
+    gsap.timeline()
+      .to(container, { opacity: 0, duration: 0.34, ease: 'power2.in' })
+      .to(overlay, {
+        opacity: 1,
+        duration: 0.3,
+        ease: 'power1.in',
+        onComplete: function () { window.location.href = href; }
+      }, '-=0.16');
+  });
 })();

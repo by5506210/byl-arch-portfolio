@@ -1633,9 +1633,17 @@ function initProjectsAtlas() {
       duration: 820,
       progress: 0
     };
-    // Cached helix dimensions so the moodboard transition can lift the spiral fully out of frame.
+    // Cached helix dimensions so the moodboard transition can lift the ribbon fully out of frame.
     var transitionHelixHeight = 10.2;
     var transitionIsMobile = false;
+    // Moodboard transition: the ribbon detaches from the spiral group and flies up on its own
+    // while the spiral/dots shrink and fade in place. These hold the ribbon's pre-transition
+    // transform and the spiral materials we fade out.
+    var transitionSpiralMats = [];
+    var moodboardTransitionWasActive = false;
+    var ribbonBaseY = 0;
+    var ribbonBaseRotY = 0;
+    var ribbonBaseScale = 1;
 
     function disposeMaterial(material) {
       if (material && material.dispose) material.dispose();
@@ -2535,32 +2543,46 @@ function initProjectsAtlas() {
         var rawTransitionProgress = (now - moodboardTransition.start) / Math.max(1, moodboardTransition.duration);
         moodboardTransition.progress = clamp(rawTransitionProgress, 0, 1);
         var p = moodboardTransition.progress;
-        var liftEase = p * p * (3 - 2 * p);
-        // Front-load the shrink so it reads clearly even on a wide desktop before it lifts away.
-        var shrinkEase = Math.pow(p, 0.55);
+        var shrinkEase = Math.pow(p, 0.6);
+        var fadeEase = Math.pow(p, 0.85);
         var spinRamp = p * p;
-        var coilLift = transitionHelixHeight * (transitionIsMobile ? 1.4 : 1.6);
-        group.rotation.y += delta * (0.0014 + spinRamp * 0.013);
-        group.position.y = liftEase * coilLift;
-        group.scale.setScalar(1 - shrinkEase * 0.72);
-        if (ribbonMeshRef) {
-          // Slurp the inner ribbon up like a spaghetti noodle: it whips upward and shrinks
-          // toward a point (accelerating), far more than the spiral as a whole.
-          var suck = Math.pow(p, 1.6);
-          ribbonMeshRef.rotation.y += delta * (spinRamp * 0.0042 + suck * 0.012);
-          ribbonMeshRef.position.y = (liftEase * 0.55 + suck * 0.95) * transitionHelixHeight;
-          ribbonMeshRef.scale.setScalar(1 - suck * 0.82);
-          if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92 + liftEase * 0.08;
+
+        // The black spiral, dots and thumbnails stay where they are: no upward lift. They
+        // shrink toward the centre and fade away in place.
+        group.position.y = 0;
+        group.rotation.y += delta * (0.001 + spinRamp * 0.004);
+        group.scale.setScalar(Math.max(0.05, 1 - shrinkEase * 0.62));
+        for (var sm = 0; sm < transitionSpiralMats.length; sm++) {
+          transitionSpiralMats[sm].mat.opacity = transitionSpiralMats[sm].base * (1 - fadeEase);
         }
-      } else if (group.position.y !== 0 || group.scale.x !== 1 || (ribbonMeshRef && (ribbonMeshRef.position.y !== 0 || ribbonMeshRef.rotation.y !== 0 || ribbonMeshRef.scale.x !== 1))) {
+
+        // Ribbon only: detached from the spiral, it whips upward out of frame and shrinks to
+        // a point (accelerating) — the dramatic spaghetti slurp.
+        if (ribbonMeshRef) {
+          var suck = Math.pow(p, 1.85);
+          ribbonMeshRef.rotation.y = ribbonBaseRotY + spinRamp * 1.6 + suck * 11;
+          ribbonMeshRef.position.y = ribbonBaseY + suck * transitionHelixHeight * 2.6;
+          ribbonMeshRef.scale.setScalar(Math.max(0.001, ribbonBaseScale * (1 - suck * 0.94)));
+          if (ribbonMeshRef.material) {
+            ribbonMeshRef.material.opacity = clamp(1 - Math.pow(p, 5) * 0.9, 0.04, 1);
+          }
+        }
+        moodboardTransitionWasActive = true;
+      } else if (moodboardTransitionWasActive) {
+        // Restore if the transition was interrupted (the normal path navigates away).
         group.position.y = 0;
         group.scale.setScalar(1);
+        for (var rm = 0; rm < transitionSpiralMats.length; rm++) {
+          transitionSpiralMats[rm].mat.opacity = transitionSpiralMats[rm].base;
+        }
         if (ribbonMeshRef) {
+          if (ribbonMeshRef.parent !== group) group.attach(ribbonMeshRef);
           ribbonMeshRef.position.y = 0;
           ribbonMeshRef.rotation.y = 0;
           ribbonMeshRef.scale.setScalar(1);
           if (ribbonMeshRef.material) ribbonMeshRef.material.opacity = 0.92;
         }
+        moodboardTransitionWasActive = false;
       }
 
       if (proximityNeedsStep) {
@@ -2657,6 +2679,12 @@ function initProjectsAtlas() {
         ribbonTextureRefreshFrame = 0;
       }
 
+      // If a moodboard transition detached the ribbon onto the scene, put it back so clearGroup
+      // disposes its geometry/material with the rest of the spiral.
+      if (ribbonMeshRef && ribbonMeshRef.parent && ribbonMeshRef.parent !== group) {
+        group.add(ribbonMeshRef);
+      }
+
       clearGroup();
       clearThumbScene();
       nodeScreenState = [];
@@ -2686,6 +2714,24 @@ function initProjectsAtlas() {
         moodboardTransition.start = performance.now();
         moodboardTransition.duration = duration || 820;
         moodboardTransition.progress = 0;
+        // Lift the ribbon out of the spiral group so it can fly away independently while the
+        // spiral shrinks and fades in place. scene.attach preserves its current world transform
+        // (its pivot is the helix axis, so it does not jump).
+        if (ribbonMeshRef && scene && ribbonMeshRef.parent !== scene) {
+          scene.attach(ribbonMeshRef);
+        }
+        ribbonBaseY = ribbonMeshRef ? ribbonMeshRef.position.y : 0;
+        ribbonBaseRotY = ribbonMeshRef ? ribbonMeshRef.rotation.y : 0;
+        ribbonBaseScale = ribbonMeshRef ? ribbonMeshRef.scale.x : 1;
+        // Snapshot the spiral/dot material opacities so we can fade them to nothing.
+        transitionSpiralMats = [];
+        group.traverse(function (obj) {
+          if (obj.material && typeof obj.material.opacity === 'number') {
+            obj.material.transparent = true;
+            transitionSpiralMats.push({ mat: obj.material, base: obj.material.opacity });
+          }
+        });
+        moodboardTransitionWasActive = false;
         ensureAnimation();
       }
     };

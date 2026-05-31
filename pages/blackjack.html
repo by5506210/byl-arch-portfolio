@@ -9,13 +9,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=landing-dot-ripple-20260530b">
+  <link rel="stylesheet" href="../src/css/style.css?v=blackjack-room-flesh-20260531">
 </head>
 <body>
   <div class="grain"></div>
   <div data-barba="wrapper">
     <main data-barba="container" data-barba-namespace="blackjack">
       <section class="blackjack-page" data-blackjack-game>
+        <div class="blackjack-intro" id="blackjack-intro" aria-hidden="true" style="position:fixed;inset:0;z-index:75;background:#060605;"><span class="blackjack-intro__spot"></span></div>
         <nav class="blackjack-nav" aria-label="Blackjack navigation">
           <a href="../index.html" class="blackjack-nav__brand" data-barba-prevent="self">BYL</a>
           <div class="blackjack-nav__links">
@@ -27,10 +28,9 @@
 
         <div class="blackjack-shell">
           <header class="blackjack-header" aria-label="Blackjack status">
-            <div class="blackjack-header__meta" aria-live="polite">
-              <span id="blackjack-round">Round 1/3</span>
-              <span id="blackjack-message">Wager</span>
-            </div>
+            <span class="blackjack-header__round" id="blackjack-round">Round 1/3</span>
+            <span class="blackjack-header__status" id="blackjack-message" aria-live="polite">Place your bet</span>
+            <span class="blackjack-header__chips">Chips <strong id="blackjack-chips">100</strong></span>
           </header>
 
           <div class="blackjack-layout">
@@ -46,10 +46,10 @@
 
                 <div class="blackjack-seat blackjack-seat--ghost">
                   <div class="blackjack-seat__topline">
-                    <span class="blackjack-seat__name">Ghost Bryan <span class="blackjack-seat__chips"><strong id="blackjack-cpu-chips">100</strong> chips</span></span>
-                    <span class="blackjack-seat__value" id="blackjack-cpu-value">0</span>
+                    <span class="blackjack-seat__name">Ghost Bryan</span>
                   </div>
                   <div class="blackjack-hand blackjack-hand--small" id="blackjack-cpu-hand" aria-label="Ghost Bryan hand"></div>
+                  <p class="blackjack-seat__quip" id="blackjack-ghost-quip" aria-live="polite"></p>
                 </div>
 
                 <div class="blackjack-seat blackjack-seat--player">
@@ -66,12 +66,8 @@
 
             <aside class="blackjack-controls" aria-label="Blackjack controls">
               <div class="blackjack-controls__left">
-                <div class="blackjack-controls__hud" aria-label="Current chips and bet">
-                  <span>Chips <strong id="blackjack-chips">100</strong></span>
-                  <span>Bet <strong id="blackjack-bet">10</strong></span>
-                </div>
-
                 <div class="blackjack-panel blackjack-panel--wager" data-blackjack-panel="wager">
+                  <span class="blackjack-wager__label">Bet</span>
                   <div class="blackjack-wager">
                     <button type="button" class="blackjack-icon-button" data-bet-step="-10" aria-label="Lower bet">-</button>
                     <div>
@@ -111,7 +107,7 @@
   </div>
 
   <script src="../src/js/cursor.js?v=inspo-ribbon-swirl-20260530a"></script>
-  <script src="../src/js/blackjack.js?v=blackjack-room-separated-rounds-20260503"></script>
+  <script src="../src/js/blackjack.js?v=blackjack-room-flesh-20260531b"></script>
   <script src="../src/js/transitions.js?v=inspo-ribbon-swirl-20260530a"></script>
 </body>
 </html>
