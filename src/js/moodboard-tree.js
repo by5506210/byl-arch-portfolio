@@ -62,6 +62,7 @@
   var BRANCH_OPACITY = 0.95;
   var THEME_OPACITY = 0.7;
   var THEME_WEIGHT = 300;
+  var SEL_SCALE = 1.14;     // selected line grows a touch to stand out more
 
   // ---- Motion ----
   var GLOBAL_AMP = 0.06;
@@ -333,9 +334,19 @@
     // Highlight: the selected line turns black and opaque; the rest stay soft.
     function highlight(br) {
       if (current === br) return;
-      if (current) { current.mesh.material.color.setHex(0xffffff); current.mesh.material.opacity = BRANCH_OPACITY; }
+      if (current) {
+        current.mesh.material.color.setHex(0xffffff);
+        current.mesh.material.opacity = BRANCH_OPACITY;
+        current.mesh.scale.set(1, 1, 1);
+        current.mesh.position.z = 0;
+      }
       current = br;
-      if (br) { br.mesh.material.color.setHex(0x000000); br.mesh.material.opacity = 1; }
+      if (br) {
+        br.mesh.material.color.setHex(0x000000);
+        br.mesh.material.opacity = 1;
+        br.mesh.scale.set(SEL_SCALE, SEL_SCALE, 1);
+        br.mesh.position.z = 0.5; // lift above neighbours so the larger line isn't clipped
+      }
       setDisplay(br ? br.item : null);
       mount.classList.toggle('is-hovering', !!br);
     }
