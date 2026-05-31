@@ -250,25 +250,50 @@
     var maxWorldW = 0.001;
     pending.forEach(function (p) { if (p.worldW > maxWorldW) maxWorldW = p.worldW; });
     var longRef = maxWorldW * 0.8;
-    var maxExtent = INNER_R + 2;
+
+    // Seed radius by length: anchors reach the hub, long lines ring it, short out.
     pending.forEach(function (p) {
-      var rInner;
       if (p.anchor) {
-        // Reach in to the center ring, staggered so a group's spokes don't collide.
-        rInner = CENTER_R + p.anchorRank * ANCHOR_STEP;
+        p.rInner = CENTER_R + p.anchorRank * ANCHOR_STEP;
       } else {
         var lengthFrac = Math.min(1, p.worldW / longRef);
-        rInner = INNER_R + (1 - lengthFrac) * OUTER_PUSH + (p.gi % RING_LEVELS) * RING_JITTER;
+        p.rInner = INNER_R + (1 - lengthFrac) * OUTER_PUSH + (p.gi % RING_LEVELS) * RING_JITTER;
       }
+    });
+
+    // Electron-repulsion relaxation: two angular neighbours (radial lines) only
+    // clear once the closer of their starts sits past TEXT_H / angular-gap — so
+    // where they'd overlap, push the outer one further out until they separate.
+    var ordered = pending.slice().sort(function (a, b) { return a.ang - b.ang; });
+    var L = ordered.length, RMAX = INNER_R + OUTER_PUSH + 2;
+    for (var relax = 0; relax < 22; relax++) {
+      for (var k = 0; k < L; k++) {
+        for (var m = 1; m <= 2; m++) {
+          var a = ordered[k], b = ordered[(k + m) % L];
+          var da = Math.abs(a.ang - b.ang); if (da > Math.PI) da = Math.PI * 2 - da;
+          if (da > 0.2) break;
+          var rReq = Math.min(RMAX, TEXT_H * 1.15 / Math.max(da, 0.02));
+          var hi = a.rInner >= b.rInner ? a : b;
+          if (!hi.anchor && hi.rInner < rReq) hi.rInner += (rReq - hi.rInner) * 0.35;
+        }
+      }
+    }
+
+    // Place each line inside its own pivot at the center, so the per-line sway
+    // rotates it around the hub instead of sliding it sideways.
+    var maxExtent = INNER_R + 2;
+    pending.forEach(function (p) {
       var left = Math.cos(p.ang) < 0;
-      var rMid = rInner + p.worldW * 0.5;
+      var rMid = p.rInner + p.worldW * 0.5;
       var baseRot = left ? p.ang + Math.PI : p.ang;
       p.mesh.position.set(Math.cos(p.ang) * rMid, Math.sin(p.ang) * rMid, 0);
       p.mesh.rotation.z = baseRot;
-      p.grp.add(p.mesh);
-      branches.push({ mesh: p.mesh, item: p.item, baseAngle: p.ang, rInner: rInner, grp: p.grp,
-        baseRot: baseRot, phase: rand() * 6.28 });
-      maxExtent = Math.max(maxExtent, rInner + p.worldW);
+      var pivot = new THREE.Group();
+      pivot.add(p.mesh);
+      p.grp.add(pivot);
+      branches.push({ mesh: p.mesh, pivot: pivot, item: p.item, baseAngle: p.ang, rInner: p.rInner,
+        grp: p.grp, baseRot: baseRot, phase: rand() * 6.28 });
+      maxExtent = Math.max(maxExtent, p.rInner + p.worldW);
     });
 
     var fitHalf = maxExtent * FIT_MARGIN;
@@ -420,10 +445,11 @@
       }
       mAngVel *= 0.7;
 
-      // Tiny individual flutter on each phrase, on top of its group's sway.
+      // Tiny individual flutter — rotate each phrase around the hub (via its
+      // pivot), on top of its group's sway, rather than sliding it sideways.
       for (var bi = 0; bi < branches.length; bi++) {
         var b = branches[bi];
-        b.mesh.rotation.z = b.baseRot + INDIV_SWAY * Math.sin(t * 1.4 + b.phase);
+        b.pivot.rotation.z = INDIV_SWAY * Math.sin(t * 1.4 + b.phase);
       }
 
       renderer.render(scene, camera);
@@ -460,12 +486,30 @@
     if (!items.length) return;
 
     if (activeStop) { try { activeStop(); } catch (e) {} activeStop = null; }
-    instanceId++;
+    var token = ++instanceId;
     mount.dataset.ready = 'true';
     page.classList.remove('is-fallback');
+
+    function fail() { mount.dataset.ready = ''; page.classList.add('is-fallback'); }
+
     loadThree(function (ok) {
-      if (!ok || !window.THREE) { mount.dataset.ready = ''; page.classList.add('is-fallback'); return; }
-      if (!buildScene(mount, page, display, items)) { mount.dataset.ready = ''; page.classList.add('is-fallback'); }
+      if (token !== instanceId) return;
+      if (!ok || !window.THREE) { fail(); return; }
+      // Wait until the mount has real layout. On a barba SPA swap the new container
+      // can measure 0x0 for a few frames, which built an empty tree (the "nothing
+      // there until I refresh" bug). Retry until it is sized.
+      var tries = 0;
+      (function whenSized() {
+        if (token !== instanceId) return;
+        var rect = mount.getBoundingClientRect();
+        if (rect.width > 8 && rect.height > 8) {
+          if (!buildScene(mount, page, display, items)) fail();
+        } else if (tries++ < 90) {
+          requestAnimationFrame(whenSized);
+        } else {
+          fail();
+        }
+      })();
     });
   }
 
