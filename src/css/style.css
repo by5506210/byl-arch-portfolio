@@ -3276,7 +3276,8 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   height: 100%;
 }
 
-.moodboard-mindmap canvas {
+.moodboard-mindmap canvas,
+.moodboard-mindmap svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -3284,8 +3285,38 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   touch-action: pan-y;
 }
 
-.moodboard-mindmap.is-hovering canvas {
+.moodboard-svg {
+  overflow: visible;
+}
+
+.mb-core {
+  fill: rgba(20, 19, 16, 0.85);
+}
+
+.mb-spoke-line {
+  stroke: rgba(20, 19, 16, 0.14);
+  stroke-width: 1;
+}
+
+.mb-theme {
+  font-family: var(--font-primary);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  fill: rgba(20, 19, 16, 0.82);
+  pointer-events: none;
+}
+
+.mb-dot {
+  fill: rgba(20, 19, 16, 0.7);
   cursor: pointer;
+  transition: fill 0.18s ease, r 0.18s ease;
+}
+
+.mb-dot:hover,
+.mb-dot.is-active {
+  fill: #141310;
+  r: 6;
 }
 
 .moodboard-mindmap__hint {

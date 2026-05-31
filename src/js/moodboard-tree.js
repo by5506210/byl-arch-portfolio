@@ -1,22 +1,17 @@
 // ============================================
-// MOODBOARD MIND-MAP  (WebGL radial tree)
-// A fixed center grows theme boughs that fork progressively outward (like a real
-// branching tree / dendrogram). Branches are stiff straight segments; the sway
-// comes from each joint rotating subtly — wind plus a velocity push wherever the
-// cursor brushes through — so the rigid branches swing and the tips travel most.
-// Every branch ends in a dot that stands for one inspo photo; hover (or tap) a
-// dot to show that photo large on the display side. Falls back to the plain image
-// grid without WebGL; prefers-reduced-motion stills it.
+// MOODBOARD MIND-MAP  (SVG radial text diagram)
+// A typographic concept map: each theme is a line of text radiating from a fixed
+// center, ending in a small cluster of dots — one dot per inspo photo. The stiff
+// spokes sway gently (wind) and react to the cursor sweeping past (velocity), then
+// settle. Hover (or tap) a dot to show that photo large on the display side.
+// Crisp HTML/SVG text — no WebGL. Falls back to the plain image grid if anything
+// is missing; prefers-reduced-motion stills it.
 // ============================================
 
 (function () {
   'use strict';
 
-  var THREE_SOURCES = [
-    '../src/js/vendor/three.min.js',
-    'https://unpkg.com/three@0.152.2/build/three.min.js',
-    'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js'
-  ];
+  var SVGNS = 'http://www.w3.org/2000/svg';
 
   // Placeholder theme buckets. Re-bucket by adding data-theme="<name>" to the
   // .moodboard-page__item figures; untagged images spread round-robin.
@@ -25,52 +20,25 @@
     'Landscape', 'Texture', 'Atmosphere'
   ];
 
-  // ---- Layout ----
-  var LEAF_RADIUS = 5.2;        // where the photo dots sit
-  var LEAF_JITTER = 0.55;
-  var INNER_SPAN = 0.92;        // internal forks fill this fraction of the radius
-  var SECTOR_PAD = 0.12;        // gap between theme sectors
-  var VIEW_HALF = 6.6;
-  var INK_HEX = 0x141310;
-  var INK = '#141310';
+  // ---- Layout (fractions of the available half-radius) ----
+  var TEXT_R = 0.14;     // where each theme word starts
+  var DOT_R0 = 0.5;      // inner edge of the photo-dot cluster
+  var DOT_R1 = 0.92;     // outer edge of the cluster
+  var FAN = 0.62;        // cluster angular spread (fraction of the theme sector)
 
-  // ---- Branch weight (tapers thick trunk -> fine twig by subtree size) ----
-  var BW_MIN = 0.012;
-  var BW_SCALE = 0.019;
-  var DOT_R = 0.07;
-  var DOT_R_HOVER = 0.15;
-  var DOT_PICK = 0.42;          // world-space hover radius around a dot
+  // ---- Sway ----
+  var WIND = 0.05;       // ambient bend (radians) the spokes drift through
+  var MOUSE_REACH = 0.6; // angular reach of the cursor (radians)
+  var MOUSE_TORQUE = 9;  // how hard a fast sweep pushes a spoke
+  var SPRING_K = 26;     // spring back to rest
+  var SPRING_C = 4.4;    // damping
 
-  // ---- Sway (joint rotation) ----
-  var WIND_SWAY = 0.085;        // rad of bend a joint takes in a full crosswind
-  var FLUTTER = 0.022;          // small per-joint shimmer
-  var JOINT_K = 34;             // dynamic joint spring stiffness (cursor response)
-  var JOINT_C = 5.0;            // joint damping
-  var MOUSE_RADIUS = 2.1;       // world reach of the cursor
-  var MOUSE_TORQUE = 9.0;       // how hard a fast cursor twists nearby joints
-
-  var instanceId = 0;
   var activeStop = null;
 
-  function loadThree(onReady) {
-    if (window.THREE) { onReady(true); return; }
-    var i = 0;
-    function next() {
-      if (window.THREE) { onReady(true); return; }
-      if (i >= THREE_SOURCES.length) { onReady(false); return; }
-      var existing = document.querySelector('script[data-mb-three="' + i + '"]');
-      if (existing) {
-        existing.addEventListener('load', function () { onReady(!!window.THREE); }, { once: true });
-        existing.addEventListener('error', function () { i++; next(); }, { once: true });
-        return;
-      }
-      var s = document.createElement('script');
-      s.src = THREE_SOURCES[i]; s.async = true; s.dataset.mbThree = String(i);
-      s.onload = function () { onReady(!!window.THREE); };
-      s.onerror = function () { i++; next(); };
-      document.head.appendChild(s);
-    }
-    next();
+  function el(name, attrs) {
+    var e = document.createElementNS(SVGNS, name);
+    if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
   }
 
   function readItems(scope) {
@@ -92,197 +60,70 @@
     return items;
   }
 
-  function makeLabelSprite(THREE, text) {
-    var dpr = Math.min(2, window.devicePixelRatio || 1);
-    var pad = 10 * dpr, fontPx = 24 * dpr;
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
-    ctx.font = '500 ' + fontPx + 'px Inter, system-ui, sans-serif';
-    var w = Math.ceil(ctx.measureText(text).width) + pad * 2;
-    var h = Math.ceil(fontPx * 1.5);
-    canvas.width = w; canvas.height = h;
-    ctx.font = '500 ' + fontPx + 'px Inter, system-ui, sans-serif';
-    ctx.textBaseline = 'middle'; ctx.fillStyle = INK;
-    ctx.fillText(text, pad, h / 2);
-    var tex = new THREE.CanvasTexture(canvas);
-    if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-    tex.minFilter = THREE.LinearFilter;
-    var sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.72, depthWrite: false }));
-    sprite.scale.set(w * 0.004, h * 0.004, 1);
-    return sprite;
-  }
-
-  function buildScene(mount, page, display, items) {
-    var THREE = window.THREE;
-    var myId = ++instanceId;
+  function build(mount, page, display, items) {
     var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-    var canvas = mount.querySelector('canvas') || document.createElement('canvas');
-    if (!canvas.parentNode) mount.appendChild(canvas);
+    // Remove any prior render (SPA re-entry) / the placeholder canvas.
+    var oldCanvas = mount.querySelector('canvas');
+    if (oldCanvas) oldCanvas.remove();
+    var oldSvg = mount.querySelector('svg');
+    if (oldSvg) oldSvg.remove();
 
-    var renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-    } catch (err) { return false; }
-    renderer.setClearColor(0x000000, 0);
-    if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-    var scene = new THREE.Scene();
-    var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -100, 100);
-    camera.position.z = 10;
-    var group = new THREE.Group();
-    scene.add(group);
-
-    // ---- Group items by theme (canonical order first) ----
-    var byTheme = {}, themeOrder = [];
+    // Group by theme, canonical order first.
+    var byTheme = {}, order = [];
     items.forEach(function (it) {
-      if (!byTheme[it.theme]) { byTheme[it.theme] = []; themeOrder.push(it.theme); }
+      if (!byTheme[it.theme]) { byTheme[it.theme] = []; order.push(it.theme); }
       byTheme[it.theme].push(it);
     });
-    themeOrder.sort(function (a, b) {
+    order.sort(function (a, b) {
       var ia = THEME_NAMES.indexOf(a), ib = THEME_NAMES.indexOf(b);
       return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
     });
 
-    var seed = 9;
+    var svg = el('svg', { 'class': 'moodboard-svg' });
+    var rotor = el('g');
+    svg.appendChild(rotor);
+    mount.appendChild(svg);
+
+    // Center mark.
+    rotor.appendChild(el('circle', { 'class': 'mb-core', r: 3.2, cx: 0, cy: 0 }));
+
+    var seed = 5;
     function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
 
-    // ---- Build the hierarchy: center -> theme trunk -> recursive forks -> leaves
-    var nodes = [];   // creation order = parents before children (good for forward FK)
-    var leaves = [];
-    function node(parent, angle, depth, isLeaf) {
-      var n = {
-        parent: parent, angle: angle, depth: depth, isLeaf: !!isLeaf,
-        leafCount: 0, item: null, phase: rand() * 6.283,
-        rx: 0, ry: 0, restLen: 0, restRel: 0, restWorld: 0,
-        x: 0, y: 0, worldAngle: 0, swayOff: 0, swayVel: 0
-      };
-      nodes.push(n);
-      return n;
-    }
+    var N = order.length;
+    var spokes = [];
+    order.forEach(function (name, i) {
+      var baseRad = (i / N) * Math.PI * 2 - Math.PI / 2;
+      var deg = baseRad * 180 / Math.PI;
+      var nrm = ((deg % 360) + 360) % 360;
+      var left = nrm > 90 && nrm < 270;
 
-    var center = node(null, 0, 0, false);
-    var maxDepth = 1;
-    var themeCount = themeOrder.length;
+      var g = el('g', { 'class': 'mb-spoke' });
+      rotor.appendChild(g);
+      var line = el('line', { 'class': 'mb-spoke-line', x1: 0, y1: 0, x2: 0, y2: 0 });
+      g.appendChild(line);
+      var txt = el('text', { 'class': 'mb-theme', 'text-anchor': left ? 'end' : 'start', 'dominant-baseline': 'middle' });
+      txt.textContent = name;
+      g.appendChild(txt);
 
-    // Recursively split a theme's leaf-angle range into a binary fork tree.
-    function fork(parent, list, lo, hi, angles, depth) {
-      if (depth > maxDepth) maxDepth = depth;
-      if (hi - lo === 1) {
-        var leaf = node(parent, angles[lo], depth, true);
-        leaf.item = list[lo];
-        leaves.push(leaf);
-        return;
-      }
-      var mid = (lo + hi) >> 1;
-      var nodeAngle = (angles[lo] + angles[hi - 1]) * 0.5;
-      var inner = node(parent, nodeAngle, depth, false);
-      fork(inner, list, lo, mid, angles, depth + 1);
-      fork(inner, list, mid, hi, angles, depth + 1);
-    }
+      var sectorHalf = (Math.PI / N) * FAN;
+      var dots = byTheme[name].map(function (it) {
+        var c = el('circle', { 'class': 'mb-dot', r: 3.6 });
+        c.addEventListener('pointerenter', function () { setDisplay(it); markActive(c); });
+        c.addEventListener('click', function () { setDisplay(it); markActive(c); });
+        g.appendChild(c);
+        return { el: c, item: it, rf: DOT_R0 + rand() * (DOT_R1 - DOT_R0), off: (rand() - 0.5) * 2 * sectorHalf };
+      });
 
-    themeOrder.forEach(function (themeName, ti) {
-      var mid = (ti / themeCount) * Math.PI * 2 - Math.PI / 2;
-      var half = (Math.PI / themeCount) * (1 - SECTOR_PAD);
-      var list = byTheme[themeName];
-      var n = list.length;
-      var angles = [];
-      for (var j = 0; j < n; j++) angles.push(mid - half + ((j + 0.5) / n) * (2 * half));
-
-      // Trunk: a short bough from center before the first fork (carries the label).
-      var trunk = node(center, mid, 1, false);
-      trunk.isTrunk = true;
-      trunk.themeName = themeName;
-      if (n === 1) { var lf = node(trunk, angles[0], 2, true); lf.item = list[0]; leaves.push(lf); }
-      else fork(trunk, list, 0, n, angles, 2);
+      spokes.push({ g: g, line: line, txt: txt, dots: dots, left: left, baseDeg: deg,
+        phase: i * 1.73, swayOff: 0, swayVel: 0 });
     });
 
-    // ---- Rest geometry: radius by depth (leaves on the rim), then FK basis ----
-    for (var i = 0; i < nodes.length; i++) {
-      var nd = nodes[i];
-      if (nd === center) { nd.rx = 0; nd.ry = 0; continue; }
-      var r = nd.isLeaf ? (LEAF_RADIUS + (rand() - 0.5) * LEAF_JITTER)
-                        : (nd.depth / (maxDepth + 0.5)) * (LEAF_RADIUS * INNER_SPAN);
-      nd.rx = Math.cos(nd.angle) * r;
-      nd.ry = Math.sin(nd.angle) * r;
-    }
-    // leafCount (post-order: children come after parents, so walk backwards)
-    for (var b = nodes.length - 1; b >= 0; b--) {
-      var nb = nodes[b];
-      if (nb.isLeaf) nb.leafCount = 1;
-      if (nb.parent) nb.parent.leafCount += nb.leafCount;
-    }
-    // restWorld angle of each segment, and the relative angle at each joint
-    center.restWorld = 0;
-    for (var c = 0; c < nodes.length; c++) {
-      var nc = nodes[c];
-      if (!nc.parent) continue;
-      nc.restWorld = Math.atan2(nc.ry - nc.parent.ry, nc.rx - nc.parent.rx);
-      nc.restLen = Math.hypot(nc.rx - nc.parent.rx, nc.ry - nc.parent.ry);
-      nc.restRel = nc.restWorld - nc.parent.restWorld;
-    }
-
-    function widthOf(n) { return BW_MIN + BW_SCALE * Math.sqrt(n.leafCount); }
-
-    // ---- Center anchor ----
-    group.add(new THREE.Mesh(new THREE.RingGeometry(0.3, 0.38, 64),
-      new THREE.MeshBasicMaterial({ color: INK_HEX, transparent: true, opacity: 0.92 })));
-    group.add(new THREE.Mesh(new THREE.CircleGeometry(0.11, 32),
-      new THREE.MeshBasicMaterial({ color: INK_HEX, transparent: true, opacity: 0.9 })));
-
-    // ---- Theme labels (static, just outside the rim) ----
-    themeOrder.forEach(function (themeName, ti) {
-      var mid = (ti / themeCount) * Math.PI * 2 - Math.PI / 2;
-      var label = makeLabelSprite(THREE, themeName);
-      label.position.set(Math.cos(mid) * (LEAF_RADIUS + 0.95), Math.sin(mid) * (LEAF_RADIUS + 0.95), 2);
-      group.add(label);
-    });
-
-    // ---- Branch mesh (stiff tapered segments, rebuilt each frame) ----
-    var segNodes = nodes.filter(function (n) { return !!n.parent; });
-    var branchPos = new Float32Array(segNodes.length * 6 * 3);
-    var branchGeo = new THREE.BufferGeometry();
-    branchGeo.setAttribute('position', new THREE.BufferAttribute(branchPos, 3));
-    var branchMesh = new THREE.Mesh(branchGeo, new THREE.MeshBasicMaterial({
-      color: INK_HEX, transparent: true, opacity: 0.82, side: THREE.DoubleSide
-    }));
-    branchMesh.frustumCulled = false;
-    group.add(branchMesh);
-
-    // ---- Leaf dots (one instanced mesh; hover by nearest in world space) ----
-    var dotMesh = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 20),
-      new THREE.MeshBasicMaterial({ color: INK_HEX }), leaves.length);
-    dotMesh.frustumCulled = false;
-    group.add(dotMesh);
-    var dummy = new THREE.Object3D();
-
-    // ---- Sizing ----
-    var viewW = 1, viewH = 1;
-    function resize() {
-      var rect = mount.getBoundingClientRect();
-      viewW = Math.max(1, Math.round(rect.width));
-      viewH = Math.max(1, Math.round(rect.height));
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-      renderer.setSize(viewW, viewH, false);
-      var aspect = viewW / viewH;
-      var hx = aspect >= 1 ? VIEW_HALF * aspect : VIEW_HALF;
-      var hy = aspect >= 1 ? VIEW_HALF : VIEW_HALF / aspect;
-      camera.left = -hx; camera.right = hx; camera.top = hy; camera.bottom = -hy;
-      camera.updateProjectionMatrix();
-    }
-    page.classList.add('is-mindmap-active');
-    resize();
-
-    // ---- Pointer ----
-    var hovered = null;
-    var hasFine = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-    var mWorldX = 0, mWorldY = 0, mVelX = 0, mVelY = 0, mInside = false, mHave = false;
-
-    function toWorld(clientX, clientY) {
-      var rect = mount.getBoundingClientRect();
-      var nx = ((clientX - rect.left) / rect.width) * 2 - 1;
-      var ny = -((clientY - rect.top) / rect.height) * 2 + 1;
-      return { x: nx * camera.right, y: ny * camera.top };
+    var activeDot = null;
+    function markActive(c) {
+      if (activeDot && activeDot !== c) activeDot.classList.remove('is-active');
+      activeDot = c; c.classList.add('is-active');
     }
     function setDisplay(item) {
       if (!display) return;
@@ -295,128 +136,103 @@
         display.classList.add('is-active'); page.classList.add('is-display-active');
       } else {
         display.classList.remove('is-active'); page.classList.remove('is-display-active');
+        if (activeDot) { activeDot.classList.remove('is-active'); activeDot = null; }
       }
     }
-    function nearestLeaf(wx, wy) {
-      var best = null, bestD = DOT_PICK * DOT_PICK;
-      for (var k = 0; k < leaves.length; k++) {
-        var dx = leaves[k].x - wx, dy = leaves[k].y - wy;
-        var d = dx * dx + dy * dy;
-        if (d < bestD) { bestD = d; best = leaves[k]; }
-      }
-      return best;
+
+    // ---- Sizing / static placement ----
+    var cx = 0, cy = 0, R = 1;
+    function layout() {
+      var rect = mount.getBoundingClientRect();
+      var w = Math.max(1, rect.width), h = Math.max(1, rect.height);
+      svg.setAttribute('width', w); svg.setAttribute('height', h);
+      cx = w / 2; cy = h / 2;
+      R = Math.min(cx, cy) * 0.97;
+      rotor.setAttribute('transform', 'translate(' + cx + ',' + cy + ')');
+
+      var textR = R * TEXT_R;
+      spokes.forEach(function (sp) {
+        sp.line.setAttribute('x1', textR * 0.2);
+        sp.line.setAttribute('x2', R * DOT_R1);
+        // Place the theme word at textR reading outward; flip on the left half so
+        // it stays upright (standard radial-label trick).
+        // Theme word reads outward; on the left half flip it upright (standard
+        // radial-label trick: same outward translate + rotate(180), anchor end).
+        sp.txt.setAttribute('transform', 'translate(' + textR + ',0)' + (sp.left ? ' rotate(180)' : ''));
+        sp.dots.forEach(function (d) {
+          d.lx = Math.cos(d.off) * (R * d.rf);
+          d.ly = Math.sin(d.off) * (R * d.rf);
+          d.el.setAttribute('cx', d.lx.toFixed(2));
+          d.el.setAttribute('cy', d.ly.toFixed(2));
+        });
+      });
     }
+
+    // ---- Cursor tracking (angle + angular velocity around the center) ----
+    var mAng = 0, mAngVel = 0, mRad = 0, mInside = false, mHave = false;
     function onMove(e) {
-      var w = toWorld(e.clientX, e.clientY);
-      if (mHave) { mVelX = w.x - mWorldX; mVelY = w.y - mWorldY; }
-      mWorldX = w.x; mWorldY = w.y; mInside = true; mHave = true;
-      if (hasFine) {
-        var hit = nearestLeaf(w.x, w.y);
-        if (hit !== hovered) {
-          hovered = hit;
-          setDisplay(hit ? hit.item : null);
-          mount.classList.toggle('is-hovering', !!hit);
-        }
+      var rect = mount.getBoundingClientRect();
+      var x = e.clientX - rect.left - cx, y = e.clientY - rect.top - cy;
+      var a = Math.atan2(y, x);
+      mRad = Math.sqrt(x * x + y * y) / (R || 1);
+      if (mHave) {
+        var d = a - mAng;
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        mAngVel = d;
       }
+      mAng = a; mInside = true; mHave = true;
     }
-    function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestLeaf(w.x, w.y); if (hit) { hovered = hit; setDisplay(hit.item); } }
-    function onLeave() { mInside = false; if (hasFine) { hovered = null; setDisplay(null); mount.classList.remove('is-hovering'); } }
+    function onLeave() { mInside = false; setDisplay(null); }
 
-    canvas.addEventListener('pointermove', onMove);
-    canvas.addEventListener('pointerleave', onLeave);
-    canvas.addEventListener('click', onClick);
-    window.addEventListener('resize', resize);
+    mount.addEventListener('pointermove', onMove);
+    mount.addEventListener('pointerleave', onLeave);
+    window.addEventListener('resize', layout);
+    layout();
 
-    // ---- Animate ----
+    // ---- Animate sway ----
     var raf = 0, last = null, t = 0;
     function frame(ts) {
-      if (myId !== instanceId) return;
+      if (mount.dataset.ready !== 'true') return; // superseded
       if (last === null) last = ts;
       var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
       t += dt;
 
-      // Directional wind: a slowly turning gust. A joint bends most when its
-      // branch faces across the wind; tips compound every ancestor's bend.
-      var windDir = 0.6 + Math.sin(t * 0.13) * 1.4 + Math.sin(t * 0.31 + 1.0) * 0.5;
-      var gust = 0.55 + 0.45 * Math.sin(t * 0.5) + 0.18 * Math.sin(t * 1.3 + 2.0);
-      var mSpeed = Math.sqrt(mVelX * mVelX + mVelY * mVelY);
-
-      // Forward kinematics: center pinned, every joint rotates by wind + spring.
-      for (var i = 0; i < nodes.length; i++) {
-        var n = nodes[i];
-        if (!n.parent) { n.x = 0; n.y = 0; n.worldAngle = 0; continue; }
-
-        var sway = 0;
+      for (var i = 0; i < spokes.length; i++) {
+        var sp = spokes[i];
+        var rotDeg = sp.baseDeg;
         if (!reduceMotion) {
-          var wind = WIND_SWAY * Math.sin(windDir - n.restWorld) * gust
-                   + FLUTTER * Math.sin(t * 1.7 + n.phase);
-
-          // Cursor torque: a fast pass near a joint twists it; it springs back.
+          var wind = WIND * (Math.sin(t * 0.5 + sp.phase) + 0.4 * Math.sin(t * 0.23 + sp.phase * 1.7));
           var torque = 0;
-          if (mInside && mSpeed > 0.0002) {
-            var dx = n.x - mWorldX, dy = n.y - mWorldY;
-            var d2 = dx * dx + dy * dy, R2 = MOUSE_RADIUS * MOUSE_RADIUS;
-            if (d2 < R2) {
-              var prox = 1 - Math.sqrt(d2) / MOUSE_RADIUS;
-              var bx = Math.cos(n.restWorld), by = Math.sin(n.restWorld);
-              torque = MOUSE_TORQUE * prox * prox * (bx * mVelY - by * mVelX);
+          if (mInside && mRad > 0.12 && Math.abs(mAngVel) > 0.0001) {
+            var spokeRad = sp.baseDeg * Math.PI / 180;
+            var da = spokeRad - mAng;
+            while (da > Math.PI) da -= Math.PI * 2;
+            while (da < -Math.PI) da += Math.PI * 2;
+            if (Math.abs(da) < MOUSE_REACH) {
+              var prox = 1 - Math.abs(da) / MOUSE_REACH;
+              torque = MOUSE_TORQUE * mAngVel * prox * prox;
             }
           }
-          n.swayVel += (torque - JOINT_K * n.swayOff - JOINT_C * n.swayVel) * dt;
-          n.swayOff += n.swayVel * dt;
-          sway = wind + n.swayOff;
+          sp.swayVel += (torque - SPRING_K * sp.swayOff - SPRING_C * sp.swayVel) * dt;
+          sp.swayOff += sp.swayVel * dt;
+          rotDeg += (wind + sp.swayOff) * 180 / Math.PI;
         }
-
-        n.worldAngle = n.parent.worldAngle + n.restRel + sway;
-        n.x = n.parent.x + Math.cos(n.worldAngle) * n.restLen;
-        n.y = n.parent.y + Math.sin(n.worldAngle) * n.restLen;
+        sp.g.setAttribute('transform', 'rotate(' + rotDeg.toFixed(3) + ')');
       }
-      mVelX *= 0.8; mVelY *= 0.8;
-
-      // Rebuild branch quads from the swayed joints (thick trunk -> fine twig).
-      var o = 0;
-      for (var s = 0; s < segNodes.length; s++) {
-        var nd = segNodes[s], pa = nd.parent;
-        var ex = nd.x - pa.x, ey = nd.y - pa.y;
-        var len = Math.hypot(ex, ey) || 1;
-        var px = -ey / len, py = ex / len;
-        var wa = widthOf(pa) * 0.5, wb = widthOf(nd) * 0.5;
-        var ax1 = pa.x + px * wa, ay1 = pa.y + py * wa;
-        var ax2 = pa.x - px * wa, ay2 = pa.y - py * wa;
-        var bx1 = nd.x + px * wb, by1 = nd.y + py * wb;
-        var bx2 = nd.x - px * wb, by2 = nd.y - py * wb;
-        branchPos[o++] = ax1; branchPos[o++] = ay1; branchPos[o++] = 0;
-        branchPos[o++] = ax2; branchPos[o++] = ay2; branchPos[o++] = 0;
-        branchPos[o++] = bx1; branchPos[o++] = by1; branchPos[o++] = 0;
-        branchPos[o++] = ax2; branchPos[o++] = ay2; branchPos[o++] = 0;
-        branchPos[o++] = bx2; branchPos[o++] = by2; branchPos[o++] = 0;
-        branchPos[o++] = bx1; branchPos[o++] = by1; branchPos[o++] = 0;
-      }
-      branchGeo.attributes.position.needsUpdate = true;
-
-      // Photo dots at the tips.
-      for (var d = 0; d < leaves.length; d++) {
-        var lf = leaves[d];
-        var rr = lf === hovered ? DOT_R_HOVER : DOT_R;
-        dummy.position.set(lf.x, lf.y, lf === hovered ? 1.4 : 0.2);
-        dummy.scale.set(rr, rr, 1);
-        dummy.rotation.z = 0; dummy.updateMatrix();
-        dotMesh.setMatrixAt(d, dummy.matrix);
-      }
-      dotMesh.instanceMatrix.needsUpdate = true;
-
-      renderer.render(scene, camera);
+      mAngVel *= 0.7;
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
 
+    page.classList.add('is-mindmap-active');
+
     activeStop = function () {
       cancelAnimationFrame(raf);
-      canvas.removeEventListener('pointermove', onMove);
-      canvas.removeEventListener('pointerleave', onLeave);
-      canvas.removeEventListener('click', onClick);
-      window.removeEventListener('resize', resize);
-      try { renderer.dispose(); } catch (e) {}
+      mount.removeEventListener('pointermove', onMove);
+      mount.removeEventListener('pointerleave', onLeave);
+      window.removeEventListener('resize', layout);
+      if (svg.parentNode) svg.remove();
     };
     return true;
   }
@@ -432,13 +248,8 @@
     if (!items.length) return;
 
     if (activeStop) { try { activeStop(); } catch (e) {} activeStop = null; }
-    instanceId++;
-
     mount.dataset.ready = 'true';
-    loadThree(function (ok) {
-      if (!ok || !window.THREE) { mount.dataset.ready = ''; return; }
-      if (!buildScene(mount, page, display, items)) mount.dataset.ready = '';
-    });
+    if (!build(mount, page, display, items)) mount.dataset.ready = '';
   }
 
   window.initMoodboardMindmap = initMoodboardMindmap;
@@ -446,7 +257,6 @@
   if (window.barba && window.barba.hooks && typeof window.barba.hooks.after === 'function') {
     window.barba.hooks.after(function () { initMoodboardMindmap(document); });
   }
-
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { initMoodboardMindmap(document); });
   } else {
