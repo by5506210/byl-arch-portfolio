@@ -1,44 +1,79 @@
 // ============================================
-// MOODBOARD MIND-MAP  (SVG radial text diagram)
-// A typographic concept map: each theme is a line of text radiating from a fixed
-// center, ending in a small cluster of dots — one dot per inspo photo. The stiff
-// spokes sway gently (wind) and react to the cursor sweeping past (velocity), then
-// settle. Hover (or tap) a dot to show that photo large on the display side.
-// Crisp HTML/SVG text — no WebGL. Falls back to the plain image grid if anything
-// is missing; prefers-reduced-motion stills it.
+// MOODBOARD MIND-MAP  (WebGL radial text diagram)
+// A typographic concept map in three.js: each photo is a long line of text
+// radiating from a fixed center, like the reference dendrogram. The stiff spokes
+// sway gently (wind) and react to the cursor sweeping past (angular velocity),
+// then settle. Hover/tap a branch to show its photo on the display side. Text is
+// drawn to supersampled canvas textures (mipmapped + anisotropic) so it stays
+// crisp. Falls back to the plain image grid without WebGL; reduced-motion stills.
 // ============================================
 
 (function () {
   'use strict';
 
-  var SVGNS = 'http://www.w3.org/2000/svg';
+  var THREE_SOURCES = [
+    '../src/js/vendor/three.min.js',
+    'https://unpkg.com/three@0.152.2/build/three.min.js',
+    'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js'
+  ];
 
-  // Placeholder theme buckets. Re-bucket by adding data-theme="<name>" to the
-  // .moodboard-page__item figures; untagged images spread round-robin.
   var THEME_NAMES = [
     'Light & Shadow', 'Materiality', 'Form & Mass', 'Structure',
     'Landscape', 'Texture', 'Atmosphere'
   ];
 
-  // ---- Layout (fractions of the available half-radius) ----
-  var TEXT_R = 0.14;     // where each theme word starts
-  var DOT_R0 = 0.5;      // inner edge of the photo-dot cluster
-  var DOT_R1 = 0.92;     // outer edge of the cluster
-  var FAN = 0.62;        // cluster angular spread (fraction of the theme sector)
+  // Placeholder descriptors for the branches (the images have no captions yet).
+  // Override per image with data-desc="..." on its .moodboard-page__item figure.
+  var WORDS_A = ['raw concrete', 'board-formed concrete', 'weathered timber', 'blackened steel',
+    'pale travertine', 'rammed earth', 'lime plaster', 'brushed brass', 'rough-cut stone',
+    'smoked glass', 'oiled oak', 'corrugated zinc', 'cast bronze', 'bush-hammered concrete',
+    'charred cedar', 'terracotta', 'polished terrazzo', 'raw plywood'];
+  var WORDS_B = ['holding', 'dissolving into', 'folded against', 'washed by', 'carved out by',
+    'warmed by', 'split by', 'wrapped in', 'grounded by', 'opening onto', 'softened under',
+    'pierced by', 'framing'];
+  var WORDS_C = ['the last of the afternoon light', 'a low northern sun', 'a sheet of falling water',
+    'a deep, even shadow', 'a quiet sunken courtyard', 'the weight of the earth', 'morning fog',
+    'a single high skylight', 'the seam of the horizon', 'a cantilevered void', 'reflected sky',
+    'a candle-soft glow', 'the hush of a long corridor', 'a garden held in the round'];
+
+  // ---- Layout ----
+  var VIEW_HALF = 6.9;
+  var INNER_R = 0.95;       // where branch text begins
+  var TEXT_H = 0.3;         // world height of branch text
+  var THEME_TEXT_H = 0.46;  // world height of the inner theme labels
+  var SECTOR_PAD = 0.1;
+  var INK = '#171511';
 
   // ---- Sway ----
-  var WIND = 0.05;       // ambient bend (radians) the spokes drift through
-  var MOUSE_REACH = 0.6; // angular reach of the cursor (radians)
-  var MOUSE_TORQUE = 9;  // how hard a fast sweep pushes a spoke
-  var SPRING_K = 26;     // spring back to rest
-  var SPRING_C = 4.4;    // damping
+  var WIND = 0.05;
+  var FLUTTER = 0.02;
+  var MOUSE_REACH = 0.55;
+  var MOUSE_TORQUE = 8;
+  var SPRING_K = 24;
+  var SPRING_C = 4.2;
 
+  var instanceId = 0;
   var activeStop = null;
 
-  function el(name, attrs) {
-    var e = document.createElementNS(SVGNS, name);
-    if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
-    return e;
+  function loadThree(onReady) {
+    if (window.THREE) { onReady(true); return; }
+    var i = 0;
+    function next() {
+      if (window.THREE) { onReady(true); return; }
+      if (i >= THREE_SOURCES.length) { onReady(false); return; }
+      var existing = document.querySelector('script[data-mb-three="' + i + '"]');
+      if (existing) {
+        existing.addEventListener('load', function () { onReady(!!window.THREE); }, { once: true });
+        existing.addEventListener('error', function () { i++; next(); }, { once: true });
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = THREE_SOURCES[i]; s.async = true; s.dataset.mbThree = String(i);
+      s.onload = function () { onReady(!!window.THREE); };
+      s.onerror = function () { i++; next(); };
+      document.head.appendChild(s);
+    }
+    next();
   }
 
   function readItems(scope) {
@@ -52,7 +87,7 @@
       items.push({
         full: full,
         alt: img.getAttribute('alt') || '',
-        caption: (figs[i].querySelector('figcaption') || {}).textContent || '',
+        desc: figs[i].getAttribute('data-desc') || '',
         theme: figs[i].getAttribute('data-theme') || THEME_NAMES[i % THEME_NAMES.length],
         index: i
       });
@@ -60,16 +95,67 @@
     return items;
   }
 
-  function build(mount, page, display, items) {
+  function buildScene(mount, page, display, items) {
+    var THREE = window.THREE;
+    var myId = ++instanceId;
     var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-    // Remove any prior render (SPA re-entry) / the placeholder canvas.
-    var oldCanvas = mount.querySelector('canvas');
-    if (oldCanvas) oldCanvas.remove();
-    var oldSvg = mount.querySelector('svg');
-    if (oldSvg) oldSvg.remove();
+    // Clear any prior render (SVG or canvas) on re-entry.
+    Array.prototype.forEach.call(mount.querySelectorAll('canvas, svg'), function (n) { n.remove(); });
 
-    // Group by theme, canonical order first.
+    var canvas = document.createElement('canvas');
+    mount.appendChild(canvas);
+
+    var renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    } catch (err) { return false; }
+    renderer.setClearColor(0x000000, 0);
+    if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+    var maxAniso = (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) ? renderer.capabilities.getMaxAnisotropy() : 1;
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -100, 100);
+    camera.position.z = 10;
+    var group = new THREE.Group();
+    scene.add(group);
+
+    var seed = 11;
+    function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    function pick(arr) { return arr[Math.floor(rand() * arr.length)]; }
+    function describe(it) { return it.desc || (pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C)); }
+
+    // Supersampled text texture -> a plane sized to its aspect.
+    function textPlane(str, worldH, opacity) {
+      var ss = 2, fontPx = 34, pad = 10;
+      var probe = document.createElement('canvas').getContext('2d');
+      probe.font = '400 ' + fontPx + 'px Inter, system-ui, sans-serif';
+      var tw = Math.min(1500, Math.ceil(probe.measureText(str).width));
+      var w = tw + pad * 2, h = Math.ceil(fontPx * 1.5);
+      var cv = document.createElement('canvas');
+      cv.width = w * ss; cv.height = h * ss;
+      var ctx = cv.getContext('2d');
+      ctx.scale(ss, ss);
+      ctx.font = '400 ' + fontPx + 'px Inter, system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = INK;
+      ctx.fillText(str, pad, h / 2);
+      var tex = new THREE.CanvasTexture(cv);
+      if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = maxAniso;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.generateMipmaps = true;
+      var worldW = worldH * (w / h);
+      var mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(worldW, worldH),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: opacity })
+      );
+      mesh.userData.worldW = worldW;
+      return mesh;
+    }
+
+    // ---- Group by theme ----
     var byTheme = {}, order = [];
     items.forEach(function (it) {
       if (!byTheme[it.theme]) { byTheme[it.theme] = []; order.push(it.theme); }
@@ -80,50 +166,72 @@
       return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
     });
 
-    var svg = el('svg', { 'class': 'moodboard-svg' });
-    var rotor = el('g');
-    svg.appendChild(rotor);
-    mount.appendChild(svg);
+    // Center mark
+    group.add(new THREE.Mesh(new THREE.CircleGeometry(0.12, 32),
+      new THREE.MeshBasicMaterial({ color: 0x171511 })));
+    group.add(new THREE.Mesh(new THREE.RingGeometry(0.26, 0.31, 48),
+      new THREE.MeshBasicMaterial({ color: 0x171511, transparent: true, opacity: 0.5 })));
 
-    // Center mark.
-    rotor.appendChild(el('circle', { 'class': 'mb-core', r: 3.2, cx: 0, cy: 0 }));
+    var branches = [];   // { mesh, item, baseAngle, left, swayOff, swayVel, phase }
+    var themeCount = order.length;
 
-    var seed = 5;
-    function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    function place(mesh, ang, rInner) {
+      var left = Math.cos(ang) < 0;
+      mesh.userData.left = left;
+      mesh.userData.rInner = rInner;
+      return left;
+    }
 
-    var N = order.length;
-    var spokes = [];
-    order.forEach(function (name, i) {
-      var baseRad = (i / N) * Math.PI * 2 - Math.PI / 2;
-      var deg = baseRad * 180 / Math.PI;
-      var nrm = ((deg % 360) + 360) % 360;
-      var left = nrm > 90 && nrm < 270;
+    order.forEach(function (themeName, ti) {
+      var midA = (ti / themeCount) * Math.PI * 2 - Math.PI / 2;
+      var half = (Math.PI / themeCount) * (1 - SECTOR_PAD);
+      var bucket = byTheme[themeName];
 
-      var g = el('g', { 'class': 'mb-spoke' });
-      rotor.appendChild(g);
-      var line = el('line', { 'class': 'mb-spoke-line', x1: 0, y1: 0, x2: 0, y2: 0 });
-      g.appendChild(line);
-      var txt = el('text', { 'class': 'mb-theme', 'text-anchor': left ? 'end' : 'start', 'dominant-baseline': 'middle' });
-      txt.textContent = name;
-      g.appendChild(txt);
+      // Inner theme label along the sector mid.
+      var tl = textPlane(themeName.toLowerCase(), THEME_TEXT_H, 0.95);
+      place(tl, midA, INNER_R * 0.6);
+      group.add(tl);
+      branches.push({ mesh: tl, item: null, baseAngle: midA, isTheme: true,
+        left: Math.cos(midA) < 0, rInner: INNER_R * 0.6, swayOff: 0, swayVel: 0, phase: rand() * 6.28 });
 
-      var sectorHalf = (Math.PI / N) * FAN;
-      var dots = byTheme[name].map(function (it) {
-        var c = el('circle', { 'class': 'mb-dot', r: 3.6 });
-        c.addEventListener('pointerenter', function () { setDisplay(it); markActive(c); });
-        c.addEventListener('click', function () { setDisplay(it); markActive(c); });
-        g.appendChild(c);
-        return { el: c, item: it, rf: DOT_R0 + rand() * (DOT_R1 - DOT_R0), off: (rand() - 0.5) * 2 * sectorHalf };
+      bucket.forEach(function (it, j) {
+        var f = bucket.length > 1 ? (j / (bucket.length - 1) - 0.5) : 0;
+        var ang = midA + f * half;
+        var mesh = textPlane(describe(it), TEXT_H, 0.8);
+        var left = place(mesh, ang, INNER_R);
+        group.add(mesh);
+        branches.push({ mesh: mesh, item: it, baseAngle: ang, isTheme: false,
+          left: left, rInner: INNER_R, swayOff: 0, swayVel: 0, phase: rand() * 6.28, curAngle: ang });
       });
-
-      spokes.push({ g: g, line: line, txt: txt, dots: dots, left: left, baseDeg: deg,
-        phase: i * 1.73, swayOff: 0, swayVel: 0 });
     });
 
-    var activeDot = null;
-    function markActive(c) {
-      if (activeDot && activeDot !== c) activeDot.classList.remove('is-active');
-      activeDot = c; c.classList.add('is-active');
+    // ---- Sizing ----
+    var viewW = 1, viewH = 1;
+    function resize() {
+      var rect = mount.getBoundingClientRect();
+      viewW = Math.max(1, Math.round(rect.width));
+      viewH = Math.max(1, Math.round(rect.height));
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      renderer.setSize(viewW, viewH, false);
+      var aspect = viewW / viewH;
+      var hx = aspect >= 1 ? VIEW_HALF * aspect : VIEW_HALF;
+      var hy = aspect >= 1 ? VIEW_HALF : VIEW_HALF / aspect;
+      camera.left = -hx; camera.right = hx; camera.top = hy; camera.bottom = -hy;
+      camera.updateProjectionMatrix();
+    }
+    page.classList.add('is-mindmap-active');
+    resize();
+
+    // ---- Pointer ----
+    var hovered = null;
+    var hasFine = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    var mAng = 0, mAngVel = 0, mRad = 0, mInside = false, mHave = false;
+
+    function toWorld(clientX, clientY) {
+      var rect = mount.getBoundingClientRect();
+      var nx = ((clientX - rect.left) / rect.width) * 2 - 1;
+      var ny = -((clientY - rect.top) / rect.height) * 2 + 1;
+      return { x: nx * camera.right, y: ny * camera.top };
     }
     function setDisplay(item) {
       if (!display) return;
@@ -132,107 +240,100 @@
       if (item) {
         if (img && img.getAttribute('src') !== item.full) img.setAttribute('src', item.full);
         if (img) img.setAttribute('alt', item.alt);
-        if (cap) cap.textContent = item.theme + (item.caption ? '  ·  ' + item.caption : '');
+        if (cap) cap.textContent = item.theme;
         display.classList.add('is-active'); page.classList.add('is-display-active');
       } else {
         display.classList.remove('is-active'); page.classList.remove('is-display-active');
-        if (activeDot) { activeDot.classList.remove('is-active'); activeDot = null; }
       }
     }
-
-    // ---- Sizing / static placement ----
-    var cx = 0, cy = 0, R = 1;
-    function layout() {
-      var rect = mount.getBoundingClientRect();
-      var w = Math.max(1, rect.width), h = Math.max(1, rect.height);
-      svg.setAttribute('width', w); svg.setAttribute('height', h);
-      cx = w / 2; cy = h / 2;
-      R = Math.min(cx, cy) * 0.97;
-      rotor.setAttribute('transform', 'translate(' + cx + ',' + cy + ')');
-
-      var textR = R * TEXT_R;
-      spokes.forEach(function (sp) {
-        sp.line.setAttribute('x1', textR * 0.2);
-        sp.line.setAttribute('x2', R * DOT_R1);
-        // Place the theme word at textR reading outward; flip on the left half so
-        // it stays upright (standard radial-label trick).
-        // Theme word reads outward; on the left half flip it upright (standard
-        // radial-label trick: same outward translate + rotate(180), anchor end).
-        sp.txt.setAttribute('transform', 'translate(' + textR + ',0)' + (sp.left ? ' rotate(180)' : ''));
-        sp.dots.forEach(function (d) {
-          d.lx = Math.cos(d.off) * (R * d.rf);
-          d.ly = Math.sin(d.off) * (R * d.rf);
-          d.el.setAttribute('cx', d.lx.toFixed(2));
-          d.el.setAttribute('cy', d.ly.toFixed(2));
-        });
-      });
+    function nearestBranch(wx, wy) {
+      var a = Math.atan2(wy, wx), r = Math.sqrt(wx * wx + wy * wy);
+      if (r < INNER_R * 0.5) return null;
+      var best = null, bestD = 0.16;
+      for (var i = 0; i < branches.length; i++) {
+        var br = branches[i];
+        if (br.isTheme) continue;
+        var da = (br.curAngle || br.baseAngle) - a;
+        while (da > Math.PI) da -= Math.PI * 2;
+        while (da < -Math.PI) da += Math.PI * 2;
+        da = Math.abs(da);
+        if (da < bestD && r < br.rInner + br.mesh.userData.worldW + 0.4) { bestD = da; best = br; }
+      }
+      return best;
     }
-
-    // ---- Cursor tracking (angle + angular velocity around the center) ----
-    var mAng = 0, mAngVel = 0, mRad = 0, mInside = false, mHave = false;
     function onMove(e) {
-      var rect = mount.getBoundingClientRect();
-      var x = e.clientX - rect.left - cx, y = e.clientY - rect.top - cy;
-      var a = Math.atan2(y, x);
-      mRad = Math.sqrt(x * x + y * y) / (R || 1);
-      if (mHave) {
-        var d = a - mAng;
-        while (d > Math.PI) d -= Math.PI * 2;
-        while (d < -Math.PI) d += Math.PI * 2;
-        mAngVel = d;
-      }
+      var w = toWorld(e.clientX, e.clientY);
+      var a = Math.atan2(w.y, w.x);
+      mRad = Math.sqrt(w.x * w.x + w.y * w.y) / VIEW_HALF;
+      if (mHave) { var d = a - mAng; while (d > Math.PI) d -= 6.283; while (d < -Math.PI) d += 6.283; mAngVel = d; }
       mAng = a; mInside = true; mHave = true;
+      if (hasFine) {
+        var hit = nearestBranch(w.x, w.y);
+        if (hit !== hovered) {
+          if (hovered) hovered.mesh.material.opacity = 0.8;
+          hovered = hit;
+          if (hit) hit.mesh.material.opacity = 1;
+          setDisplay(hit ? hit.item : null);
+          mount.classList.toggle('is-hovering', !!hit);
+        }
+      }
     }
-    function onLeave() { mInside = false; setDisplay(null); }
+    function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestBranch(w.x, w.y); if (hit) { hovered = hit; setDisplay(hit.item); } }
+    function onLeave() { mInside = false; if (hasFine) { if (hovered) hovered.mesh.material.opacity = 0.8; hovered = null; setDisplay(null); mount.classList.remove('is-hovering'); } }
 
-    mount.addEventListener('pointermove', onMove);
-    mount.addEventListener('pointerleave', onLeave);
-    window.addEventListener('resize', layout);
-    layout();
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerleave', onLeave);
+    canvas.addEventListener('click', onClick);
+    window.addEventListener('resize', resize);
 
-    // ---- Animate sway ----
+    // ---- Animate ----
     var raf = 0, last = null, t = 0;
     function frame(ts) {
-      if (mount.dataset.ready !== 'true') return; // superseded
+      if (myId !== instanceId) return;
       if (last === null) last = ts;
       var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
       t += dt;
 
-      for (var i = 0; i < spokes.length; i++) {
-        var sp = spokes[i];
-        var rotDeg = sp.baseDeg;
+      var windDir = 0.5 + Math.sin(t * 0.13) * 1.4 + Math.sin(t * 0.3 + 1) * 0.5;
+      var gust = 0.55 + 0.45 * Math.sin(t * 0.5);
+
+      for (var i = 0; i < branches.length; i++) {
+        var br = branches[i];
+        var ang = br.baseAngle;
         if (!reduceMotion) {
-          var wind = WIND * (Math.sin(t * 0.5 + sp.phase) + 0.4 * Math.sin(t * 0.23 + sp.phase * 1.7));
+          var wind = WIND * Math.sin(windDir - br.baseAngle) * gust + FLUTTER * Math.sin(t * 1.6 + br.phase);
           var torque = 0;
-          if (mInside && mRad > 0.12 && Math.abs(mAngVel) > 0.0001) {
-            var spokeRad = sp.baseDeg * Math.PI / 180;
-            var da = spokeRad - mAng;
-            while (da > Math.PI) da -= Math.PI * 2;
-            while (da < -Math.PI) da += Math.PI * 2;
+          if (mInside && mRad > 0.1 && Math.abs(mAngVel) > 0.0001) {
+            var da = br.baseAngle - mAng;
+            while (da > Math.PI) da -= 6.283; while (da < -Math.PI) da += 6.283;
             if (Math.abs(da) < MOUSE_REACH) {
               var prox = 1 - Math.abs(da) / MOUSE_REACH;
               torque = MOUSE_TORQUE * mAngVel * prox * prox;
             }
           }
-          sp.swayVel += (torque - SPRING_K * sp.swayOff - SPRING_C * sp.swayVel) * dt;
-          sp.swayOff += sp.swayVel * dt;
-          rotDeg += (wind + sp.swayOff) * 180 / Math.PI;
+          br.swayVel += (torque - SPRING_K * br.swayOff - SPRING_C * br.swayVel) * dt;
+          br.swayOff += br.swayVel * dt;
+          ang += wind + br.swayOff;
         }
-        sp.g.setAttribute('transform', 'rotate(' + rotDeg.toFixed(3) + ')');
+        br.curAngle = ang;
+        var rMid = br.rInner + br.mesh.userData.worldW * 0.5;
+        br.mesh.position.set(Math.cos(ang) * rMid, Math.sin(ang) * rMid, br === hovered ? 1 : 0);
+        br.mesh.rotation.z = br.left ? ang + Math.PI : ang;
       }
       mAngVel *= 0.7;
+
+      renderer.render(scene, camera);
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
 
-    page.classList.add('is-mindmap-active');
-
     activeStop = function () {
       cancelAnimationFrame(raf);
-      mount.removeEventListener('pointermove', onMove);
-      mount.removeEventListener('pointerleave', onLeave);
-      window.removeEventListener('resize', layout);
-      if (svg.parentNode) svg.remove();
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerleave', onLeave);
+      canvas.removeEventListener('click', onClick);
+      window.removeEventListener('resize', resize);
+      try { renderer.dispose(); } catch (e) {}
     };
     return true;
   }
@@ -248,8 +349,12 @@
     if (!items.length) return;
 
     if (activeStop) { try { activeStop(); } catch (e) {} activeStop = null; }
+    instanceId++;
     mount.dataset.ready = 'true';
-    if (!build(mount, page, display, items)) mount.dataset.ready = '';
+    loadThree(function (ok) {
+      if (!ok || !window.THREE) { mount.dataset.ready = ''; return; }
+      if (!buildScene(mount, page, display, items)) mount.dataset.ready = '';
+    });
   }
 
   window.initMoodboardMindmap = initMoodboardMindmap;
