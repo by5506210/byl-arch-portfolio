@@ -1,13 +1,13 @@
 // ============================================
 // MOODBOARD MIND-MAP  (WebGL radial text diagram)
 // A typographic concept map in three.js: every photo is a descriptive line of
-// text radiating from an open center ring, grouped by theme, with the theme names
-// sitting in the gaps as bookmark dividers. The whole diagram breathes (a slow
-// global rotation) and each theme drifts within its gap, so it feels alive; the
-// cursor (or a finger drag on mobile) sweeping past nudges the groups. Hover/tap a
-// branch shows its photo on the display side. Auto-fits the partition; text is
-// drawn to mipmapped, anisotropic canvas textures and rendered at a forced 2x for
-// resolution. Falls back to the image grid without WebGL.
+// text radiating from an open center ring. Phrases vary in length — long ones
+// start near the hub so their inner ends pack into a ring of text that "draws" the
+// circle, while shorter ones are pushed outward so the lines don't overlap.
+// Themes are labelled by light dividers in the gaps. The diagram breathes and each
+// group drifts; the cursor / a finger drag nudges groups. Hover or tap a branch to
+// show its photo and turn that line black. Auto-fits the partition; rendered at a
+// forced 2x with mipmapped, anisotropic text for resolution. Falls back to the grid.
 // ============================================
 
 (function () {
@@ -42,26 +42,27 @@
     'where the room goes quiet', 'as the day gives out'];
 
   // ---- Layout ----
-  var INNER_R = 1.7;        // base radius where a branch's text begins
-  var STAGGER = 2.6;        // varied inner start so rays don't pile at one radius
-  var TEXT_H = 0.24;        // world height of a branch line
-  var THEME_TEXT_H = 0.42;  // divider labels
-  var GAP_SLOTS = 2;        // empty angular slots between theme groups
-  var TEXT_CAP = 1200;      // max texture width (px)
-  var FIT_MARGIN = 1.05;    // camera padding beyond the content
+  var INNER_R = 2.0;        // radius of the central ring of text (where long lines begin)
+  var OUTER_PUSH = 3.0;     // how far short lines are pushed out from the ring
+  var RING_JITTER = 0.32;   // small per-line radial offset so neighbours separate
+  var TEXT_H = 0.22;        // world height of a branch line
+  var THEME_TEXT_H = 0.26;  // smaller, minimal divider labels
+  var GAP_SLOTS = 2;
+  var TEXT_CAP = 1500;      // allow some very long phrases
+  var FIT_MARGIN = 1.05;
 
   // ---- Type ----
-  var FONT_PX = 44;               // texture glyph size (resolution)
-  var FONT_WEIGHT = 300;          // lighter strokes
+  var FONT_PX = 44;
+  var FONT_WEIGHT = 300;
   var INK_BRANCH = '#2c2823';
-  var INK_THEME = '#1b1815';
+  var INK_THEME = '#8b8478';      // lighter, not so black
   var BRANCH_OPACITY = 0.95;
-  var THEME_OPACITY = 0.94;
-  var THEME_WEIGHT = 500;
+  var THEME_OPACITY = 0.7;
+  var THEME_WEIGHT = 300;
 
   // ---- Motion ----
-  var GLOBAL_AMP = 0.06;    // whole-diagram breathing (radians)
-  var AMBIENT_FRAC = 0.6;   // per-group drift, as a fraction of its gap room
+  var GLOBAL_AMP = 0.06;
+  var AMBIENT_FRAC = 0.6;
   var MOUSE_REACH = 0.5;
   var MOUSE_TORQUE = 6;
   var SPRING_K = 20;
@@ -136,7 +137,14 @@
     var seed = 11;
     function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
     function pick(a) { return a[Math.floor(rand() * a.length)]; }
-    function describe(it) { return it.desc || (pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D)); }
+    function describe(it) {
+      if (it.desc) return it.desc;
+      var r = rand();
+      if (r < 0.16) return pick(WORDS_A) + ', ' + pick(WORDS_C);
+      if (r < 0.46) return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C);
+      if (r < 0.8) return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D);
+      return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C);
+    }
 
     function textPlane(str, worldH, opacity, weight, color) {
       var pad = 12;
@@ -176,7 +184,7 @@
     });
 
     root.add(new THREE.Mesh(new THREE.RingGeometry(0.26, 0.31, 48),
-      new THREE.MeshBasicMaterial({ color: 0x1b1815, transparent: true, opacity: 0.55 })));
+      new THREE.MeshBasicMaterial({ color: 0x1b1815, transparent: true, opacity: 0.5 })));
 
     var totalSlots = items.length + order.length * GAP_SLOTS;
     var slotAng = (Math.PI * 2) / totalSlots;
@@ -186,29 +194,21 @@
     var branches = [];
     var groups = [];
     var dividerData = [];
-    var slot = 0;
-    var maxExtent = INNER_R + 2;
+    var pending = [];
+    var slot = 0, gi = 0;
 
+    // Pass A: create + measure every branch line.
     order.forEach(function (themeName) {
       var grp = new THREE.Group();
       root.add(grp);
       var bucket = byTheme[themeName];
       var startSlot = slot;
-
       bucket.forEach(function (it) {
         var ang = slot * slotAng - Math.PI / 2;
         slot++;
-        var left = Math.cos(ang) < 0;
-        var rInner = INNER_R + rand() * STAGGER;
         var mesh = textPlane(describe(it), TEXT_H, BRANCH_OPACITY, FONT_WEIGHT, INK_BRANCH);
-        var rMid = rInner + mesh.userData.worldW * 0.5;
-        mesh.position.set(Math.cos(ang) * rMid, Math.sin(ang) * rMid, 0);
-        mesh.rotation.z = left ? ang + Math.PI : ang;
-        grp.add(mesh);
-        branches.push({ mesh: mesh, item: it, baseAngle: ang, rInner: rInner, grp: grp });
-        maxExtent = Math.max(maxExtent, rInner + mesh.userData.worldW);
+        pending.push({ mesh: mesh, ang: ang, grp: grp, gi: gi++, item: it, worldW: mesh.userData.worldW });
       });
-
       var endSlot = slot;
       dividerData.push({ ang: startSlot * slotAng - Math.PI / 2 - gapAng * 0.5, name: themeName });
       groups.push({ grp: grp, midAng: ((startSlot + endSlot) * 0.5) * slotAng - Math.PI / 2,
@@ -216,21 +216,38 @@
       slot += GAP_SLOTS;
     });
 
-    // Auto-fit: the camera frames exactly the content so it fills the partition.
+    // Pass B: position by length — long lines anchor the inner ring, short lines
+    // get pushed outward, so the inner ends form a circle and lines don't collide.
+    var maxWorldW = 0.001;
+    pending.forEach(function (p) { if (p.worldW > maxWorldW) maxWorldW = p.worldW; });
+    var longRef = maxWorldW * 0.8;
+    var maxExtent = INNER_R + 2;
+    pending.forEach(function (p) {
+      var lengthFrac = Math.min(1, p.worldW / longRef);
+      var rInner = INNER_R + (1 - lengthFrac) * OUTER_PUSH + (p.gi % 3) * RING_JITTER;
+      var left = Math.cos(p.ang) < 0;
+      var rMid = rInner + p.worldW * 0.5;
+      p.mesh.position.set(Math.cos(p.ang) * rMid, Math.sin(p.ang) * rMid, 0);
+      p.mesh.rotation.z = left ? p.ang + Math.PI : p.ang;
+      p.grp.add(p.mesh);
+      branches.push({ mesh: p.mesh, item: p.item, baseAngle: p.ang, rInner: rInner, grp: p.grp });
+      maxExtent = Math.max(maxExtent, rInner + p.worldW);
+    });
+
     var fitHalf = maxExtent * FIT_MARGIN;
 
-    // Dividers (faint line + theme label), spanning the content radius.
+    // Dividers (faint line + light minimal theme label).
     dividerData.forEach(function (d) {
       var left = Math.cos(d.ang) < 0;
-      var lineIn = INNER_R * 0.55, lineOut = fitHalf * 0.97;
+      var lineIn = INNER_R * 0.5, lineOut = fitHalf * 0.97;
       var lineLen = lineOut - lineIn, lineMid = lineIn + lineLen * 0.5;
-      var line = new THREE.Mesh(new THREE.PlaneGeometry(lineLen, 0.015),
-        new THREE.MeshBasicMaterial({ color: 0x1b1815, transparent: true, opacity: 0.12 }));
+      var line = new THREE.Mesh(new THREE.PlaneGeometry(lineLen, 0.014),
+        new THREE.MeshBasicMaterial({ color: 0x8b8478, transparent: true, opacity: 0.16 }));
       line.position.set(Math.cos(d.ang) * lineMid, Math.sin(d.ang) * lineMid, -0.2);
       line.rotation.z = d.ang;
       root.add(line);
       var tl = textPlane(d.name.toLowerCase(), THEME_TEXT_H, THEME_OPACITY, THEME_WEIGHT, INK_THEME);
-      var lr = lineIn + lineLen * 0.42;
+      var lr = lineIn + lineLen * 0.4;
       tl.position.set(Math.cos(d.ang) * lr, Math.sin(d.ang) * lr, 0.2);
       tl.rotation.z = left ? d.ang + Math.PI : d.ang;
       root.add(tl);
@@ -242,7 +259,6 @@
       var rect = mount.getBoundingClientRect();
       viewW = Math.max(1, Math.round(rect.width));
       viewH = Math.max(1, Math.round(rect.height));
-      // Force at least 2x rendering (crisp even on 1x external monitors), capped.
       renderer.setPixelRatio(Math.min(2.5, Math.max(window.devicePixelRatio || 1, 2)));
       renderer.setSize(viewW, viewH, false);
       var aspect = viewW / viewH;
@@ -255,7 +271,7 @@
     resize();
 
     // ---- Pointer (mouse + touch) ----
-    var hovered = null;
+    var current = null;
     var hasFine = !coarse;
     var mAng = 0, mAngVel = 0, mRad = 0, mInside = false, mHave = false;
 
@@ -278,16 +294,25 @@
         display.classList.remove('is-active'); page.classList.remove('is-display-active');
       }
     }
+    // Highlight: the selected line turns black and opaque; the rest stay soft.
+    function highlight(br) {
+      if (current === br) return;
+      if (current) { current.mesh.material.color.setHex(0xffffff); current.mesh.material.opacity = BRANCH_OPACITY; }
+      current = br;
+      if (br) { br.mesh.material.color.setHex(0x000000); br.mesh.material.opacity = 1; }
+      setDisplay(br ? br.item : null);
+      mount.classList.toggle('is-hovering', !!br);
+    }
     function nearestBranch(wx, wy) {
       var a = Math.atan2(wy, wx), r = Math.sqrt(wx * wx + wy * wy);
-      if (r < INNER_R * 0.5) return null;
-      var best = null, bestD = 0.12;
+      if (r < INNER_R * 0.4) return null;
+      var best = null, bestD = 0.1;
       for (var i = 0; i < branches.length; i++) {
         var br = branches[i];
         var da = (br.baseAngle + br.grp.rotation.z + root.rotation.z) - a;
         while (da > Math.PI) da -= 6.283; while (da < -Math.PI) da += 6.283;
         da = Math.abs(da);
-        if (da < bestD && r < br.rInner + br.mesh.userData.worldW + 0.5) { bestD = da; best = br; }
+        if (da < bestD && r > br.rInner - 0.3 && r < br.rInner + br.mesh.userData.worldW + 0.4) { bestD = da; best = br; }
       }
       return best;
     }
@@ -299,23 +324,11 @@
       mAng = a; mInside = true; mHave = true;
       return w;
     }
-    function onMove(e) {
-      var w = track(e.clientX, e.clientY);
-      if (hasFine) {
-        var hit = nearestBranch(w.x, w.y);
-        if (hit !== hovered) {
-          if (hovered) hovered.mesh.material.opacity = BRANCH_OPACITY;
-          hovered = hit;
-          if (hit) hit.mesh.material.opacity = 1;
-          setDisplay(hit ? hit.item : null);
-          mount.classList.toggle('is-hovering', !!hit);
-        }
-      }
-    }
+    function onMove(e) { var w = track(e.clientX, e.clientY); if (hasFine) highlight(nearestBranch(w.x, w.y)); }
     function onDown(e) { track(e.clientX, e.clientY); mAngVel = 0; }
     function onUp() { mInside = false; mAngVel = 0; }
-    function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestBranch(w.x, w.y); if (hit) { hovered = hit; setDisplay(hit.item); } }
-    function onLeave() { mInside = false; if (hasFine) { if (hovered) hovered.mesh.material.opacity = BRANCH_OPACITY; hovered = null; setDisplay(null); mount.classList.remove('is-hovering'); } }
+    function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestBranch(w.x, w.y); if (hit) highlight(hit); }
+    function onLeave() { mInside = false; if (hasFine) highlight(null); }
 
     canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);
@@ -325,7 +338,7 @@
     canvas.addEventListener('click', onClick);
     window.addEventListener('resize', resize);
 
-    // ---- Animate: global breathing + per-group drift + cursor push ----
+    // ---- Animate ----
     var raf = 0, last = null, t = 0;
     function frame(ts) {
       if (myId !== instanceId) return;
