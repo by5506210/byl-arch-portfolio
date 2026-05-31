@@ -270,7 +270,12 @@
     }
 
     gsap.set(overlay, { opacity: 0 });
-    gsap.set(container, { opacity: 0.86, y: 8 });
+    // Keep the real project page fully opaque and static behind the zoom clone.
+    // The clone is the same hero image scaled to fill the viewport, so once the
+    // hero has loaded we only need to fade the clone out — it reveals an identical
+    // hero underneath. Fading the page in from 0.86 over its beige background was
+    // what made the page look like it flashed beige / ran a second transition.
+    gsap.set(container, { opacity: 1, y: 0 });
 
     return waitForIncomingVisual(container).then(function () {
       return new Promise(function (resolve) {
@@ -281,17 +286,11 @@
             resolve();
           }
         })
-          .to(container, {
-            opacity: 1,
-            y: 0,
-            duration: 0.42,
-            ease: 'power2.out'
-          }, 0)
           .to(visualState.cloneEl, {
             opacity: 0,
             duration: 0.5,
             ease: 'power2.out'
-          }, 0.02);
+          }, 0);
       });
     });
   }

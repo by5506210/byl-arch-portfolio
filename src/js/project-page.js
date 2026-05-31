@@ -609,14 +609,14 @@ function initProjectsAtlas() {
         nodeSyncMinMs: isWindows ? 1000 / 20 : 1000 / 24,
         fallbackMinFrameMs: 0,
         ribbonDepthUpdateMs: 360,
-        mobilePixelMax: 1.05,
+        mobilePixelMax: 1.5,
         desktopPixelMax: 0.9,
         ringSegments: 30,
         threadSegmentsMin: 64,
         threadSegmentsMult: 9,
         ribbonSegmentsMobile: 24,
         ribbonSegmentsDesktop: 32,
-        anisotropyCap: 2
+        anisotropyCap: 4
       };
     }
 
@@ -626,14 +626,14 @@ function initProjectsAtlas() {
         nodeSyncMinMs: isWindows ? 1000 / 28 : 1000 / 32,
         fallbackMinFrameMs: 0,
         ribbonDepthUpdateMs: 220,
-        mobilePixelMax: 1.35,
+        mobilePixelMax: 2.25,
         desktopPixelMax: 1.05,
         ringSegments: 44,
         threadSegmentsMin: 88,
         threadSegmentsMult: 12,
         ribbonSegmentsMobile: 36,
         ribbonSegmentsDesktop: 48,
-        anisotropyCap: 4
+        anisotropyCap: 8
       };
     }
 
@@ -642,14 +642,14 @@ function initProjectsAtlas() {
       nodeSyncMinMs: isWindows ? 1000 / 24 : 1000 / 28,
       fallbackMinFrameMs: 0,
       ribbonDepthUpdateMs: 280,
-      mobilePixelMax: 1.18,
+      mobilePixelMax: 2,
       desktopPixelMax: 0.98,
       ringSegments: 36,
       threadSegmentsMin: 76,
       threadSegmentsMult: 10,
       ribbonSegmentsMobile: 30,
       ribbonSegmentsDesktop: 40,
-      anisotropyCap: 3
+      anisotropyCap: 8
     };
   }
 
@@ -3355,8 +3355,13 @@ function initProjectsAtlas() {
   }
 
   function updateTouchHover(clientX, clientY, moved) {
-    var nextNode = findTouchNode(clientX, clientY);
-    var moodboardHit = !nextNode ? getMoodboardStripHit(clientX, clientY) : null;
+    // The inspo ribbon renders in front of the spiral, so prefer it whenever the
+    // finger is on the strip and not directly on a thumbnail's snap rect. Leading
+    // with findTouchNode's generous radius (the old behavior) let a nearby — or
+    // just-snapped — thumbnail mask the ribbon, which swallowed taps after swiping.
+    var snapNode = findNodeBySnapRect(clientX, clientY, 12);
+    var moodboardHit = !snapNode ? getMoodboardStripHit(clientX, clientY) : null;
+    var nextNode = moodboardHit ? null : (snapNode || findTouchNode(clientX, clientY));
     pointerClientX = clientX;
     pointerClientY = clientY;
     pointerHoverNode = nextNode;
@@ -3687,6 +3692,14 @@ function initProjectsAtlas() {
   function handleStageTouchEnd(evt) {
     if (disposed || !hasTouchInput) return;
     lastTouchInteractionTime = Date.now();
+    // Lifting off on the ribbon must always reach the click handler that opens the
+    // moodboard — never get suppressed as a drag that happened to end near a thumbnail.
+    if (!helixNavigationInProgress && getMoodboardStripHit(pointerClientX, pointerClientY)) {
+      touchInteractionMoved = false;
+      suppressNextCoarseClickNode = null;
+      suppressNextMoodboardClick = false;
+      return;
+    }
     if (touchInteractionMoved && touchHoverNode) {
       suppressNextCoarseClickNode = touchHoverNode;
     }
@@ -3709,7 +3722,10 @@ function initProjectsAtlas() {
       suppressNextMoodboardClick = false;
       return;
     }
-    if (moodboardHoverActive && isMoodboardStripHit(evt.clientX, evt.clientY)) {
+    // The ribbon sits in front of the spiral: a tap on it opens the moodboard even
+    // when a snapped/selected thumbnail's hit area overlaps the strip. That overlap
+    // used to shadow the ribbon and drop the tap on touch after swiping/snapping.
+    if (isMoodboardStripHit(evt.clientX, evt.clientY)) {
       evt.preventDefault();
       beginMoodboardRewindNavigation(evt);
       return;
@@ -3717,10 +3733,6 @@ function initProjectsAtlas() {
     if (targetNode && snapRectNode === targetNode) return;
 
     var nextNode = snapRectNode;
-    if (!nextNode && isMoodboardStripHit(evt.clientX, evt.clientY)) {
-      beginMoodboardRewindNavigation(evt);
-      return;
-    }
 
     if (!nextNode) {
       nextNode = findTouchNode(evt.clientX, evt.clientY);

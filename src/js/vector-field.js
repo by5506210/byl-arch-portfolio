@@ -181,6 +181,10 @@ function initVectorFieldCanvas() {
   var portalHoldEnabled = touchCapable || isMobile;
   var portalHoldTriggered = false;
   var contactPulseAnchor = isContactPage ? document.querySelector('.contact-page__card') : null;
+  // Cached contact-pulse center (page coords); recomputed only on resize so we avoid
+  // a per-frame getBoundingClientRect (forced reflow) while the cursor is active.
+  var contactPulseCenter = null;
+  var contactPulseDirty = true;
   var contactPulseInterval = 2.2;
   var lastContactPulseTime = -10;
   var contactPulseHoverActive = false;
@@ -356,6 +360,7 @@ function initVectorFieldCanvas() {
     maxGravityDistance = _max(fieldWidth, window.innerHeight) * 0.6;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
     minFrameMs = resolveFrameInterval();
+    contactPulseDirty = true;
 
     if (gridChanged) {
       buildGrid();
@@ -500,12 +505,16 @@ function initVectorFieldCanvas() {
         y: (scrollY || 0) + window.innerHeight * 0.5
       };
     }
-    var rect = contactPulseAnchor.getBoundingClientRect();
-    var pageY = (typeof scrollY === 'number' ? scrollY : (window.scrollY || window.pageYOffset || 0));
-    return {
-      x: rect.left + rect.width * 0.5,
-      y: rect.top + pageY + rect.height * 0.5
-    };
+    if (contactPulseDirty || !contactPulseCenter) {
+      var rect = contactPulseAnchor.getBoundingClientRect();
+      var pageY = window.scrollY || window.pageYOffset || 0;
+      contactPulseCenter = {
+        x: rect.left + rect.width * 0.5,
+        y: rect.top + pageY + rect.height * 0.5
+      };
+      contactPulseDirty = false;
+    }
+    return contactPulseCenter;
   }
 
   function startAssembleTransition(config) {

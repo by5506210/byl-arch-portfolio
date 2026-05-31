@@ -630,6 +630,12 @@
     this.resizeHandler = this.scheduleResize.bind(this);
     this.hiddenHandler = null;
     this.landingObserver = null;
+    // Cache the rAF callback so we don't allocate a new bound function every frame.
+    this.boundAnimate = this.animate.bind(this);
+    // Cached contact-pulse center (page coords), recomputed on resize rather than
+    // every frame — see resolveContactPulseCenter.
+    this.contactPulseCenter = null;
+    this.contactPulseDirty = true;
   }
 
   WebGLVectorField.prototype.init = function () {
@@ -776,7 +782,7 @@
   WebGLVectorField.prototype.start = function () {
     if (this.running) return;
     this.running = true;
-    this.raf = requestAnimationFrame(this.animate.bind(this));
+    this.raf = requestAnimationFrame(this.boundAnimate);
   };
 
   WebGLVectorField.prototype.stop = function () {
@@ -840,6 +846,7 @@
   };
 
   WebGLVectorField.prototype.resize = function () {
+    this.contactPulseDirty = true;
     var parent = this.canvas.parentElement;
     var nextFieldWidth = window.innerWidth;
     var nextFieldHeight = this.isLandingPage
@@ -1114,12 +1121,20 @@
       };
     }
 
-    var rect = this.contactPulseAnchor.getBoundingClientRect();
-    var pageY = typeof scrollY === 'number' ? scrollY : (window.scrollY || window.pageYOffset || 0);
-    return {
-      x: rect.left + rect.width * 0.5,
-      y: rect.top + pageY + rect.height * 0.5
-    };
+    // The card's page-absolute position only shifts on layout/resize, so measure it
+    // once per resize instead of every frame. resolveContactPulseCenter ran each
+    // frame while the cursor was active, and getBoundingClientRect forces a
+    // synchronous reflow — a real per-frame stall on the contact page.
+    if (this.contactPulseDirty || !this.contactPulseCenter) {
+      var rect = this.contactPulseAnchor.getBoundingClientRect();
+      var pageY = window.scrollY || window.pageYOffset || 0;
+      this.contactPulseCenter = {
+        x: rect.left + rect.width * 0.5,
+        y: rect.top + pageY + rect.height * 0.5
+      };
+      this.contactPulseDirty = false;
+    }
+    return this.contactPulseCenter;
   };
 
   WebGLVectorField.prototype.layerConfig = function (layer) {
@@ -1585,7 +1600,7 @@
 
     if (document.hidden) {
       this.lastFrameTime = 0;
-      this.raf = requestAnimationFrame(this.animate.bind(this));
+      this.raf = requestAnimationFrame(this.boundAnimate);
       return;
     }
 
@@ -1595,7 +1610,7 @@
     if (!this.lastFrameTime) this.lastFrameTime = activeMinFrameMs > 0 ? timestamp - activeMinFrameMs : timestamp;
     var elapsedMs = timestamp - this.lastFrameTime;
     if (activeMinFrameMs > 0 && elapsedMs < activeMinFrameMs) {
-      this.raf = requestAnimationFrame(this.animate.bind(this));
+      this.raf = requestAnimationFrame(this.boundAnimate);
       return;
     }
 
@@ -1628,7 +1643,7 @@
     this.updateRipples(dt);
     this.render(this.smoothedMousePresence, this.smoothedMouseX, this.smoothedMouseY, scrollTilt);
 
-    this.raf = requestAnimationFrame(this.animate.bind(this));
+    this.raf = requestAnimationFrame(this.boundAnimate);
   };
 
   function getWebGLContext(canvas) {
