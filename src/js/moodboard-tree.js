@@ -51,7 +51,7 @@
   var THEME_TEXT_H = 0.26;  // smaller, minimal divider labels
   var GAP_SLOTS = 2;
   var TEXT_CAP = 2000;      // allow the long anchor phrases room
-  var FIT_MARGIN = 1.05;
+  var FIT_MARGIN = 1.0;     // fit the content tight to the partition
 
   // ---- Type ----
   var FONT_PX = 44;
@@ -69,6 +69,8 @@
   var MOUSE_TORQUE = 6;
   var SPRING_K = 20;
   var SPRING_C = 4.0;
+  var ENTRY_DUR = 0.9;      // bloom-in duration (seconds)
+  var ENTRY_SCALE0 = 0.6;   // scale the diagram blooms up from
 
   var instanceId = 0;
   var activeStop = null;
@@ -291,7 +293,6 @@
       camera.left = -hx; camera.right = hx; camera.top = hy; camera.bottom = -hy;
       camera.updateProjectionMatrix();
     }
-    page.classList.add('is-mindmap-active');
     resize();
 
     // ---- Pointer (mouse + touch) ----
@@ -370,6 +371,11 @@
       var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
       t += dt;
 
+      // Bloom: scale the whole diagram up from the center on entry.
+      var entryEase = 1 - Math.pow(1 - Math.min(1, t / ENTRY_DUR), 3);
+      var entryScale = ENTRY_SCALE0 + (1 - ENTRY_SCALE0) * entryEase;
+      root.scale.x = entryScale; root.scale.y = entryScale;
+
       root.rotation.z = GLOBAL_AMP * Math.sin(t * 0.28) + GLOBAL_AMP * 0.45 * Math.sin(t * 0.13 + 1.3);
       var ambAmp = maxRot * AMBIENT_FRAC;
 
@@ -395,6 +401,10 @@
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
+    // Fade the canvas in once it has painted at least once (pairs with the bloom).
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { if (myId === instanceId) mount.classList.add('is-ready'); });
+    });
 
     activeStop = function () {
       cancelAnimationFrame(raf);
@@ -423,9 +433,10 @@
     if (activeStop) { try { activeStop(); } catch (e) {} activeStop = null; }
     instanceId++;
     mount.dataset.ready = 'true';
+    page.classList.remove('is-fallback');
     loadThree(function (ok) {
-      if (!ok || !window.THREE) { mount.dataset.ready = ''; return; }
-      if (!buildScene(mount, page, display, items)) mount.dataset.ready = '';
+      if (!ok || !window.THREE) { mount.dataset.ready = ''; page.classList.add('is-fallback'); return; }
+      if (!buildScene(mount, page, display, items)) { mount.dataset.ready = ''; page.classList.add('is-fallback'); }
     });
   }
 
