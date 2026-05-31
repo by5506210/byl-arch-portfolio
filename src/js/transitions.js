@@ -508,6 +508,9 @@
           if (typeof initVectorField === 'function') {
             initVectorField();
           }
+          if (typeof window.initMoodboardMindmap === 'function') {
+            window.initMoodboardMindmap();
+          }
         }, 50);
 
         var cursorEl = document.querySelector('.cursor');

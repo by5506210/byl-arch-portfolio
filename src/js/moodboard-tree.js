@@ -1,13 +1,13 @@
 // ============================================
 // MOODBOARD MIND-MAP  (WebGL radial text diagram)
 // A typographic concept map in three.js: every photo is a descriptive line of
-// text radiating from an open center ring, evenly spaced around the circle and
-// grouped by theme. The theme names sit in the gaps as bookmark dividers between
-// the groups. No ambient sway — each theme rotates as a rigid group only when the
-// cursor sweeps past, clamped to its gap so groups never overlap. Hover/tap a
-// branch shows its photo on the display side. Text is drawn to supersampled,
-// mipmapped, anisotropic canvas textures so it stays crisp. Falls back to the
-// image grid without WebGL.
+// text radiating from an open center ring, grouped by theme, with the theme names
+// sitting in the gaps as bookmark dividers. The whole diagram breathes (a slow
+// global rotation) and each theme drifts within its gap, so it feels alive; the
+// cursor (or a finger drag on mobile) sweeping past nudges the groups. Hover/tap a
+// branch shows its photo on the display side. Auto-fits the partition; text is
+// drawn to mipmapped, anisotropic canvas textures and rendered at a forced 2x for
+// resolution. Falls back to the image grid without WebGL.
 // ============================================
 
 (function () {
@@ -42,23 +42,26 @@
     'where the room goes quiet', 'as the day gives out'];
 
   // ---- Layout ----
-  var VIEW_HALF = 9.8;
   var INNER_R = 1.7;        // base radius where a branch's text begins
   var STAGGER = 2.6;        // varied inner start so rays don't pile at one radius
   var TEXT_H = 0.24;        // world height of a branch line
   var THEME_TEXT_H = 0.42;  // divider labels
   var GAP_SLOTS = 2;        // empty angular slots between theme groups
-  var TEXT_CAP = 1300;      // max texture width (px) for very long phrases
+  var TEXT_CAP = 1200;      // max texture width (px)
+  var FIT_MARGIN = 1.05;    // camera padding beyond the content
 
   // ---- Type ----
+  var FONT_PX = 44;               // texture glyph size (resolution)
   var FONT_WEIGHT = 300;          // lighter strokes
-  var INK_BRANCH = '#2c2823';     // softer than near-black
+  var INK_BRANCH = '#2c2823';
   var INK_THEME = '#1b1815';
-  var BRANCH_OPACITY = 0.95;      // more present
+  var BRANCH_OPACITY = 0.95;
   var THEME_OPACITY = 0.94;
   var THEME_WEIGHT = 500;
 
-  // ---- Group rotation (cursor only; no ambient sway) ----
+  // ---- Motion ----
+  var GLOBAL_AMP = 0.06;    // whole-diagram breathing (radians)
+  var AMBIENT_FRAC = 0.6;   // per-group drift, as a fraction of its gap room
   var MOUSE_REACH = 0.5;
   var MOUSE_TORQUE = 6;
   var SPRING_K = 20;
@@ -110,6 +113,7 @@
   function buildScene(mount, page, display, items) {
     var THREE = window.THREE;
     var myId = ++instanceId;
+    var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 
     Array.prototype.forEach.call(mount.querySelectorAll('canvas, svg'), function (n) { n.remove(); });
     var canvas = document.createElement('canvas');
@@ -135,16 +139,15 @@
     function describe(it) { return it.desc || (pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D)); }
 
     function textPlane(str, worldH, opacity, weight, color) {
-      var ss = 2, fontPx = 34, pad = 12;
+      var pad = 12;
       var probe = document.createElement('canvas').getContext('2d');
-      probe.font = weight + ' ' + fontPx + 'px Inter, system-ui, sans-serif';
+      probe.font = weight + ' ' + FONT_PX + 'px Inter, system-ui, sans-serif';
       var tw = Math.min(TEXT_CAP, Math.ceil(probe.measureText(str).width));
-      var w = tw + pad * 2, h = Math.ceil(fontPx * 1.5);
+      var w = tw + pad * 2, h = Math.ceil(FONT_PX * 1.5);
       var cv = document.createElement('canvas');
-      cv.width = w * ss; cv.height = h * ss;
+      cv.width = w; cv.height = h;
       var ctx = cv.getContext('2d');
-      ctx.scale(ss, ss);
-      ctx.font = weight + ' ' + fontPx + 'px Inter, system-ui, sans-serif';
+      ctx.font = weight + ' ' + FONT_PX + 'px Inter, system-ui, sans-serif';
       ctx.textBaseline = 'middle'; ctx.fillStyle = color;
       ctx.fillText(str, pad, h / 2);
       var tex = new THREE.CanvasTexture(cv);
@@ -172,7 +175,6 @@
       return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
     });
 
-    // Open center ring only (no solid dot).
     root.add(new THREE.Mesh(new THREE.RingGeometry(0.26, 0.31, 48),
       new THREE.MeshBasicMaterial({ color: 0x1b1815, transparent: true, opacity: 0.55 })));
 
@@ -183,24 +185,9 @@
 
     var branches = [];
     var groups = [];
+    var dividerData = [];
     var slot = 0;
-
-    function addDivider(ang, name) {
-      var left = Math.cos(ang) < 0;
-      var lineIn = INNER_R * 0.55, lineOut = VIEW_HALF * 0.82;
-      var lineLen = lineOut - lineIn, lineMid = lineIn + lineLen * 0.5;
-      var line = new THREE.Mesh(new THREE.PlaneGeometry(lineLen, 0.015),
-        new THREE.MeshBasicMaterial({ color: 0x1b1815, transparent: true, opacity: 0.12 }));
-      line.position.set(Math.cos(ang) * lineMid, Math.sin(ang) * lineMid, -0.2);
-      line.rotation.z = ang;
-      root.add(line);
-
-      var tl = textPlane(name.toLowerCase(), THEME_TEXT_H, THEME_OPACITY, THEME_WEIGHT, INK_THEME);
-      var lr = lineIn + lineLen * 0.42;
-      tl.position.set(Math.cos(ang) * lr, Math.sin(ang) * lr, 0.2);
-      tl.rotation.z = left ? ang + Math.PI : ang;
-      root.add(tl);
-    }
+    var maxExtent = INNER_R + 2;
 
     order.forEach(function (themeName) {
       var grp = new THREE.Group();
@@ -219,15 +206,34 @@
         mesh.rotation.z = left ? ang + Math.PI : ang;
         grp.add(mesh);
         branches.push({ mesh: mesh, item: it, baseAngle: ang, rInner: rInner, grp: grp });
+        maxExtent = Math.max(maxExtent, rInner + mesh.userData.worldW);
       });
 
       var endSlot = slot;
-      // Theme label sits in the gap just before this group's arc — a bookmark divider.
-      addDivider(startSlot * slotAng - Math.PI / 2 - gapAng * 0.5, themeName);
-
+      dividerData.push({ ang: startSlot * slotAng - Math.PI / 2 - gapAng * 0.5, name: themeName });
       groups.push({ grp: grp, midAng: ((startSlot + endSlot) * 0.5) * slotAng - Math.PI / 2,
-        halfSpan: (endSlot - startSlot) * 0.5 * slotAng, swayOff: 0, swayVel: 0 });
+        halfSpan: (endSlot - startSlot) * 0.5 * slotAng, swayOff: 0, swayVel: 0, phase: rand() * 6.28 });
       slot += GAP_SLOTS;
+    });
+
+    // Auto-fit: the camera frames exactly the content so it fills the partition.
+    var fitHalf = maxExtent * FIT_MARGIN;
+
+    // Dividers (faint line + theme label), spanning the content radius.
+    dividerData.forEach(function (d) {
+      var left = Math.cos(d.ang) < 0;
+      var lineIn = INNER_R * 0.55, lineOut = fitHalf * 0.97;
+      var lineLen = lineOut - lineIn, lineMid = lineIn + lineLen * 0.5;
+      var line = new THREE.Mesh(new THREE.PlaneGeometry(lineLen, 0.015),
+        new THREE.MeshBasicMaterial({ color: 0x1b1815, transparent: true, opacity: 0.12 }));
+      line.position.set(Math.cos(d.ang) * lineMid, Math.sin(d.ang) * lineMid, -0.2);
+      line.rotation.z = d.ang;
+      root.add(line);
+      var tl = textPlane(d.name.toLowerCase(), THEME_TEXT_H, THEME_OPACITY, THEME_WEIGHT, INK_THEME);
+      var lr = lineIn + lineLen * 0.42;
+      tl.position.set(Math.cos(d.ang) * lr, Math.sin(d.ang) * lr, 0.2);
+      tl.rotation.z = left ? d.ang + Math.PI : d.ang;
+      root.add(tl);
     });
 
     // ---- Sizing ----
@@ -236,20 +242,21 @@
       var rect = mount.getBoundingClientRect();
       viewW = Math.max(1, Math.round(rect.width));
       viewH = Math.max(1, Math.round(rect.height));
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      // Force at least 2x rendering (crisp even on 1x external monitors), capped.
+      renderer.setPixelRatio(Math.min(2.5, Math.max(window.devicePixelRatio || 1, 2)));
       renderer.setSize(viewW, viewH, false);
       var aspect = viewW / viewH;
-      var hx = aspect >= 1 ? VIEW_HALF * aspect : VIEW_HALF;
-      var hy = aspect >= 1 ? VIEW_HALF : VIEW_HALF / aspect;
+      var hx = aspect >= 1 ? fitHalf * aspect : fitHalf;
+      var hy = aspect >= 1 ? fitHalf : fitHalf / aspect;
       camera.left = -hx; camera.right = hx; camera.top = hy; camera.bottom = -hy;
       camera.updateProjectionMatrix();
     }
     page.classList.add('is-mindmap-active');
     resize();
 
-    // ---- Pointer ----
+    // ---- Pointer (mouse + touch) ----
     var hovered = null;
-    var hasFine = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    var hasFine = !coarse;
     var mAng = 0, mAngVel = 0, mRad = 0, mInside = false, mHave = false;
 
     function toWorld(clientX, clientY) {
@@ -277,19 +284,23 @@
       var best = null, bestD = 0.12;
       for (var i = 0; i < branches.length; i++) {
         var br = branches[i];
-        var da = (br.baseAngle + br.grp.rotation.z) - a;
+        var da = (br.baseAngle + br.grp.rotation.z + root.rotation.z) - a;
         while (da > Math.PI) da -= 6.283; while (da < -Math.PI) da += 6.283;
         da = Math.abs(da);
         if (da < bestD && r < br.rInner + br.mesh.userData.worldW + 0.5) { bestD = da; best = br; }
       }
       return best;
     }
-    function onMove(e) {
-      var w = toWorld(e.clientX, e.clientY);
+    function track(clientX, clientY) {
+      var w = toWorld(clientX, clientY);
       var a = Math.atan2(w.y, w.x);
-      mRad = Math.sqrt(w.x * w.x + w.y * w.y) / VIEW_HALF;
+      mRad = Math.sqrt(w.x * w.x + w.y * w.y) / fitHalf;
       if (mHave) { var d = a - mAng; while (d > Math.PI) d -= 6.283; while (d < -Math.PI) d += 6.283; mAngVel = d; }
       mAng = a; mInside = true; mHave = true;
+      return w;
+    }
+    function onMove(e) {
+      var w = track(e.clientX, e.clientY);
       if (hasFine) {
         var hit = nearestBranch(w.x, w.y);
         if (hit !== hovered) {
@@ -301,35 +312,45 @@
         }
       }
     }
+    function onDown(e) { track(e.clientX, e.clientY); mAngVel = 0; }
+    function onUp() { mInside = false; mAngVel = 0; }
     function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestBranch(w.x, w.y); if (hit) { hovered = hit; setDisplay(hit.item); } }
     function onLeave() { mInside = false; if (hasFine) { if (hovered) hovered.mesh.material.opacity = BRANCH_OPACITY; hovered = null; setDisplay(null); mount.classList.remove('is-hovering'); } }
 
+    canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
     canvas.addEventListener('pointerleave', onLeave);
     canvas.addEventListener('click', onClick);
     window.addEventListener('resize', resize);
 
-    // ---- Animate: groups rotate toward the cursor sweep, then spring back ----
-    var raf = 0, last = null;
+    // ---- Animate: global breathing + per-group drift + cursor push ----
+    var raf = 0, last = null, t = 0;
     function frame(ts) {
       if (myId !== instanceId) return;
       if (last === null) last = ts;
       var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+      t += dt;
+
+      root.rotation.z = GLOBAL_AMP * Math.sin(t * 0.28) + GLOBAL_AMP * 0.45 * Math.sin(t * 0.13 + 1.3);
+      var ambAmp = maxRot * AMBIENT_FRAC;
 
       for (var i = 0; i < groups.length; i++) {
         var g = groups[i];
         var torque = 0;
         if (mInside && mRad > 0.1 && Math.abs(mAngVel) > 0.0001) {
-          var dmid = g.midAng - mAng;
+          var dmid = g.midAng - mAng + root.rotation.z;
           while (dmid > Math.PI) dmid -= 6.283; while (dmid < -Math.PI) dmid += 6.283;
           var edge = Math.max(0, Math.abs(dmid) - g.halfSpan);
           if (edge < MOUSE_REACH) torque = MOUSE_TORQUE * mAngVel * (1 - edge / MOUSE_REACH);
         }
         g.swayVel += (torque - SPRING_K * g.swayOff - SPRING_C * g.swayVel) * dt;
         g.swayOff += g.swayVel * dt;
-        if (g.swayOff > maxRot) { g.swayOff = maxRot; g.swayVel = 0; }
-        else if (g.swayOff < -maxRot) { g.swayOff = -maxRot; g.swayVel = 0; }
-        g.grp.rotation.z = g.swayOff;
+        var ambient = ambAmp * (Math.sin(t * 0.5 + g.phase) + 0.4 * Math.sin(t * 0.27 + g.phase * 1.7));
+        var rot = ambient + g.swayOff;
+        if (rot > maxRot) rot = maxRot; else if (rot < -maxRot) rot = -maxRot;
+        g.grp.rotation.z = rot;
       }
       mAngVel *= 0.7;
 
@@ -340,7 +361,10 @@
 
     activeStop = function () {
       cancelAnimationFrame(raf);
+      canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
       canvas.removeEventListener('pointerleave', onLeave);
       canvas.removeEventListener('click', onClick);
       window.removeEventListener('resize', resize);
