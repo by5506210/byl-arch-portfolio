@@ -73,7 +73,7 @@
   var SPRING_C = 4.0;
   var ENTRY_DUR = 0.9;      // bloom-in duration (seconds)
   var ENTRY_SCALE0 = 0.6;   // scale the diagram blooms up from
-  var INDIV_SWAY = 0.03;    // tiny per-phrase flutter on top of the group sway (rad)
+  var INDIV_SWAY = 0.012;   // very small per-phrase flutter; the group sway dominates
 
   var instanceId = 0;
   var activeStop = null;
@@ -265,16 +265,16 @@
     // clear once the closer of their starts sits past TEXT_H / angular-gap — so
     // where they'd overlap, push the outer one further out until they separate.
     var ordered = pending.slice().sort(function (a, b) { return a.ang - b.ang; });
-    var L = ordered.length, RMAX = INNER_R + OUTER_PUSH + 2;
-    for (var relax = 0; relax < 22; relax++) {
+    var L = ordered.length, RMAX = INNER_R + OUTER_PUSH + 5.5;
+    for (var relax = 0; relax < 48; relax++) {
       for (var k = 0; k < L; k++) {
-        for (var m = 1; m <= 2; m++) {
+        for (var m = 1; m <= 4; m++) {
           var a = ordered[k], b = ordered[(k + m) % L];
           var da = Math.abs(a.ang - b.ang); if (da > Math.PI) da = Math.PI * 2 - da;
-          if (da > 0.2) break;
-          var rReq = Math.min(RMAX, TEXT_H * 1.15 / Math.max(da, 0.02));
+          if (da > 0.34) break;
+          var rReq = Math.min(RMAX, TEXT_H * 1.7 / Math.max(da, 0.02));
           var hi = a.rInner >= b.rInner ? a : b;
-          if (!hi.anchor && hi.rInner < rReq) hi.rInner += (rReq - hi.rInner) * 0.35;
+          if (!hi.anchor && hi.rInner < rReq) hi.rInner += (rReq - hi.rInner) * 0.5;
         }
       }
     }
@@ -412,7 +412,7 @@
     window.addEventListener('resize', resize);
 
     // ---- Animate ----
-    var raf = 0, last = null, t = 0;
+    var raf = 0, last = null, t = 0, readied = false;
     function frame(ts) {
       if (myId !== instanceId) return;
       if (last === null) last = ts;
@@ -453,13 +453,13 @@
       }
 
       renderer.render(scene, camera);
+      // Reveal the canvas (CSS fade) once it has actually painted. frame() already
+      // bails when superseded, so this can't be skipped by a racing re-init — which
+      // was leaving the canvas stuck at opacity 0 ("tree not there until refresh").
+      if (!readied) { readied = true; mount.classList.add('is-ready'); }
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
-    // Fade the canvas in once it has painted at least once (pairs with the bloom).
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () { if (myId === instanceId) mount.classList.add('is-ready'); });
-    });
 
     activeStop = function () {
       cancelAnimationFrame(raf);
@@ -470,6 +470,7 @@
       canvas.removeEventListener('pointerleave', onLeave);
       canvas.removeEventListener('click', onClick);
       window.removeEventListener('resize', resize);
+      try { renderer.forceContextLoss(); } catch (e) {}
       try { renderer.dispose(); } catch (e) {}
     };
     return true;
@@ -517,6 +518,13 @@
 
   if (window.barba && window.barba.hooks && typeof window.barba.hooks.after === 'function') {
     window.barba.hooks.after(function () { initMoodboardMindmap(document); });
+  }
+  // A barba SPA swap replaces the [data-barba="container"]. Watch the wrapper so we
+  // (re)build the moment its new container is inserted, independent of hook timing —
+  // this is the reliable trigger; the hook above is belt-and-braces.
+  var mbWrapper = document.querySelector('[data-barba="wrapper"]');
+  if (mbWrapper && typeof MutationObserver !== 'undefined') {
+    new MutationObserver(function () { initMoodboardMindmap(document); }).observe(mbWrapper, { childList: true });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { initMoodboardMindmap(document); });
