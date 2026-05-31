@@ -1,11 +1,12 @@
 // ============================================
 // MOODBOARD MIND-MAP  (WebGL radial tree)
-// A fixed center, theme boughs, and inspo images at the tips. Branches are drawn
-// as tapering strings of dots (thick near the trunk, fine at the tips), curve
-// organically, and sway like tree branches on a spring: ambient wind plus a
-// velocity-based push wherever the cursor brushes through. Hovering an image
-// shows it large on the display side. Falls back to the plain image grid if
-// WebGL/three is unavailable; prefers-reduced-motion stills the whole thing.
+// A fixed center grows theme boughs that fork progressively outward (like a real
+// branching tree / dendrogram). Branches are stiff straight segments; the sway
+// comes from each joint rotating subtly — wind plus a velocity push wherever the
+// cursor brushes through — so the rigid branches swing and the tips travel most.
+// Every branch ends in a dot that stands for one inspo photo; hover (or tap) a
+// dot to show that photo large on the display side. Falls back to the plain image
+// grid without WebGL; prefers-reduced-motion stills it.
 // ============================================
 
 (function () {
@@ -24,24 +25,29 @@
     'Landscape', 'Texture', 'Atmosphere'
   ];
 
-  // ---- Layout (world units) ----
-  var THEME_RADIUS = 3.0;
-  var IMAGE_RADIUS = 5.2;
-  var IMAGE_RADIUS_JITTER = 0.7;
-  var IMAGE_PLANE_W = 0.6;
-  var SECTOR_PAD = 0.14;
-  var VIEW_HALF = 6.5;
-  var INK = '#141310';
+  // ---- Layout ----
+  var LEAF_RADIUS = 5.2;        // where the photo dots sit
+  var LEAF_JITTER = 0.55;
+  var INNER_SPAN = 0.92;        // internal forks fill this fraction of the radius
+  var SECTOR_PAD = 0.12;        // gap between theme sectors
+  var VIEW_HALF = 6.6;
   var INK_HEX = 0x141310;
+  var INK = '#141310';
 
-  // ---- Motion (tunable feel) ----
-  var SPRING_K = 26;        // restoring stiffness toward the rest pose
-  var DAMP = 4.2;           // velocity damping (lower = looser, swingier)
-  var WIND_STRENGTH = 7.0;  // ambient wind force on the tips
-  var WIND_TURBULENCE = 0.6;
-  var MOUSE_RADIUS = 2.2;   // world reach of the cursor disturbance
-  var MOUSE_PUSH = 22;      // how hard the cursor shoves branches by its speed
-  var TIP_LEAN = 0.5;       // how much image tips tilt into their motion
+  // ---- Branch weight (tapers thick trunk -> fine twig by subtree size) ----
+  var BW_MIN = 0.012;
+  var BW_SCALE = 0.019;
+  var DOT_R = 0.07;
+  var DOT_R_HOVER = 0.15;
+  var DOT_PICK = 0.42;          // world-space hover radius around a dot
+
+  // ---- Sway (joint rotation) ----
+  var WIND_SWAY = 0.085;        // rad of bend a joint takes in a full crosswind
+  var FLUTTER = 0.022;          // small per-joint shimmer
+  var JOINT_K = 34;             // dynamic joint spring stiffness (cursor response)
+  var JOINT_C = 5.0;            // joint damping
+  var MOUSE_RADIUS = 2.1;       // world reach of the cursor
+  var MOUSE_TORQUE = 9.0;       // how hard a fast cursor twists nearby joints
 
   var instanceId = 0;
   var activeStop = null;
@@ -59,18 +65,12 @@
         return;
       }
       var s = document.createElement('script');
-      s.src = THREE_SOURCES[i];
-      s.async = true;
-      s.dataset.mbThree = String(i);
+      s.src = THREE_SOURCES[i]; s.async = true; s.dataset.mbThree = String(i);
       s.onload = function () { onReady(!!window.THREE); };
       s.onerror = function () { i++; next(); };
       document.head.appendChild(s);
     }
     next();
-  }
-
-  function deriveThumb(src) {
-    return src.replace('/inspo-', '/thumbs/inspo-').replace(/\.(png|jpe?g|webp)$/i, '.jpg');
   }
 
   function readItems(scope) {
@@ -81,14 +81,12 @@
       if (!img) continue;
       var full = img.getAttribute('src') || '';
       if (!full) continue;
-      var w = parseFloat(img.getAttribute('width')) || 4;
-      var h = parseFloat(img.getAttribute('height')) || 5;
       items.push({
-        full: full, thumb: deriveThumb(full),
+        full: full,
         alt: img.getAttribute('alt') || '',
         caption: (figs[i].querySelector('figcaption') || {}).textContent || '',
         theme: figs[i].getAttribute('data-theme') || THEME_NAMES[i % THEME_NAMES.length],
-        aspect: w / h, index: i
+        index: i
       });
     }
     return items;
@@ -96,7 +94,7 @@
 
   function makeLabelSprite(THREE, text) {
     var dpr = Math.min(2, window.devicePixelRatio || 1);
-    var pad = 10 * dpr, fontPx = 26 * dpr;
+    var pad = 10 * dpr, fontPx = 24 * dpr;
     var canvas = document.createElement('canvas');
     var ctx = canvas.getContext('2d');
     ctx.font = '500 ' + fontPx + 'px Inter, system-ui, sans-serif';
@@ -104,15 +102,13 @@
     var h = Math.ceil(fontPx * 1.5);
     canvas.width = w; canvas.height = h;
     ctx.font = '500 ' + fontPx + 'px Inter, system-ui, sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = INK;
+    ctx.textBaseline = 'middle'; ctx.fillStyle = INK;
     ctx.fillText(text, pad, h / 2);
     var tex = new THREE.CanvasTexture(canvas);
     if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
     tex.minFilter = THREE.LinearFilter;
-    var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.8, depthWrite: false });
-    var sprite = new THREE.Sprite(mat);
-    sprite.scale.set(w * 0.0042, h * 0.0042, 1);
+    var sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.72, depthWrite: false }));
+    sprite.scale.set(w * 0.004, h * 0.004, 1);
     return sprite;
   }
 
@@ -148,106 +144,116 @@
       return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
     });
 
-    var seed = 7;
+    var seed = 9;
     function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
 
-    // Node = a point that springs around its rest position.
-    // soft: 0 = pinned (center), 1 = whips freely (tips).
-    var nodes = [];
-    function makeNode(x, y, soft, kind) {
-      var n = { bx: x, by: y, x: x, y: y, vx: 0, vy: 0, soft: soft, kind: kind,
-        r: Math.sqrt(x * x + y * y), phase: rand() * 6.283, obj: null, label: null };
+    // ---- Build the hierarchy: center -> theme trunk -> recursive forks -> leaves
+    var nodes = [];   // creation order = parents before children (good for forward FK)
+    var leaves = [];
+    function node(parent, angle, depth, isLeaf) {
+      var n = {
+        parent: parent, angle: angle, depth: depth, isLeaf: !!isLeaf,
+        leafCount: 0, item: null, phase: rand() * 6.283,
+        rx: 0, ry: 0, restLen: 0, restRel: 0, restWorld: 0,
+        x: 0, y: 0, worldAngle: 0, swayOff: 0, swayVel: 0
+      };
       nodes.push(n);
       return n;
     }
 
-    var center = makeNode(0, 0, 0, 'center');
-
-    // Center anchor: a ring with a solid core dot.
-    group.add(new THREE.Mesh(
-      new THREE.RingGeometry(0.32, 0.4, 64),
-      new THREE.MeshBasicMaterial({ color: INK_HEX, transparent: true, opacity: 0.92 })
-    ));
-    var core = new THREE.Mesh(
-      new THREE.CircleGeometry(0.12, 32),
-      new THREE.MeshBasicMaterial({ color: INK_HEX, transparent: true, opacity: 0.9 })
-    );
-    group.add(core);
-
-    var branches = [];   // { a, b, curve, beads:[{t,r}], baseZ }
-    var imagePlanes = [];
-    var loader = new THREE.TextureLoader();
+    var center = node(null, 0, 0, false);
+    var maxDepth = 1;
     var themeCount = themeOrder.length;
 
-    function addBranch(a, b, rBase, rTip, beadCount, curveAmt, z) {
-      var beads = [];
-      for (var k = 0; k <= beadCount; k++) {
-        var t = beadCount ? k / beadCount : 0;
-        beads.push({ t: t, r: rBase + (rTip - rBase) * t });
+    // Recursively split a theme's leaf-angle range into a binary fork tree.
+    function fork(parent, list, lo, hi, angles, depth) {
+      if (depth > maxDepth) maxDepth = depth;
+      if (hi - lo === 1) {
+        var leaf = node(parent, angles[lo], depth, true);
+        leaf.item = list[lo];
+        leaves.push(leaf);
+        return;
       }
-      branches.push({ a: a, b: b, beads: beads, curve: curveAmt, z: z });
+      var mid = (lo + hi) >> 1;
+      var nodeAngle = (angles[lo] + angles[hi - 1]) * 0.5;
+      var inner = node(parent, nodeAngle, depth, false);
+      fork(inner, list, lo, mid, angles, depth + 1);
+      fork(inner, list, mid, hi, angles, depth + 1);
     }
 
     themeOrder.forEach(function (themeName, ti) {
-      var ang = (ti / themeCount) * Math.PI * 2 - Math.PI / 2;
-      var sectorW = (Math.PI * 2 / themeCount) * (1 - SECTOR_PAD);
-      var tx = Math.cos(ang) * THEME_RADIUS, ty = Math.sin(ang) * THEME_RADIUS;
-      var themeNode = makeNode(tx, ty, 0.34, 'theme');
+      var mid = (ti / themeCount) * Math.PI * 2 - Math.PI / 2;
+      var half = (Math.PI / themeCount) * (1 - SECTOR_PAD);
+      var list = byTheme[themeName];
+      var n = list.length;
+      var angles = [];
+      for (var j = 0; j < n; j++) angles.push(mid - half + ((j + 0.5) / n) * (2 * half));
 
-      var label = makeLabelSprite(THREE, themeName);
-      label.position.set(tx, ty + 0.34, 2);
-      group.add(label);
-      themeNode.label = label;
-      themeNode.labelDy = 0.34;
-
-      // Thick bough: center -> theme.
-      addBranch(center, themeNode, 0.10, 0.052, 9, (rand() - 0.5) * 0.5, 0.05);
-
-      var bucket = byTheme[themeName];
-      bucket.forEach(function (it, j) {
-        var f = bucket.length > 1 ? (j / (bucket.length - 1) - 0.5) : 0;
-        var a2 = ang + f * sectorW;
-        var r = IMAGE_RADIUS + (rand() - 0.5) * IMAGE_RADIUS_JITTER;
-        var ix = Math.cos(a2) * r, iy = Math.sin(a2) * r;
-        var imgNode = makeNode(ix, iy, 1.0, 'image');
-
-        var aspect = it.aspect || 0.75;
-        var pw = IMAGE_PLANE_W, ph = pw / aspect;
-        var plane = new THREE.Mesh(
-          new THREE.PlaneGeometry(pw, ph),
-          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
-        );
-        plane.position.set(ix, iy, 0.5);
-        plane.userData.item = it;
-        plane.userData.node = imgNode;
-        group.add(plane);
-        imagePlanes.push(plane);
-        imgNode.obj = plane;
-
-        (function (mat) {
-          loader.load(it.thumb, function (tex) {
-            if (myId !== instanceId) return;
-            if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-            tex.minFilter = THREE.LinearFilter;
-            mat.map = tex; mat.color.set(0xffffff); mat.needsUpdate = true;
-          }, undefined, function () {});
-        })(plane.material);
-
-        // Twig: theme -> image, with more organic curl.
-        addBranch(themeNode, imgNode, 0.05, 0.022, 7, (rand() - 0.5) * 0.9, 0.04);
-      });
+      // Trunk: a short bough from center before the first fork (carries the label).
+      var trunk = node(center, mid, 1, false);
+      trunk.isTrunk = true;
+      trunk.themeName = themeName;
+      if (n === 1) { var lf = node(trunk, angles[0], 2, true); lf.item = list[0]; leaves.push(lf); }
+      else fork(trunk, list, 0, n, angles, 2);
     });
 
-    // ---- Beads as one instanced mesh (1 draw call) ----
-    var totalBeads = 0;
-    branches.forEach(function (br) { totalBeads += br.beads.length; });
-    var beadMesh = new THREE.InstancedMesh(
-      new THREE.CircleGeometry(1, 14),
-      new THREE.MeshBasicMaterial({ color: INK_HEX, transparent: true, opacity: 0.66 }),
-      totalBeads
-    );
-    beadMesh.frustumCulled = false;
-    group.add(beadMesh);
+    // ---- Rest geometry: radius by depth (leaves on the rim), then FK basis ----
+    for (var i = 0; i < nodes.length; i++) {
+      var nd = nodes[i];
+      if (nd === center) { nd.rx = 0; nd.ry = 0; continue; }
+      var r = nd.isLeaf ? (LEAF_RADIUS + (rand() - 0.5) * LEAF_JITTER)
+                        : (nd.depth / (maxDepth + 0.5)) * (LEAF_RADIUS * INNER_SPAN);
+      nd.rx = Math.cos(nd.angle) * r;
+      nd.ry = Math.sin(nd.angle) * r;
+    }
+    // leafCount (post-order: children come after parents, so walk backwards)
+    for (var b = nodes.length - 1; b >= 0; b--) {
+      var nb = nodes[b];
+      if (nb.isLeaf) nb.leafCount = 1;
+      if (nb.parent) nb.parent.leafCount += nb.leafCount;
+    }
+    // restWorld angle of each segment, and the relative angle at each joint
+    center.restWorld = 0;
+    for (var c = 0; c < nodes.length; c++) {
+      var nc = nodes[c];
+      if (!nc.parent) continue;
+      nc.restWorld = Math.atan2(nc.ry - nc.parent.ry, nc.rx - nc.parent.rx);
+      nc.restLen = Math.hypot(nc.rx - nc.parent.rx, nc.ry - nc.parent.ry);
+      nc.restRel = nc.restWorld - nc.parent.restWorld;
+    }
+
+    function widthOf(n) { return BW_MIN + BW_SCALE * Math.sqrt(n.leafCount); }
+
+    // ---- Center anchor ----
+    group.add(new THREE.Mesh(new THREE.RingGeometry(0.3, 0.38, 64),
+      new THREE.MeshBasicMaterial({ color: INK_HEX, transparent: true, opacity: 0.92 })));
+    group.add(new THREE.Mesh(new THREE.CircleGeometry(0.11, 32),
+      new THREE.MeshBasicMaterial({ color: INK_HEX, transparent: true, opacity: 0.9 })));
+
+    // ---- Theme labels (static, just outside the rim) ----
+    themeOrder.forEach(function (themeName, ti) {
+      var mid = (ti / themeCount) * Math.PI * 2 - Math.PI / 2;
+      var label = makeLabelSprite(THREE, themeName);
+      label.position.set(Math.cos(mid) * (LEAF_RADIUS + 0.95), Math.sin(mid) * (LEAF_RADIUS + 0.95), 2);
+      group.add(label);
+    });
+
+    // ---- Branch mesh (stiff tapered segments, rebuilt each frame) ----
+    var segNodes = nodes.filter(function (n) { return !!n.parent; });
+    var branchPos = new Float32Array(segNodes.length * 6 * 3);
+    var branchGeo = new THREE.BufferGeometry();
+    branchGeo.setAttribute('position', new THREE.BufferAttribute(branchPos, 3));
+    var branchMesh = new THREE.Mesh(branchGeo, new THREE.MeshBasicMaterial({
+      color: INK_HEX, transparent: true, opacity: 0.82, side: THREE.DoubleSide
+    }));
+    branchMesh.frustumCulled = false;
+    group.add(branchMesh);
+
+    // ---- Leaf dots (one instanced mesh; hover by nearest in world space) ----
+    var dotMesh = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 20),
+      new THREE.MeshBasicMaterial({ color: INK_HEX }), leaves.length);
+    dotMesh.frustumCulled = false;
+    group.add(dotMesh);
     var dummy = new THREE.Object3D();
 
     // ---- Sizing ----
@@ -267,9 +273,7 @@
     page.classList.add('is-mindmap-active');
     resize();
 
-    // ---- Pointer: hover-to-display + velocity disturbance ----
-    var raycaster = new THREE.Raycaster();
-    var ndc = new THREE.Vector2();
+    // ---- Pointer ----
     var hovered = null;
     var hasFine = !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     var mWorldX = 0, mWorldY = 0, mVelX = 0, mVelY = 0, mInside = false, mHave = false;
@@ -278,7 +282,7 @@
       var rect = mount.getBoundingClientRect();
       var nx = ((clientX - rect.left) / rect.width) * 2 - 1;
       var ny = -((clientY - rect.top) / rect.height) * 2 + 1;
-      return { x: nx * camera.right, y: ny * camera.top, nx: nx, ny: ny };
+      return { x: nx * camera.right, y: ny * camera.top };
     }
     function setDisplay(item) {
       if (!display) return;
@@ -288,34 +292,34 @@
         if (img && img.getAttribute('src') !== item.full) img.setAttribute('src', item.full);
         if (img) img.setAttribute('alt', item.alt);
         if (cap) cap.textContent = item.theme + (item.caption ? '  ·  ' + item.caption : '');
-        display.classList.add('is-active');
-        page.classList.add('is-display-active');
+        display.classList.add('is-active'); page.classList.add('is-display-active');
       } else {
-        display.classList.remove('is-active');
-        page.classList.remove('is-display-active');
+        display.classList.remove('is-active'); page.classList.remove('is-display-active');
       }
     }
-    function pick(clientX, clientY) {
-      var w = toWorld(clientX, clientY);
-      ndc.set(w.nx, w.ny);
-      raycaster.setFromCamera(ndc, camera);
-      var hits = raycaster.intersectObjects(imagePlanes, false);
-      return hits.length ? hits[0].object : null;
+    function nearestLeaf(wx, wy) {
+      var best = null, bestD = DOT_PICK * DOT_PICK;
+      for (var k = 0; k < leaves.length; k++) {
+        var dx = leaves[k].x - wx, dy = leaves[k].y - wy;
+        var d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; best = leaves[k]; }
+      }
+      return best;
     }
     function onMove(e) {
       var w = toWorld(e.clientX, e.clientY);
       if (mHave) { mVelX = w.x - mWorldX; mVelY = w.y - mWorldY; }
       mWorldX = w.x; mWorldY = w.y; mInside = true; mHave = true;
       if (hasFine) {
-        var hit = pick(e.clientX, e.clientY);
+        var hit = nearestLeaf(w.x, w.y);
         if (hit !== hovered) {
           hovered = hit;
-          setDisplay(hit ? hit.userData.item : null);
+          setDisplay(hit ? hit.item : null);
           mount.classList.toggle('is-hovering', !!hit);
         }
       }
     }
-    function onClick(e) { var hit = pick(e.clientX, e.clientY); if (hit) { hovered = hit; setDisplay(hit.userData.item); } }
+    function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestLeaf(w.x, w.y); if (hit) { hovered = hit; setDisplay(hit.item); } }
     function onLeave() { mInside = false; if (hasFine) { hovered = null; setDisplay(null); mount.classList.remove('is-hovering'); } }
 
     canvas.addEventListener('pointermove', onMove);
@@ -325,91 +329,81 @@
 
     // ---- Animate ----
     var raf = 0, last = null, t = 0;
-    function bez(p0, c, p1, u, out) {
-      var iu = 1 - u;
-      out.x = iu * iu * p0.x + 2 * iu * u * c.x + u * u * p1.x;
-      out.y = iu * iu * p0.y + 2 * iu * u * c.y + u * u * p1.y;
-    }
-    var pt = { x: 0, y: 0 };
-
     function frame(ts) {
       if (myId !== instanceId) return;
       if (last === null) last = ts;
       var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
       t += dt;
 
-      // Ambient wind: a slowly turning, gusting vector.
-      var windAng = Math.sin(t * 0.16) * 1.2 + Math.sin(t * 0.37 + 1.1) * 0.5;
-      var gust = 0.55 + 0.45 * Math.sin(t * 0.5) + 0.2 * Math.sin(t * 1.27 + 2.0);
-      var wx = Math.cos(windAng) * gust, wy = Math.sin(windAng) * gust;
-
+      // Directional wind: a slowly turning gust. A joint bends most when its
+      // branch faces across the wind; tips compound every ancestor's bend.
+      var windDir = 0.6 + Math.sin(t * 0.13) * 1.4 + Math.sin(t * 0.31 + 1.0) * 0.5;
+      var gust = 0.55 + 0.45 * Math.sin(t * 0.5) + 0.18 * Math.sin(t * 1.3 + 2.0);
       var mSpeed = Math.sqrt(mVelX * mVelX + mVelY * mVelY);
 
+      // Forward kinematics: center pinned, every joint rotates by wind + spring.
       for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i];
-        if (n.soft === 0 || reduceMotion) { n.x = n.bx; n.y = n.by; continue; }
+        if (!n.parent) { n.x = 0; n.y = 0; n.worldAngle = 0; continue; }
 
-        // Wind force (tips catch more), with a little per-node turbulence.
-        var turb = 1 + WIND_TURBULENCE * Math.sin(t * 1.7 + n.phase);
-        var fx = wx * WIND_STRENGTH * n.soft * turb;
-        var fy = wy * WIND_STRENGTH * n.soft * turb;
+        var sway = 0;
+        if (!reduceMotion) {
+          var wind = WIND_SWAY * Math.sin(windDir - n.restWorld) * gust
+                   + FLUTTER * Math.sin(t * 1.7 + n.phase);
 
-        // Cursor disturbance: shove along the pointer's motion, scaled by speed,
-        // proximity and softness — so a quick swipe whips the branches.
-        if (mInside && mSpeed > 0.0002) {
-          var dx = n.x - mWorldX, dy = n.y - mWorldY;
-          var d2 = dx * dx + dy * dy, R2 = MOUSE_RADIUS * MOUSE_RADIUS;
-          if (d2 < R2) {
-            var prox = 1 - Math.sqrt(d2) / MOUSE_RADIUS;
-            var k = MOUSE_PUSH * prox * prox * n.soft;
-            fx += mVelX * k; fy += mVelY * k;
+          // Cursor torque: a fast pass near a joint twists it; it springs back.
+          var torque = 0;
+          if (mInside && mSpeed > 0.0002) {
+            var dx = n.x - mWorldX, dy = n.y - mWorldY;
+            var d2 = dx * dx + dy * dy, R2 = MOUSE_RADIUS * MOUSE_RADIUS;
+            if (d2 < R2) {
+              var prox = 1 - Math.sqrt(d2) / MOUSE_RADIUS;
+              var bx = Math.cos(n.restWorld), by = Math.sin(n.restWorld);
+              torque = MOUSE_TORQUE * prox * prox * (bx * mVelY - by * mVelX);
+            }
           }
+          n.swayVel += (torque - JOINT_K * n.swayOff - JOINT_C * n.swayVel) * dt;
+          n.swayOff += n.swayVel * dt;
+          sway = wind + n.swayOff;
         }
 
-        // Spring back to rest + damping (semi-implicit).
-        fx += -SPRING_K * (n.x - n.bx) - DAMP * n.vx;
-        fy += -SPRING_K * (n.y - n.by) - DAMP * n.vy;
-        n.vx += fx * dt; n.vy += fy * dt;
-        n.x += n.vx * dt; n.y += n.vy * dt;
-
-        if (n.label) { n.label.position.x = n.x; n.label.position.y = n.y + n.labelDy; }
+        n.worldAngle = n.parent.worldAngle + n.restRel + sway;
+        n.x = n.parent.x + Math.cos(n.worldAngle) * n.restLen;
+        n.y = n.parent.y + Math.sin(n.worldAngle) * n.restLen;
       }
-      mVelX *= 0.82; mVelY *= 0.82; // disturbance fades when the mouse rests
+      mVelX *= 0.8; mVelY *= 0.8;
 
-      // Lay the beads along each (swayed, curved) branch.
-      var idx = 0;
-      for (var b = 0; b < branches.length; b++) {
-        var br = branches[b], a = br.a, c = br.b;
-        var mx = (a.x + c.x) * 0.5, my = (a.y + c.y) * 0.5;
-        var ex = c.x - a.x, ey = c.y - a.y;
-        var len = Math.sqrt(ex * ex + ey * ey) || 1;
-        // perpendicular control offset = organic curve + a wind-driven bow
+      // Rebuild branch quads from the swayed joints (thick trunk -> fine twig).
+      var o = 0;
+      for (var s = 0; s < segNodes.length; s++) {
+        var nd = segNodes[s], pa = nd.parent;
+        var ex = nd.x - pa.x, ey = nd.y - pa.y;
+        var len = Math.hypot(ex, ey) || 1;
         var px = -ey / len, py = ex / len;
-        var bow = br.curve + (reduceMotion ? 0 : (wx * py - wy * px) * 0.18);
-        var ctrl = { x: mx + px * bow * len, y: my + py * bow * len };
-        var p0 = { x: a.x, y: a.y }, p1 = { x: c.x, y: c.y };
-        for (var q = 0; q < br.beads.length; q++) {
-          var bd = br.beads[q];
-          bez(p0, ctrl, p1, bd.t, pt);
-          dummy.position.set(pt.x, pt.y, br.z);
-          dummy.scale.set(bd.r, bd.r, 1);
-          dummy.rotation.z = 0;
-          dummy.updateMatrix();
-          beadMesh.setMatrixAt(idx++, dummy.matrix);
-        }
+        var wa = widthOf(pa) * 0.5, wb = widthOf(nd) * 0.5;
+        var ax1 = pa.x + px * wa, ay1 = pa.y + py * wa;
+        var ax2 = pa.x - px * wa, ay2 = pa.y - py * wa;
+        var bx1 = nd.x + px * wb, by1 = nd.y + py * wb;
+        var bx2 = nd.x - px * wb, by2 = nd.y - py * wb;
+        branchPos[o++] = ax1; branchPos[o++] = ay1; branchPos[o++] = 0;
+        branchPos[o++] = ax2; branchPos[o++] = ay2; branchPos[o++] = 0;
+        branchPos[o++] = bx1; branchPos[o++] = by1; branchPos[o++] = 0;
+        branchPos[o++] = ax2; branchPos[o++] = ay2; branchPos[o++] = 0;
+        branchPos[o++] = bx2; branchPos[o++] = by2; branchPos[o++] = 0;
+        branchPos[o++] = bx1; branchPos[o++] = by1; branchPos[o++] = 0;
       }
-      beadMesh.instanceMatrix.needsUpdate = true;
+      branchGeo.attributes.position.needsUpdate = true;
 
-      // Image tips: follow their node, lean into motion, lift when hovered.
-      for (var p = 0; p < imagePlanes.length; p++) {
-        var pl = imagePlanes[p], nd = pl.userData.node;
-        pl.position.x = nd.x; pl.position.y = nd.y;
-        pl.rotation.z = reduceMotion ? 0 : Math.max(-0.4, Math.min(0.4, -nd.vx * TIP_LEAN));
-        var target = pl === hovered ? 1.55 : 1;
-        pl.scale.x += (target - pl.scale.x) * 0.18;
-        pl.scale.y = pl.scale.x;
-        pl.position.z = pl === hovered ? 1.6 : 0.5;
+      // Photo dots at the tips.
+      for (var d = 0; d < leaves.length; d++) {
+        var lf = leaves[d];
+        var rr = lf === hovered ? DOT_R_HOVER : DOT_R;
+        dummy.position.set(lf.x, lf.y, lf === hovered ? 1.4 : 0.2);
+        dummy.scale.set(rr, rr, 1);
+        dummy.rotation.z = 0; dummy.updateMatrix();
+        dotMesh.setMatrixAt(d, dummy.matrix);
       }
+      dotMesh.instanceMatrix.needsUpdate = true;
 
       renderer.render(scene, camera);
       raf = requestAnimationFrame(frame);
