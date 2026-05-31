@@ -410,6 +410,14 @@
     canvas.addEventListener('pointerleave', onLeave);
     canvas.addEventListener('click', onClick);
     window.addEventListener('resize', resize);
+    // Re-fit if the mount changes size after we build — e.g. it was measured at a
+    // transient size during the barba swap. ResizeObserver fires even when rAF is
+    // throttled, so the canvas self-corrects without waiting on the animation loop.
+    var resizeObserver = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(function () { if (myId === instanceId) resize(); });
+      resizeObserver.observe(mount);
+    }
 
     // ---- Animate ----
     var raf = 0, last = null, t = 0, readied = false;
@@ -459,10 +467,20 @@
       if (!readied) { readied = true; mount.classList.add('is-ready'); }
       raf = requestAnimationFrame(frame);
     }
-    raf = requestAnimationFrame(frame);
+    // Paint once synchronously and reveal immediately. The reveal used to wait on the
+    // first requestAnimationFrame, which the barba page-swap (busy main thread / GSAP
+    // timelines) or a backgrounded tab can delay or pause — leaving the freshly built
+    // canvas stuck at opacity 0 until a refresh. Rendering one frame inline guarantees
+    // `is-ready` lands the moment the tree exists, regardless of rAF timing.
+    try {
+      frame(window.performance && performance.now ? performance.now() : 0);
+    } catch (e) {
+      raf = requestAnimationFrame(frame);
+    }
 
     activeStop = function () {
       cancelAnimationFrame(raf);
+      if (resizeObserver) resizeObserver.disconnect();
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
