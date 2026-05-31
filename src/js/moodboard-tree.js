@@ -45,10 +45,12 @@
   var INNER_R = 2.0;        // radius of the central ring of text (where long lines begin)
   var OUTER_PUSH = 3.0;     // how far short lines are pushed out from the ring
   var RING_JITTER = 0.32;   // small per-line radial offset so neighbours separate
+  var CENTER_R = 0.55;      // where each group's anchor spokes begin (just off the hub)
+  var ANCHOR_STEP = 0.55;   // radial stagger between a group's anchor spokes
   var TEXT_H = 0.22;        // world height of a branch line
   var THEME_TEXT_H = 0.26;  // smaller, minimal divider labels
   var GAP_SLOTS = 2;
-  var TEXT_CAP = 1500;      // allow some very long phrases
+  var TEXT_CAP = 2000;      // allow the long anchor phrases room
   var FIT_MARGIN = 1.05;
 
   // ---- Type ----
@@ -145,6 +147,12 @@
       if (r < 0.8) return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D);
       return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C);
     }
+    // Extra-long phrases for the anchor spokes that reach the center.
+    function describeLong(it) {
+      if (it.desc) return it.desc;
+      return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D) + ', '
+        + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ' ' + pick(WORDS_D);
+    }
 
     function textPlane(str, worldH, opacity, weight, color) {
       var pad = 12;
@@ -203,11 +211,21 @@
       root.add(grp);
       var bucket = byTheme[themeName];
       var startSlot = slot;
-      bucket.forEach(function (it) {
+      // The central 2-3 lines of the group are anchors: extra-long, reaching the hub.
+      var n = bucket.length, mid = (n - 1) / 2;
+      var anchorCount = Math.min(n, n >= 7 ? 3 : 2);
+      var byDist = [];
+      for (var bi = 0; bi < n; bi++) byDist.push(bi);
+      byDist.sort(function (a, b) { return Math.abs(a - mid) - Math.abs(b - mid); });
+      var anchorRank = {};
+      for (var ar = 0; ar < anchorCount; ar++) anchorRank[byDist[ar]] = ar;
+      bucket.forEach(function (it, j) {
         var ang = slot * slotAng - Math.PI / 2;
         slot++;
-        var mesh = textPlane(describe(it), TEXT_H, BRANCH_OPACITY, FONT_WEIGHT, INK_BRANCH);
-        pending.push({ mesh: mesh, ang: ang, grp: grp, gi: gi++, item: it, worldW: mesh.userData.worldW });
+        var isAnchor = anchorRank.hasOwnProperty(j);
+        var mesh = textPlane(isAnchor ? describeLong(it) : describe(it), TEXT_H, BRANCH_OPACITY, FONT_WEIGHT, INK_BRANCH);
+        pending.push({ mesh: mesh, ang: ang, grp: grp, gi: gi++, item: it, worldW: mesh.userData.worldW,
+          anchor: isAnchor, anchorRank: isAnchor ? anchorRank[j] : -1 });
       });
       var endSlot = slot;
       dividerData.push({ ang: startSlot * slotAng - Math.PI / 2 - gapAng * 0.5, name: themeName });
@@ -223,8 +241,14 @@
     var longRef = maxWorldW * 0.8;
     var maxExtent = INNER_R + 2;
     pending.forEach(function (p) {
-      var lengthFrac = Math.min(1, p.worldW / longRef);
-      var rInner = INNER_R + (1 - lengthFrac) * OUTER_PUSH + (p.gi % 3) * RING_JITTER;
+      var rInner;
+      if (p.anchor) {
+        // Reach in to the center ring, staggered so a group's spokes don't collide.
+        rInner = CENTER_R + p.anchorRank * ANCHOR_STEP;
+      } else {
+        var lengthFrac = Math.min(1, p.worldW / longRef);
+        rInner = INNER_R + (1 - lengthFrac) * OUTER_PUSH + (p.gi % 3) * RING_JITTER;
+      }
       var left = Math.cos(p.ang) < 0;
       var rMid = rInner + p.worldW * 0.5;
       p.mesh.position.set(Math.cos(p.ang) * rMid, Math.sin(p.ang) * rMid, 0);
