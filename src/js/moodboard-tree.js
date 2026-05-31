@@ -497,7 +497,21 @@
   function initMoodboardMindmap(rootArg) {
     var scope = (rootArg && rootArg.querySelector) ? rootArg : document;
     var mount = scope.querySelector('[data-moodboard-mindmap]');
-    if (!mount || mount.dataset.ready === 'true') return;
+    if (!mount || mount.dataset.ready === 'true') {
+      // We re-run on every barba navigation. If there is genuinely no moodboard
+      // anywhere in the document, we've navigated AWAY from it — tear the prior
+      // tree down so its rAF loop and WebGL context don't keep running against a
+      // now-detached canvas until the next moodboard visit. Guard on the whole
+      // document, not `scope`: during a moodboard->moodboard swap the old (ready)
+      // and new mounts momentarily coexist, so a mount is still present here and
+      // we correctly skip teardown — the rebuild path below handles that handoff.
+      if (activeStop && !document.querySelector('[data-moodboard-mindmap]')) {
+        try { activeStop(); } catch (e) {}
+        activeStop = null;
+        instanceId++; // supersede any in-flight frame so it bails on next tick
+      }
+      return;
+    }
     var page = mount.closest('.moodboard-page') || scope.querySelector('.moodboard-page');
     if (!page) return;
     var display = page.querySelector('[data-moodboard-display]');
