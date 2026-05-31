@@ -1,11 +1,12 @@
 // ============================================
 // MOODBOARD MIND-MAP  (WebGL radial text diagram)
-// A typographic concept map in three.js: each photo is a long line of text
-// radiating from a fixed center, like the reference dendrogram. The stiff spokes
-// sway gently (wind) and react to the cursor sweeping past (angular velocity),
-// then settle. Hover/tap a branch to show its photo on the display side. Text is
-// drawn to supersampled canvas textures (mipmapped + anisotropic) so it stays
-// crisp. Falls back to the plain image grid without WebGL; reduced-motion stills.
+// A typographic concept map in three.js: every photo is a line of text radiating
+// from a fixed center, evenly spaced around the full circle and grouped by theme
+// (like the reference dendrogram). No ambient sway — the branches sit still; each
+// theme rotates as a rigid group only when the cursor sweeps past it, and the gaps
+// between groups keep them from overlapping. Hover/tap a branch to show its photo
+// on the display side. Text is drawn to supersampled, mipmapped, anisotropic
+// canvas textures so it stays crisp. Falls back to the image grid without WebGL.
 // ============================================
 
 (function () {
@@ -22,8 +23,8 @@
     'Landscape', 'Texture', 'Atmosphere'
   ];
 
-  // Placeholder descriptors for the branches (the images have no captions yet).
-  // Override per image with data-desc="..." on its .moodboard-page__item figure.
+  // Placeholder branch descriptors (images have no captions yet). Override per
+  // image with data-desc="..." on its .moodboard-page__item figure.
   var WORDS_A = ['raw concrete', 'board-formed concrete', 'weathered timber', 'blackened steel',
     'pale travertine', 'rammed earth', 'lime plaster', 'brushed brass', 'rough-cut stone',
     'smoked glass', 'oiled oak', 'corrugated zinc', 'cast bronze', 'bush-hammered concrete',
@@ -31,26 +32,24 @@
   var WORDS_B = ['holding', 'dissolving into', 'folded against', 'washed by', 'carved out by',
     'warmed by', 'split by', 'wrapped in', 'grounded by', 'opening onto', 'softened under',
     'pierced by', 'framing'];
-  var WORDS_C = ['the last of the afternoon light', 'a low northern sun', 'a sheet of falling water',
-    'a deep, even shadow', 'a quiet sunken courtyard', 'the weight of the earth', 'morning fog',
+  var WORDS_C = ['the last afternoon light', 'a low northern sun', 'a sheet of falling water',
+    'a deep even shadow', 'a quiet sunken courtyard', 'the weight of the earth', 'morning fog',
     'a single high skylight', 'the seam of the horizon', 'a cantilevered void', 'reflected sky',
-    'a candle-soft glow', 'the hush of a long corridor', 'a garden held in the round'];
+    'a candle-soft glow', 'a long corridor', 'a garden held in the round'];
 
   // ---- Layout ----
-  var VIEW_HALF = 6.9;
-  var INNER_R = 0.95;       // where branch text begins
-  var TEXT_H = 0.3;         // world height of branch text
-  var THEME_TEXT_H = 0.46;  // world height of the inner theme labels
-  var SECTOR_PAD = 0.1;
-  var INK = '#171511';
+  var VIEW_HALF = 7.4;
+  var INNER_R = 1.2;        // base radius where a branch's text begins
+  var STAGGER = 1.5;        // varied inner start so rays don't pile at one radius
+  var TEXT_H = 0.24;        // world height of a branch line
+  var THEME_TEXT_H = 0.42;  // inner theme labels
+  var GAP_SLOTS = 2;        // empty angular slots between theme groups
 
-  // ---- Sway ----
-  var WIND = 0.05;
-  var FLUTTER = 0.02;
-  var MOUSE_REACH = 0.55;
-  var MOUSE_TORQUE = 8;
-  var SPRING_K = 24;
-  var SPRING_C = 4.2;
+  // ---- Group rotation (cursor only; no ambient sway) ----
+  var MOUSE_REACH = 0.5;
+  var MOUSE_TORQUE = 6;
+  var SPRING_K = 20;
+  var SPRING_C = 4.0;
 
   var instanceId = 0;
   var activeStop = null;
@@ -98,11 +97,8 @@
   function buildScene(mount, page, display, items) {
     var THREE = window.THREE;
     var myId = ++instanceId;
-    var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-    // Clear any prior render (SVG or canvas) on re-entry.
     Array.prototype.forEach.call(mount.querySelectorAll('canvas, svg'), function (n) { n.remove(); });
-
     var canvas = document.createElement('canvas');
     mount.appendChild(canvas);
 
@@ -117,15 +113,14 @@
     var scene = new THREE.Scene();
     var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -100, 100);
     camera.position.z = 10;
-    var group = new THREE.Group();
-    scene.add(group);
+    var root = new THREE.Group();
+    scene.add(root);
 
     var seed = 11;
     function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
-    function pick(arr) { return arr[Math.floor(rand() * arr.length)]; }
+    function pick(a) { return a[Math.floor(rand() * a.length)]; }
     function describe(it) { return it.desc || (pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C)); }
 
-    // Supersampled text texture -> a plane sized to its aspect.
     function textPlane(str, worldH, opacity) {
       var ss = 2, fontPx = 34, pad = 10;
       var probe = document.createElement('canvas').getContext('2d');
@@ -137,14 +132,12 @@
       var ctx = cv.getContext('2d');
       ctx.scale(ss, ss);
       ctx.font = '400 ' + fontPx + 'px Inter, system-ui, sans-serif';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = INK;
+      ctx.textBaseline = 'middle'; ctx.fillStyle = '#171511';
       ctx.fillText(str, pad, h / 2);
       var tex = new THREE.CanvasTexture(cv);
       if ('colorSpace' in tex && THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = maxAniso;
       tex.minFilter = THREE.LinearMipmapLinearFilter;
-      tex.magFilter = THREE.LinearFilter;
       tex.generateMipmaps = true;
       var worldW = worldH * (w / h);
       var mesh = new THREE.Mesh(
@@ -167,42 +160,50 @@
     });
 
     // Center mark
-    group.add(new THREE.Mesh(new THREE.CircleGeometry(0.12, 32),
-      new THREE.MeshBasicMaterial({ color: 0x171511 })));
-    group.add(new THREE.Mesh(new THREE.RingGeometry(0.26, 0.31, 48),
-      new THREE.MeshBasicMaterial({ color: 0x171511, transparent: true, opacity: 0.5 })));
+    root.add(new THREE.Mesh(new THREE.CircleGeometry(0.12, 32), new THREE.MeshBasicMaterial({ color: 0x171511 })));
+    root.add(new THREE.Mesh(new THREE.RingGeometry(0.26, 0.31, 48), new THREE.MeshBasicMaterial({ color: 0x171511, transparent: true, opacity: 0.5 })));
 
-    var branches = [];   // { mesh, item, baseAngle, left, swayOff, swayVel, phase }
-    var themeCount = order.length;
+    // Even angular distribution around the full circle, themes in contiguous arcs
+    // with a gap between them.
+    var totalSlots = items.length + order.length * GAP_SLOTS;
+    var slotAng = (Math.PI * 2) / totalSlots;
+    var gapAng = GAP_SLOTS * slotAng;
+    var maxRot = gapAng * 0.42; // never let a rotating group close its gap
 
-    function place(mesh, ang, rInner) {
-      var left = Math.cos(ang) < 0;
-      mesh.userData.left = left;
-      mesh.userData.rInner = rInner;
-      return left;
-    }
+    var branches = [];     // flat list of photo branches (for hover)
+    var groups = [];       // per-theme rotating groups
+    var slot = 0;
 
-    order.forEach(function (themeName, ti) {
-      var midA = (ti / themeCount) * Math.PI * 2 - Math.PI / 2;
-      var half = (Math.PI / themeCount) * (1 - SECTOR_PAD);
+    order.forEach(function (themeName) {
+      var grp = new THREE.Group();
+      root.add(grp);
       var bucket = byTheme[themeName];
+      var startSlot = slot;
 
-      // Inner theme label along the sector mid.
-      var tl = textPlane(themeName.toLowerCase(), THEME_TEXT_H, 0.95);
-      place(tl, midA, INNER_R * 0.6);
-      group.add(tl);
-      branches.push({ mesh: tl, item: null, baseAngle: midA, isTheme: true,
-        left: Math.cos(midA) < 0, rInner: INNER_R * 0.6, swayOff: 0, swayVel: 0, phase: rand() * 6.28 });
-
-      bucket.forEach(function (it, j) {
-        var f = bucket.length > 1 ? (j / (bucket.length - 1) - 0.5) : 0;
-        var ang = midA + f * half;
-        var mesh = textPlane(describe(it), TEXT_H, 0.8);
-        var left = place(mesh, ang, INNER_R);
-        group.add(mesh);
-        branches.push({ mesh: mesh, item: it, baseAngle: ang, isTheme: false,
-          left: left, rInner: INNER_R, swayOff: 0, swayVel: 0, phase: rand() * 6.28, curAngle: ang });
+      bucket.forEach(function (it) {
+        var ang = slot * slotAng - Math.PI / 2;
+        slot++;
+        var left = Math.cos(ang) < 0;
+        var rInner = INNER_R + rand() * STAGGER;
+        var mesh = textPlane(describe(it), TEXT_H, 0.82);
+        var rMid = rInner + mesh.userData.worldW * 0.5;
+        mesh.position.set(Math.cos(ang) * rMid, Math.sin(ang) * rMid, 0);
+        mesh.rotation.z = left ? ang + Math.PI : ang;
+        grp.add(mesh);
+        branches.push({ mesh: mesh, item: it, baseAngle: ang, rInner: rInner, grp: grp });
       });
+
+      var endSlot = slot;
+      var midAng = ((startSlot + endSlot) * 0.5) * slotAng - Math.PI / 2;
+      var leftL = Math.cos(midAng) < 0;
+      var tl = textPlane(themeName.toLowerCase(), THEME_TEXT_H, 0.95);
+      var rL = INNER_R * 0.5;
+      tl.position.set(Math.cos(midAng) * (rL + tl.userData.worldW * 0.5), Math.sin(midAng) * (rL + tl.userData.worldW * 0.5), 0.1);
+      tl.rotation.z = leftL ? midAng + Math.PI : midAng;
+      grp.add(tl);
+
+      groups.push({ grp: grp, midAng: midAng, halfSpan: (endSlot - startSlot) * 0.5 * slotAng, swayOff: 0, swayVel: 0 });
+      slot += GAP_SLOTS;
     });
 
     // ---- Sizing ----
@@ -249,15 +250,13 @@
     function nearestBranch(wx, wy) {
       var a = Math.atan2(wy, wx), r = Math.sqrt(wx * wx + wy * wy);
       if (r < INNER_R * 0.5) return null;
-      var best = null, bestD = 0.16;
+      var best = null, bestD = 0.13;
       for (var i = 0; i < branches.length; i++) {
         var br = branches[i];
-        if (br.isTheme) continue;
-        var da = (br.curAngle || br.baseAngle) - a;
-        while (da > Math.PI) da -= Math.PI * 2;
-        while (da < -Math.PI) da += Math.PI * 2;
+        var da = (br.baseAngle + br.grp.rotation.z) - a;
+        while (da > Math.PI) da -= 6.283; while (da < -Math.PI) da += 6.283;
         da = Math.abs(da);
-        if (da < bestD && r < br.rInner + br.mesh.userData.worldW + 0.4) { bestD = da; best = br; }
+        if (da < bestD && r < br.rInner + br.mesh.userData.worldW + 0.5) { bestD = da; best = br; }
       }
       return best;
     }
@@ -270,7 +269,7 @@
       if (hasFine) {
         var hit = nearestBranch(w.x, w.y);
         if (hit !== hovered) {
-          if (hovered) hovered.mesh.material.opacity = 0.8;
+          if (hovered) hovered.mesh.material.opacity = 0.82;
           hovered = hit;
           if (hit) hit.mesh.material.opacity = 1;
           setDisplay(hit ? hit.item : null);
@@ -279,46 +278,37 @@
       }
     }
     function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestBranch(w.x, w.y); if (hit) { hovered = hit; setDisplay(hit.item); } }
-    function onLeave() { mInside = false; if (hasFine) { if (hovered) hovered.mesh.material.opacity = 0.8; hovered = null; setDisplay(null); mount.classList.remove('is-hovering'); } }
+    function onLeave() { mInside = false; if (hasFine) { if (hovered) hovered.mesh.material.opacity = 0.82; hovered = null; setDisplay(null); mount.classList.remove('is-hovering'); } }
 
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerleave', onLeave);
     canvas.addEventListener('click', onClick);
     window.addEventListener('resize', resize);
 
-    // ---- Animate ----
-    var raf = 0, last = null, t = 0;
+    // ---- Animate: groups rotate toward the cursor sweep, then spring back ----
+    var raf = 0, last = null;
     function frame(ts) {
       if (myId !== instanceId) return;
       if (last === null) last = ts;
       var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
-      t += dt;
 
-      var windDir = 0.5 + Math.sin(t * 0.13) * 1.4 + Math.sin(t * 0.3 + 1) * 0.5;
-      var gust = 0.55 + 0.45 * Math.sin(t * 0.5);
-
-      for (var i = 0; i < branches.length; i++) {
-        var br = branches[i];
-        var ang = br.baseAngle;
-        if (!reduceMotion) {
-          var wind = WIND * Math.sin(windDir - br.baseAngle) * gust + FLUTTER * Math.sin(t * 1.6 + br.phase);
-          var torque = 0;
-          if (mInside && mRad > 0.1 && Math.abs(mAngVel) > 0.0001) {
-            var da = br.baseAngle - mAng;
-            while (da > Math.PI) da -= 6.283; while (da < -Math.PI) da += 6.283;
-            if (Math.abs(da) < MOUSE_REACH) {
-              var prox = 1 - Math.abs(da) / MOUSE_REACH;
-              torque = MOUSE_TORQUE * mAngVel * prox * prox;
-            }
+      for (var i = 0; i < groups.length; i++) {
+        var g = groups[i];
+        var torque = 0;
+        if (mInside && mRad > 0.1 && Math.abs(mAngVel) > 0.0001) {
+          var dmid = g.midAng - mAng;
+          while (dmid > Math.PI) dmid -= 6.283; while (dmid < -Math.PI) dmid += 6.283;
+          var edge = Math.max(0, Math.abs(dmid) - g.halfSpan);
+          if (edge < MOUSE_REACH) {
+            var prox = 1 - edge / MOUSE_REACH;
+            torque = MOUSE_TORQUE * mAngVel * prox;
           }
-          br.swayVel += (torque - SPRING_K * br.swayOff - SPRING_C * br.swayVel) * dt;
-          br.swayOff += br.swayVel * dt;
-          ang += wind + br.swayOff;
         }
-        br.curAngle = ang;
-        var rMid = br.rInner + br.mesh.userData.worldW * 0.5;
-        br.mesh.position.set(Math.cos(ang) * rMid, Math.sin(ang) * rMid, br === hovered ? 1 : 0);
-        br.mesh.rotation.z = br.left ? ang + Math.PI : ang;
+        g.swayVel += (torque - SPRING_K * g.swayOff - SPRING_C * g.swayVel) * dt;
+        g.swayOff += g.swayVel * dt;
+        if (g.swayOff > maxRot) { g.swayOff = maxRot; g.swayVel = 0; }
+        else if (g.swayOff < -maxRot) { g.swayOff = -maxRot; g.swayVel = 0; }
+        g.grp.rotation.z = g.swayOff;
       }
       mAngVel *= 0.7;
 
