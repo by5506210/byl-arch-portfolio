@@ -42,15 +42,16 @@
     'where the room goes quiet', 'as the day gives out'];
 
   // ---- Layout ----
-  var INNER_R = 2.0;        // radius of the central ring of text (where long lines begin)
-  var OUTER_PUSH = 3.0;     // how far short lines are pushed out from the ring
-  var RING_JITTER = 0.32;   // small per-line radial offset so neighbours separate
+  var INNER_R = 3.0;        // radius of the central ring of text (where long lines begin)
+  var OUTER_PUSH = 2.6;     // how far short lines are pushed out from the ring
+  var RING_JITTER = 0.4;    // per-line radial offset (4 levels) so neighbours never overlap
+  var RING_LEVELS = 4;
   var CENTER_R = 0.55;      // where each group's anchor spokes begin (just off the hub)
-  var ANCHOR_STEP = 0.55;   // radial stagger between a group's anchor spokes
-  var TEXT_H = 0.22;        // world height of a branch line
+  var ANCHOR_STEP = 0.6;    // radial stagger between a group's anchor spokes
+  var TEXT_H = 0.2;         // world height of a branch line
   var THEME_TEXT_H = 0.26;  // smaller, minimal divider labels
   var GAP_SLOTS = 2;
-  var TEXT_CAP = 2000;      // allow the long anchor phrases room
+  var TEXT_CAP = 2800;      // room for the long phrases
   var FIT_MARGIN = 1.0;     // fit the content tight to the partition
 
   // ---- Type ----
@@ -71,6 +72,7 @@
   var SPRING_C = 4.0;
   var ENTRY_DUR = 0.9;      // bloom-in duration (seconds)
   var ENTRY_SCALE0 = 0.6;   // scale the diagram blooms up from
+  var INDIV_SWAY = 0.03;    // tiny per-phrase flutter on top of the group sway (rad)
 
   var instanceId = 0;
   var activeStop = null;
@@ -119,6 +121,7 @@
     var THREE = window.THREE;
     var myId = ++instanceId;
     var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    var textCap = coarse ? 1800 : TEXT_CAP; // keep texture memory sane on phones
 
     Array.prototype.forEach.call(mount.querySelectorAll('canvas, svg'), function (n) { n.remove(); });
     var canvas = document.createElement('canvas');
@@ -141,13 +144,18 @@
     var seed = 11;
     function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
     function pick(a) { return a[Math.floor(rand() * a.length)]; }
+    // Wide length spread (deep valleys -> tall hills) with a long average, so the
+    // outer edge reads as varied ridges rather than a uniform ring.
     function describe(it) {
       if (it.desc) return it.desc;
+      var core = pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C);
       var r = rand();
-      if (r < 0.16) return pick(WORDS_A) + ', ' + pick(WORDS_C);
-      if (r < 0.46) return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C);
-      if (r < 0.8) return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D);
-      return pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C);
+      if (r < 0.08) return pick(WORDS_A);                                   // valley
+      if (r < 0.18) return pick(WORDS_A) + ', ' + pick(WORDS_C);            // short
+      if (r < 0.36) return core;                                           // medium
+      if (r < 0.60) return core + ', ' + pick(WORDS_D);                     // long
+      if (r < 0.84) return core + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C); // taller
+      return core + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ' ' + pick(WORDS_D); // hill
     }
     // Extra-long phrases for the anchor spokes that reach the center.
     function describeLong(it) {
@@ -160,7 +168,7 @@
       var pad = 12;
       var probe = document.createElement('canvas').getContext('2d');
       probe.font = weight + ' ' + FONT_PX + 'px Inter, system-ui, sans-serif';
-      var tw = Math.min(TEXT_CAP, Math.ceil(probe.measureText(str).width));
+      var tw = Math.min(textCap, Math.ceil(probe.measureText(str).width));
       var w = tw + pad * 2, h = Math.ceil(FONT_PX * 1.5);
       var cv = document.createElement('canvas');
       cv.width = w; cv.height = h;
@@ -193,8 +201,8 @@
       return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
     });
 
-    root.add(new THREE.Mesh(new THREE.RingGeometry(0.26, 0.31, 48),
-      new THREE.MeshBasicMaterial({ color: 0x1b1815, transparent: true, opacity: 0.5 })));
+    root.add(new THREE.Mesh(new THREE.RingGeometry(0.34, 0.355, 64),
+      new THREE.MeshBasicMaterial({ color: 0x8b8478, transparent: true, opacity: 0.5 })));
 
     var totalSlots = items.length + order.length * GAP_SLOTS;
     var slotAng = (Math.PI * 2) / totalSlots;
@@ -249,14 +257,16 @@
         rInner = CENTER_R + p.anchorRank * ANCHOR_STEP;
       } else {
         var lengthFrac = Math.min(1, p.worldW / longRef);
-        rInner = INNER_R + (1 - lengthFrac) * OUTER_PUSH + (p.gi % 3) * RING_JITTER;
+        rInner = INNER_R + (1 - lengthFrac) * OUTER_PUSH + (p.gi % RING_LEVELS) * RING_JITTER;
       }
       var left = Math.cos(p.ang) < 0;
       var rMid = rInner + p.worldW * 0.5;
+      var baseRot = left ? p.ang + Math.PI : p.ang;
       p.mesh.position.set(Math.cos(p.ang) * rMid, Math.sin(p.ang) * rMid, 0);
-      p.mesh.rotation.z = left ? p.ang + Math.PI : p.ang;
+      p.mesh.rotation.z = baseRot;
       p.grp.add(p.mesh);
-      branches.push({ mesh: p.mesh, item: p.item, baseAngle: p.ang, rInner: rInner, grp: p.grp });
+      branches.push({ mesh: p.mesh, item: p.item, baseAngle: p.ang, rInner: rInner, grp: p.grp,
+        baseRot: baseRot, phase: rand() * 6.28 });
       maxExtent = Math.max(maxExtent, rInner + p.worldW);
     });
 
@@ -298,6 +308,7 @@
     // ---- Pointer (mouse + touch) ----
     var current = null;
     var hasFine = !coarse;
+    var dragging = false;
     var mAng = 0, mAngVel = 0, mRad = 0, mInside = false, mHave = false;
 
     function toWorld(clientX, clientY) {
@@ -349,9 +360,10 @@
       mAng = a; mInside = true; mHave = true;
       return w;
     }
-    function onMove(e) { var w = track(e.clientX, e.clientY); if (hasFine) highlight(nearestBranch(w.x, w.y)); }
-    function onDown(e) { track(e.clientX, e.clientY); mAngVel = 0; }
-    function onUp() { mInside = false; mAngVel = 0; }
+    // Hover on desktop; on touch, a finger drag continuously reveals the photo too.
+    function onMove(e) { var w = track(e.clientX, e.clientY); if (hasFine || dragging) highlight(nearestBranch(w.x, w.y)); }
+    function onDown(e) { dragging = true; var w = track(e.clientX, e.clientY); mAngVel = 0; if (!hasFine) highlight(nearestBranch(w.x, w.y)); }
+    function onUp() { dragging = false; mInside = false; mAngVel = 0; }
     function onClick(e) { var w = toWorld(e.clientX, e.clientY); var hit = nearestBranch(w.x, w.y); if (hit) highlight(hit); }
     function onLeave() { mInside = false; if (hasFine) highlight(null); }
 
@@ -396,6 +408,12 @@
         g.grp.rotation.z = rot;
       }
       mAngVel *= 0.7;
+
+      // Tiny individual flutter on each phrase, on top of its group's sway.
+      for (var bi = 0; bi < branches.length; bi++) {
+        var b = branches[bi];
+        b.mesh.rotation.z = b.baseRot + INDIV_SWAY * Math.sin(t * 1.4 + b.phase);
+      }
 
       renderer.render(scene, camera);
       raf = requestAnimationFrame(frame);
