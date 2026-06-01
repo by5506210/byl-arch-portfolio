@@ -129,11 +129,27 @@
     var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     var textCap = coarse ? 1800 : TEXT_CAP; // keep texture memory sane on phones
 
+    var stopping = false;
     mblog('buildScene start', { myId: myId, existingCanvases: mount.querySelectorAll('canvas').length });
     Array.prototype.forEach.call(mount.querySelectorAll('canvas, svg'), function (n) { n.remove(); });
     var canvas = document.createElement('canvas');
     mount.appendChild(canvas);
-    canvas.addEventListener('webglcontextlost', function (e) { mblog('!! webglcontextlost', { myId: myId }); });
+    // A lost WebGL context blanks the canvas with no error thrown by render(). It happens
+    // during the barba page-swap because the projects-helix tears down its own WebGL
+    // context (forceContextLoss) and the GPU churn can drop ours too — which is the real
+    // "tree only shows after a refresh" bug (a plain refresh has no helix teardown).
+    // preventDefault keeps the canvas restorable; then rebuild from scratch once things
+    // settle. Guard against rebuild storms; skip when WE are intentionally tearing down.
+    canvas.addEventListener('webglcontextlost', function (e) {
+      e.preventDefault();
+      mblog('!! webglcontextlost', { myId: myId, stopping: stopping });
+      if (stopping || myId !== instanceId) return;
+      instanceId++; // stop this now-dead build's frame loop immediately
+      mount.dataset.ready = '';
+      mount.classList.remove('is-ready');
+      var n = (mount.__mbCtxRebuilds = (mount.__mbCtxRebuilds || 0) + 1);
+      if (n <= 5) setTimeout(function () { initMoodboardMindmap(document); }, 250);
+    });
 
     var renderer;
     try {
@@ -489,6 +505,7 @@
     }
 
     activeStop = function () {
+      stopping = true;
       cancelAnimationFrame(raf);
       if (resizeObserver) resizeObserver.disconnect();
       canvas.removeEventListener('pointerdown', onDown);
