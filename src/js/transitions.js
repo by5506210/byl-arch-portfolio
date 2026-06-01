@@ -443,6 +443,14 @@
         if (typeof initProjectPage === 'function') {
           initProjectPage(data && data.next ? data.next.container : null);
         }
+
+        // Build the moodboard mind-map up front on the incoming container — the same
+        // deterministic, beforeEnter path the projects helix uses — instead of leaning
+        // only on the MutationObserver / after-hook timing. The tree's own ready-guard
+        // makes the later observer/after calls harmless no-ops.
+        if (nextNamespace === 'moodboard' && typeof window.initMoodboardMindmap === 'function') {
+          window.initMoodboardMindmap(data && data.next ? data.next.container : null);
+        }
       },
 
       enter: function (data) {
