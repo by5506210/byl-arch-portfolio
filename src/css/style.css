@@ -3400,10 +3400,23 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 
 /* Mobile: display on top, mind-map on the bottom. */
 @media (max-width: 820px) {
+  /* Pin the page to the viewport so it can't be swiped/scrolled vertically on touch.
+     The split then fills whatever height is left under the header — no overflow, so
+     there is nothing to scroll. (overscroll-behavior:none is already set globally.) */
+  .moodboard-page {
+    height: 100svh;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
   .moodboard-split {
     grid-template-columns: 1fr;
-    grid-template-rows: 28% 72%;
-    height: calc(100svh - clamp(3.4rem, 12vw, 4.6rem));
+    grid-template-rows: 40% 60%;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
     gap: 0.3rem;
   }
 
