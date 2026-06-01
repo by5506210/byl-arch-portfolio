@@ -456,22 +456,30 @@
     }
 
     // ---- Living rewrite ----
-    // A couple of lines at a time scramble their letters and re-resolve into a new phrase,
-    // as if the archive keeps re-composing its own descriptions. Spaces/commas stay fixed
-    // so words reassemble legibly; each rewrite is capped to the line's original width so
-    // the radial layout never shifts. Cheap: only ~2-3 small canvases repaint at a time.
+    // Many lines at once quietly re-compose their description: a tiny scramble "reading
+    // head" sweeps across a line, morphing the old phrase into a freshly generated one
+    // letter by letter — only ~1-2 glyphs flicker at any instant, the rest stay legible.
+    // Spaces/commas never scramble; each rewrite is capped to the line's original width so
+    // the radial layout never shifts. Bounded for perf (a capped pool, ~22fps repaint of
+    // only the affected small canvases) and pauses with the rAF loop when backgrounded.
     var SCRAMBLE_GLYPHS = 'abcdefghijklmnopqrstuvwxyz·–—/\\|=+×<>';
-    var scrambleMax = coarse ? 2 : 3;
+    var SCRAMBLE_WINDOW = 2;     // letters actively scrambling at once (the reading head)
+    var SCRAMBLE_SPEED = 24;     // letters resolved per second
+    var scrambleMax = coarse ? 4 : 8;
     var scrambles = [];
-    var nextScrambleAt = 2.0;
+    var nextScrambleAt = 1.6;
     function glyph() { return SCRAMBLE_GLYPHS.charAt((Math.random() * SCRAMBLE_GLYPHS.length) | 0); }
-    function scrambleStr(to, reveal, p) {
+    function pxWidth(d, str) { return measureTextW(d.font, str) + d.pad * 2; }
+    // Morph `from` -> `to` with a narrow scramble window at the reading head.
+    function morphStr(from, to, p) {
+      var L = Math.max(from.length, to.length);
+      var cursor = p * (L + SCRAMBLE_WINDOW);
       var s = '';
-      for (var i = 0; i < to.length; i++) {
-        var c = to.charAt(i);
-        if (c === ' ' || c === ',') s += c;
-        else if (p >= reveal[i]) s += c;
-        else s += glyph();
+      for (var i = 0; i < L; i++) {
+        var tc = i < to.length ? to.charAt(i) : '';
+        if (i < cursor - SCRAMBLE_WINDOW) s += tc;                                   // resolved to new
+        else if (i < cursor) s += (tc === ' ' || tc === ',' || tc === '') ? tc : glyph(); // scrambling
+        else s += (i < from.length ? from.charAt(i) : '');                           // still old
       }
       return s;
     }
@@ -484,21 +492,26 @@
       var rMid = br.rInner + worldW * 0.5;
       br.mesh.position.set(Math.cos(br.baseAngle) * rMid, Math.sin(br.baseAngle) * rMid, br.mesh.position.z);
     }
+    function settle(br, sc, idx) {
+      var w = pxWidth(br.mesh.userData.text, sc.to);
+      applyWidth(br, w);
+      paintText(br.mesh, sc.to, w);
+      br.scrambling = null;
+      scrambles.splice(idx, 1);
+    }
     function startScramble(br) {
       if (br.scrambling || br === current || (br.item && br.item.desc)) return false;
-      var d = br.mesh.userData.text, to = null;
+      var d = br.mesh.userData.text, from = br.text || '', to = null;
       for (var k = 0; k < 6; k++) {
         var cand = br.anchor ? describeLong(br.item) : describe(br.item);
-        var candWorldW = d.worldH * ((measureTextW(d.font, cand) + d.pad * 2) / d.h);
-        if (cand !== br.text && candWorldW <= br.baseW + 0.02) { to = cand; break; }
+        if (cand !== from && d.worldH * (pxWidth(d, cand) / d.h) <= br.baseW + 0.02) { to = cand; break; }
       }
       if (!to) return false;
-      var fixedW = measureTextW(d.font, to) + d.pad * 2;
-      applyWidth(br, fixedW);
-      var reveal = [];
-      for (var i = 0; i < to.length; i++) reveal[i] = (i / Math.max(1, to.length)) * 0.6 + Math.random() * 0.25;
-      br.scrambling = { to: to, fixedW: fixedW, t: 0, dur: 0.85 + Math.random() * 0.7, reveal: reveal, lastTick: -1 };
-      paintText(br.mesh, scrambleStr(to, reveal, 0), fixedW);
+      applyWidth(br, Math.max(pxWidth(d, from), pxWidth(d, to)));
+      var fixedW = br.mesh.userData.text.cv.width;
+      var dur = Math.max(0.45, Math.min(2.2, (Math.max(from.length, to.length) + SCRAMBLE_WINDOW) / SCRAMBLE_SPEED));
+      br.scrambling = { from: from, to: to, fixedW: fixedW, t: 0, dur: dur, lastTick: -1 };
+      paintText(br.mesh, from, fixedW);
       br.text = to;
       scrambles.push(br);
       return true;
@@ -506,19 +519,18 @@
     function tickScrambles(dt) {
       for (var i = scrambles.length - 1; i >= 0; i--) {
         var br = scrambles[i], sc = br.scrambling;
-        if (br === current) { paintText(br.mesh, sc.to, sc.fixedW); br.scrambling = null; scrambles.splice(i, 1); continue; }
+        if (br === current) { settle(br, sc, i); continue; }
         sc.t += dt;
         var p = sc.t / sc.dur;
-        if (p >= 1) { paintText(br.mesh, sc.to, sc.fixedW); br.scrambling = null; scrambles.splice(i, 1); continue; }
-        if (sc.t - sc.lastTick >= 0.045) { sc.lastTick = sc.t; paintText(br.mesh, scrambleStr(sc.to, sc.reveal, p), sc.fixedW); }
+        if (p >= 1) { settle(br, sc, i); continue; }
+        if (sc.t - sc.lastTick >= 0.045) { sc.lastTick = sc.t; paintText(br.mesh, morphStr(sc.from, sc.to, p), sc.fixedW); }
       }
     }
     function scheduleScrambles(now) {
-      if (now < nextScrambleAt) return;
-      nextScrambleAt = now + 0.7 + Math.random() * 1.7;
-      if (scrambles.length >= scrambleMax || !branches.length) return;
-      for (var tries = 0; tries < 8; tries++) {
-        if (startScramble(branches[(Math.random() * branches.length) | 0])) break;
+      if (now < nextScrambleAt || !branches.length) return;
+      nextScrambleAt = now + 0.18 + Math.random() * 0.42;
+      for (var tries = 0; tries < 6 && scrambles.length < scrambleMax; tries++) {
+        startScramble(branches[(Math.random() * branches.length) | 0]);
       }
     }
 
