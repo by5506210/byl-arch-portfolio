@@ -13,11 +13,6 @@
 (function () {
   'use strict';
 
-  // TEMP DIAGNOSTICS — remove once the SPA "tree not there" issue is pinned down.
-  function mblog() {
-    try { console.log.apply(console, ['[MBTREE]'].concat([].slice.call(arguments))); } catch (e) {}
-  }
-
   var THREE_SOURCES = [
     '../src/js/vendor/three.min.js',
     'https://unpkg.com/three@0.152.2/build/three.min.js',
@@ -130,19 +125,15 @@
     var textCap = coarse ? 1800 : TEXT_CAP; // keep texture memory sane on phones
 
     var stopping = false;
-    mblog('buildScene start', { myId: myId, existingCanvases: mount.querySelectorAll('canvas').length });
     Array.prototype.forEach.call(mount.querySelectorAll('canvas, svg'), function (n) { n.remove(); });
     var canvas = document.createElement('canvas');
     mount.appendChild(canvas);
-    // A lost WebGL context blanks the canvas with no error thrown by render(). It happens
-    // during the barba page-swap because the projects-helix tears down its own WebGL
-    // context (forceContextLoss) and the GPU churn can drop ours too — which is the real
-    // "tree only shows after a refresh" bug (a plain refresh has no helix teardown).
-    // preventDefault keeps the canvas restorable; then rebuild from scratch once things
-    // settle. Guard against rebuild storms; skip when WE are intentionally tearing down.
+    // Defensive: a lost WebGL context blanks the canvas with no error thrown by render()
+    // (a GPU reset, or heavy WebGL churn during a page swap, can cause it). preventDefault
+    // keeps the canvas restorable; then rebuild from scratch once things settle. Guard
+    // against rebuild storms; skip when WE are intentionally tearing down.
     canvas.addEventListener('webglcontextlost', function (e) {
       e.preventDefault();
-      mblog('!! webglcontextlost', { myId: myId, stopping: stopping });
       if (stopping || myId !== instanceId) return;
       instanceId++; // stop this now-dead build's frame loop immediately
       mount.dataset.ready = '';
@@ -154,8 +145,7 @@
     var renderer;
     try {
       renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-    } catch (err) { mblog('!! renderer create FAILED', { err: String(err) }); return false; }
-    mblog('renderer created', { myId: myId });
+    } catch (err) { return false; }
     renderer.setClearColor(0x000000, 0);
     if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
     var maxAniso = (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) ? renderer.capabilities.getMaxAnisotropy() : 1;
@@ -488,7 +478,7 @@
       // Reveal the canvas (CSS fade) once it has actually painted. frame() already
       // bails when superseded, so this can't be skipped by a racing re-init — which
       // was leaving the canvas stuck at opacity 0 ("tree not there until refresh").
-      if (!readied) { readied = true; mount.classList.add('is-ready'); mblog('is-ready ADDED (revealed)', { myId: myId }); }
+      if (!readied) { readied = true; mount.classList.add('is-ready'); }
       raf = requestAnimationFrame(frame);
     }
     // Paint once synchronously and reveal immediately. The reveal used to wait on the
@@ -498,9 +488,7 @@
     // `is-ready` lands the moment the tree exists, regardless of rAF timing.
     try {
       frame(window.performance && performance.now ? performance.now() : 0);
-      mblog('sync first paint OK', { myId: myId });
     } catch (e) {
-      mblog('!! sync first paint THREW', { myId: myId, err: String(e) });
       raf = requestAnimationFrame(frame);
     }
 
@@ -524,7 +512,6 @@
   function initMoodboardMindmap(rootArg) {
     var scope = (rootArg && rootArg.querySelector) ? rootArg : document;
     var mount = scope.querySelector('[data-moodboard-mindmap]');
-    mblog('init called: scope=' + (rootArg ? 'container' : 'document') + ' mountFound=' + !!mount + ' dsReady=' + (mount && mount.dataset.ready || '-') + ' THREE=' + !!window.THREE);
     if (!mount || mount.dataset.ready === 'true') {
       // We re-run on every barba navigation. If there is genuinely no moodboard
       // anywhere in the document, we've navigated AWAY from it — tear the prior
@@ -553,9 +540,7 @@
 
     function fail() { mount.dataset.ready = ''; page.classList.add('is-fallback'); }
 
-    mblog('proceeding to build', { token: token, items: items.length });
     loadThree(function (ok) {
-      mblog('loadThree done: ok=' + ok + ' THREE=' + !!window.THREE + ' stillCurrent=' + (token === instanceId));
       if (token !== instanceId) return;
       if (!ok || !window.THREE) { fail(); return; }
       // Wait until the mount has real layout. On a barba SPA swap the new container
@@ -566,14 +551,10 @@
         if (token !== instanceId) return;
         var rect = mount.getBoundingClientRect();
         if (rect.width > 8 && rect.height > 8) {
-          mblog('sized, building', { w: Math.round(rect.width), h: Math.round(rect.height), tries: tries });
-          var built = buildScene(mount, page, display, items);
-          mblog('buildScene returned', { built: built });
-          if (!built) fail();
+          if (!buildScene(mount, page, display, items)) fail();
         } else if (tries++ < 90) {
           requestAnimationFrame(whenSized);
         } else {
-          mblog('whenSized TIMEOUT -> fallback', { lastW: Math.round(rect.width), lastH: Math.round(rect.height) });
           fail();
         }
       })();
