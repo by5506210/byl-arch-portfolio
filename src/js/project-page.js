@@ -1751,9 +1751,10 @@ function initProjectsAtlas() {
 
     function createRibbonTexture() {
       var sourceImages = getRibbonSourceImages();
-      // One cell per source image (no repeats) — with the full photo set this fills the strip
-      // densely while avoiding the uncanny repetition of cycling a small set.
-      var frameCount = Math.max(48, sourceImages.length);
+      // ~1.3 cells per source image so the thinner strip stays densely packed with small
+      // frames (more photos visible at once). With the full set (~90 photos) the repeats are
+      // sparse and spread far along the long spiral, so they don't read as obvious cycling.
+      var frameCount = Math.max(64, Math.round(sourceImages.length * 1.3));
       var isTouchSizedTexture = shouldUseTouchTunedHelix();
       // Use the GPU's full texture budget so the dense cells stay reasonably crisp.
       var maxTextureSize = (renderer.capabilities && renderer.capabilities.maxTextureSize) || 4096;
@@ -2226,7 +2227,7 @@ function initProjectsAtlas() {
         // turn up, and more on mobile where the viewport is taller). Black thread is unchanged.
         startT: isMobile ? -2.4 : -1.6,
         endT: ribbonEndT,
-        width: isMobile ? 0.28 : 0.34,
+        width: isMobile ? 0.21 : 0.26,
         tilt: isMobile ? 0.026 : 0.04,
         // Dense segmentation so the long strip's facets/polygons are not visible.
         segments: isMobile ? 240 : 200
