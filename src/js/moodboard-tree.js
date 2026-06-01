@@ -159,17 +159,16 @@
     var seed = 11;
     function rand() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
     function pick(a) { return a[Math.floor(rand() * a.length)]; }
-    // Wide length spread (deep valleys -> tall hills) with a long average, so the
-    // outer edge reads as varied ridges rather than a uniform ring.
+    // Every line is at least a full phrase (material + verb + clause) — no one/two-word
+    // stubs like "terracotta", which were too small to hover or tap. Length still varies,
+    // from one phrase up to a few stacked clauses, so the outer edge stays a varied ridge.
     function describe(it) {
       if (it.desc) return it.desc;
       var core = pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C);
       var r = rand();
-      if (r < 0.08) return pick(WORDS_A);                                   // valley
-      if (r < 0.18) return pick(WORDS_A) + ', ' + pick(WORDS_C);            // short
-      if (r < 0.36) return core;                                           // medium
-      if (r < 0.60) return core + ', ' + pick(WORDS_D);                     // long
-      if (r < 0.84) return core + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C); // taller
+      if (r < 0.25) return core;                                           // shortest = a full phrase
+      if (r < 0.60) return core + ', ' + pick(WORDS_D);                     // + a closing beat
+      if (r < 0.85) return core + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C); // two clauses
       return core + ', ' + pick(WORDS_D) + ', ' + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ' ' + pick(WORDS_D); // hill
     }
     // Extra-long phrases for the anchor spokes that reach the center.
