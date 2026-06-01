@@ -328,7 +328,7 @@
       p.grp.add(pivot);
       branches.push({ mesh: p.mesh, pivot: pivot, item: p.item, baseAngle: p.ang, rInner: p.rInner,
         grp: p.grp, baseRot: baseRot, phase: rand() * 6.28, anchor: p.anchor, text: p.text,
-        baseW: p.worldW, scrambling: null });
+        baseWpx: p.mesh.userData.text.cv.width, scrambling: null });
       maxExtent = Math.max(maxExtent, p.rInner + p.worldW);
     });
 
@@ -457,11 +457,14 @@
 
     // ---- Living rewrite ----
     // Many lines at once quietly re-compose their description: a tiny scramble "reading
-    // head" sweeps across a line, morphing the old phrase into a freshly generated one
-    // letter by letter — only ~1-2 glyphs flicker at any instant, the rest stay legible.
-    // Spaces/commas never scramble; each rewrite is capped to the line's original width so
-    // the radial layout never shifts. Bounded for perf (a capped pool, ~22fps repaint of
-    // only the affected small canvases) and pauses with the rAF loop when backgrounded.
+    // head" sweeps across each line, morphing the old phrase into a freshly generated one
+    // letter by letter — only ~1-2 glyphs flicker at any instant, the rest stay legible,
+    // and spaces/commas never scramble so words reassemble cleanly. Crucially, a line's
+    // geometry and position NEVER change — only its texture is repainted into the same
+    // fixed-width canvas — so the tree's shape, size and hover targets stay exactly as
+    // built (no squish, no width jumps, no shrinking over time). The replacement phrase is
+    // the LONGEST option that still fits the line's original width, so lines keep ~their
+    // built length. Bounded for perf and paused with the rAF loop when backgrounded.
     var SCRAMBLE_GLYPHS = 'abcdefghijklmnopqrstuvwxyz·–—/\\|=+×<>';
     var SCRAMBLE_WINDOW = 2;     // letters actively scrambling at once (the reading head)
     var SCRAMBLE_SPEED = 24;     // letters resolved per second
@@ -483,35 +486,26 @@
       }
       return s;
     }
-    function applyWidth(br, w) {
-      var d = br.mesh.userData.text;
-      var worldW = d.worldH * (w / d.h);
-      br.mesh.userData.worldW = worldW;
-      br.mesh.geometry.dispose();
-      br.mesh.geometry = new THREE.PlaneGeometry(worldW, d.worldH);
-      var rMid = br.rInner + worldW * 0.5;
-      br.mesh.position.set(Math.cos(br.baseAngle) * rMid, Math.sin(br.baseAngle) * rMid, br.mesh.position.z);
-    }
-    function settle(br, sc, idx) {
-      var w = pxWidth(br.mesh.userData.text, sc.to);
-      applyWidth(br, w);
-      paintText(br.mesh, sc.to, w);
+    function finishScramble(br, to, idx) {
+      paintText(br.mesh, to, br.baseWpx);
       br.scrambling = null;
       scrambles.splice(idx, 1);
     }
     function startScramble(br) {
       if (br.scrambling || br === current || (br.item && br.item.desc)) return false;
-      var d = br.mesh.userData.text, from = br.text || '', to = null;
-      for (var k = 0; k < 6; k++) {
+      var d = br.mesh.userData.text, from = br.text || '', to = null, toW = 0;
+      // Pick the LONGEST fresh phrase that still fits the line's original width, so the
+      // line keeps ~its built length (preserves tree shape; never collapses to a stub).
+      for (var k = 0; k < 14; k++) {
         var cand = br.anchor ? describeLong(br.item) : describe(br.item);
-        if (cand !== from && d.worldH * (pxWidth(d, cand) / d.h) <= br.baseW + 0.02) { to = cand; break; }
+        if (cand === from) continue;
+        var cw = pxWidth(d, cand);
+        if (cw <= br.baseWpx && cw > toW) { to = cand; toW = cw; }
       }
       if (!to) return false;
-      applyWidth(br, Math.max(pxWidth(d, from), pxWidth(d, to)));
-      var fixedW = br.mesh.userData.text.cv.width;
-      var dur = Math.max(0.45, Math.min(2.2, (Math.max(from.length, to.length) + SCRAMBLE_WINDOW) / SCRAMBLE_SPEED));
-      br.scrambling = { from: from, to: to, fixedW: fixedW, t: 0, dur: dur, lastTick: -1 };
-      paintText(br.mesh, from, fixedW);
+      var dur = Math.max(0.5, Math.min(2.4, (Math.max(from.length, to.length) + SCRAMBLE_WINDOW) / SCRAMBLE_SPEED));
+      br.scrambling = { from: from, to: to, t: 0, dur: dur, lastTick: -1 };
+      paintText(br.mesh, from, br.baseWpx);   // geometry/position never change — only the text repaints
       br.text = to;
       scrambles.push(br);
       return true;
@@ -519,11 +513,11 @@
     function tickScrambles(dt) {
       for (var i = scrambles.length - 1; i >= 0; i--) {
         var br = scrambles[i], sc = br.scrambling;
-        if (br === current) { settle(br, sc, i); continue; }
+        if (br === current) { finishScramble(br, sc.to, i); continue; }
         sc.t += dt;
         var p = sc.t / sc.dur;
-        if (p >= 1) { settle(br, sc, i); continue; }
-        if (sc.t - sc.lastTick >= 0.045) { sc.lastTick = sc.t; paintText(br.mesh, morphStr(sc.from, sc.to, p), sc.fixedW); }
+        if (p >= 1) { finishScramble(br, sc.to, i); continue; }
+        if (sc.t - sc.lastTick >= 0.045) { sc.lastTick = sc.t; paintText(br.mesh, morphStr(sc.from, sc.to, p), br.baseWpx); }
       }
     }
     function scheduleScrambles(now) {
