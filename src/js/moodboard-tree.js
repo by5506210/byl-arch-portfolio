@@ -179,16 +179,21 @@
         + pick(WORDS_A) + ' ' + pick(WORDS_B) + ' ' + pick(WORDS_C) + ' ' + pick(WORDS_D);
     }
 
+    var probeCtx = document.createElement('canvas').getContext('2d');
+    function measureTextW(font, str) {
+      probeCtx.font = font;
+      return Math.min(textCap, Math.ceil(probeCtx.measureText(str).width));
+    }
+
     function textPlane(str, worldH, opacity, weight, color) {
       var pad = 12;
-      var probe = document.createElement('canvas').getContext('2d');
-      probe.font = weight + ' ' + FONT_PX + 'px Inter, system-ui, sans-serif';
-      var tw = Math.min(textCap, Math.ceil(probe.measureText(str).width));
+      var font = weight + ' ' + FONT_PX + 'px Inter, system-ui, sans-serif';
+      var tw = measureTextW(font, str);
       var w = tw + pad * 2, h = Math.ceil(FONT_PX * 1.5);
       var cv = document.createElement('canvas');
       cv.width = w; cv.height = h;
       var ctx = cv.getContext('2d');
-      ctx.font = weight + ' ' + FONT_PX + 'px Inter, system-ui, sans-serif';
+      ctx.font = font;
       ctx.textBaseline = 'middle'; ctx.fillStyle = color;
       ctx.fillText(str, pad, h / 2);
       var tex = new THREE.CanvasTexture(cv);
@@ -202,7 +207,22 @@
         new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: opacity })
       );
       mesh.userData.worldW = worldW;
+      // Keep what we need to repaint this line later (for the live "rewrite" effect).
+      mesh.userData.text = { cv: cv, ctx: ctx, tex: tex, h: h, pad: pad, font: font, color: color, worldH: worldH };
       return mesh;
+    }
+
+    // Repaint a text plane's canvas with `str`. With `fixedW` the canvas keeps that pixel
+    // width, so geometry/position only change once (at scramble start), not every frame.
+    function paintText(mesh, str, fixedW) {
+      var d = mesh.userData.text;
+      var w = fixedW || (measureTextW(d.font, str) + d.pad * 2);
+      if (d.cv.width !== w) { d.cv.width = w; } else { d.ctx.clearRect(0, 0, w, d.cv.height); }
+      d.ctx.font = d.font; d.ctx.textBaseline = 'middle'; d.ctx.fillStyle = d.color;
+      d.ctx.fillText(str, d.pad, d.h / 2);
+      d.tex.needsUpdate = true;
+      mesh.userData.worldW = d.worldH * (d.cv.width / d.h);
+      return mesh.userData.worldW;
     }
 
     // ---- Group by theme ----
@@ -248,9 +268,10 @@
         var ang = slot * slotAng - Math.PI / 2;
         slot++;
         var isAnchor = anchorRank.hasOwnProperty(j);
-        var mesh = textPlane(isAnchor ? describeLong(it) : describe(it), TEXT_H, BRANCH_OPACITY, FONT_WEIGHT, INK_BRANCH);
+        var str0 = isAnchor ? describeLong(it) : describe(it);
+        var mesh = textPlane(str0, TEXT_H, BRANCH_OPACITY, FONT_WEIGHT, INK_BRANCH);
         pending.push({ mesh: mesh, ang: ang, grp: grp, gi: gi++, item: it, worldW: mesh.userData.worldW,
-          anchor: isAnchor, anchorRank: isAnchor ? anchorRank[j] : -1 });
+          anchor: isAnchor, anchorRank: isAnchor ? anchorRank[j] : -1, text: str0 });
       });
       var endSlot = slot;
       dividerData.push({ ang: startSlot * slotAng - Math.PI / 2 - gapAng * 0.5, name: themeName });
@@ -306,7 +327,8 @@
       pivot.add(p.mesh);
       p.grp.add(pivot);
       branches.push({ mesh: p.mesh, pivot: pivot, item: p.item, baseAngle: p.ang, rInner: p.rInner,
-        grp: p.grp, baseRot: baseRot, phase: rand() * 6.28 });
+        grp: p.grp, baseRot: baseRot, phase: rand() * 6.28, anchor: p.anchor, text: p.text,
+        baseW: p.worldW, scrambling: null });
       maxExtent = Math.max(maxExtent, p.rInner + p.worldW);
     });
 
@@ -433,6 +455,73 @@
       resizeObserver.observe(mount);
     }
 
+    // ---- Living rewrite ----
+    // A couple of lines at a time scramble their letters and re-resolve into a new phrase,
+    // as if the archive keeps re-composing its own descriptions. Spaces/commas stay fixed
+    // so words reassemble legibly; each rewrite is capped to the line's original width so
+    // the radial layout never shifts. Cheap: only ~2-3 small canvases repaint at a time.
+    var SCRAMBLE_GLYPHS = 'abcdefghijklmnopqrstuvwxyz·–—/\\|=+×<>';
+    var scrambleMax = coarse ? 2 : 3;
+    var scrambles = [];
+    var nextScrambleAt = 2.0;
+    function glyph() { return SCRAMBLE_GLYPHS.charAt((Math.random() * SCRAMBLE_GLYPHS.length) | 0); }
+    function scrambleStr(to, reveal, p) {
+      var s = '';
+      for (var i = 0; i < to.length; i++) {
+        var c = to.charAt(i);
+        if (c === ' ' || c === ',') s += c;
+        else if (p >= reveal[i]) s += c;
+        else s += glyph();
+      }
+      return s;
+    }
+    function applyWidth(br, w) {
+      var d = br.mesh.userData.text;
+      var worldW = d.worldH * (w / d.h);
+      br.mesh.userData.worldW = worldW;
+      br.mesh.geometry.dispose();
+      br.mesh.geometry = new THREE.PlaneGeometry(worldW, d.worldH);
+      var rMid = br.rInner + worldW * 0.5;
+      br.mesh.position.set(Math.cos(br.baseAngle) * rMid, Math.sin(br.baseAngle) * rMid, br.mesh.position.z);
+    }
+    function startScramble(br) {
+      if (br.scrambling || br === current || (br.item && br.item.desc)) return false;
+      var d = br.mesh.userData.text, to = null;
+      for (var k = 0; k < 6; k++) {
+        var cand = br.anchor ? describeLong(br.item) : describe(br.item);
+        var candWorldW = d.worldH * ((measureTextW(d.font, cand) + d.pad * 2) / d.h);
+        if (cand !== br.text && candWorldW <= br.baseW + 0.02) { to = cand; break; }
+      }
+      if (!to) return false;
+      var fixedW = measureTextW(d.font, to) + d.pad * 2;
+      applyWidth(br, fixedW);
+      var reveal = [];
+      for (var i = 0; i < to.length; i++) reveal[i] = (i / Math.max(1, to.length)) * 0.6 + Math.random() * 0.25;
+      br.scrambling = { to: to, fixedW: fixedW, t: 0, dur: 0.85 + Math.random() * 0.7, reveal: reveal, lastTick: -1 };
+      paintText(br.mesh, scrambleStr(to, reveal, 0), fixedW);
+      br.text = to;
+      scrambles.push(br);
+      return true;
+    }
+    function tickScrambles(dt) {
+      for (var i = scrambles.length - 1; i >= 0; i--) {
+        var br = scrambles[i], sc = br.scrambling;
+        if (br === current) { paintText(br.mesh, sc.to, sc.fixedW); br.scrambling = null; scrambles.splice(i, 1); continue; }
+        sc.t += dt;
+        var p = sc.t / sc.dur;
+        if (p >= 1) { paintText(br.mesh, sc.to, sc.fixedW); br.scrambling = null; scrambles.splice(i, 1); continue; }
+        if (sc.t - sc.lastTick >= 0.045) { sc.lastTick = sc.t; paintText(br.mesh, scrambleStr(sc.to, sc.reveal, p), sc.fixedW); }
+      }
+    }
+    function scheduleScrambles(now) {
+      if (now < nextScrambleAt) return;
+      nextScrambleAt = now + 0.7 + Math.random() * 1.7;
+      if (scrambles.length >= scrambleMax || !branches.length) return;
+      for (var tries = 0; tries < 8; tries++) {
+        if (startScramble(branches[(Math.random() * branches.length) | 0])) break;
+      }
+    }
+
     // ---- Animate ----
     var raf = 0, last = null, t = 0, readied = false;
     function frame(ts) {
@@ -473,6 +562,9 @@
         var b = branches[bi];
         b.pivot.rotation.z = INDIV_SWAY * Math.sin(t * 1.4 + b.phase);
       }
+
+      scheduleScrambles(t);
+      tickScrambles(dt);
 
       renderer.render(scene, camera);
       // Reveal the canvas (CSS fade) once it has actually painted. frame() already
