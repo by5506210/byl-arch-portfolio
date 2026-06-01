@@ -3285,7 +3285,7 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   left: 0;
   top: 0;
   bottom: 0;
-  width: 60%;
+  width: 66%;
   min-width: 0;
   min-height: 0;
   z-index: 2; /* tree paints over the image in the overlap */

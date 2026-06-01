@@ -52,7 +52,7 @@
   var THEME_TEXT_H = 0.26;  // smaller, minimal divider labels
   var GAP_SLOTS = 2;
   var TEXT_CAP = 2800;      // room for the long phrases
-  var FIT_MARGIN = 1.0;     // fit the content tight to the partition
+  var FIT_MARGIN = 0.9;     // <1 makes the tree a bit larger than its frame (outer tips bleed off the edges)
 
   // ---- Type ----
   var FONT_PX = 44;
