@@ -4059,9 +4059,17 @@ function initEdenSequence() {
   var duration = 0, ready = false, lastIdx = -1, lastSeek = -1, raf = 0, phase2 = false, primed = false;
 
   function onMeta() { duration = video.duration || 0; ready = duration > 0.1; if (!raf) raf = requestAnimationFrame(update); }
-  if (video.readyState >= 1) onMeta();
   video.addEventListener('loadedmetadata', onMeta);
-  try { video.load(); } catch (e) {}
+  // Pick the device-appropriate clip; fall back to the bundled walkthrough if it is missing
+  // (e.g. the new desktop/mobile mp4s have not been added yet) so the section never breaks.
+  var srcFallback = video.getAttribute('data-fallback');
+  var triedFallback = false;
+  function loadSrc(s) { if (!s) return; ready = false; lastSeek = -1; video.setAttribute('src', s); try { video.load(); } catch (e) {} }
+  video.addEventListener('error', function () {
+    if (!triedFallback && srcFallback && video.getAttribute('src') !== srcFallback) { triedFallback = true; loadSrc(srcFallback); }
+  });
+  var wantMobile = window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
+  loadSrc(video.getAttribute(wantMobile ? 'data-mobile' : 'data-desktop') || srcFallback);
 
   function setIdx(i) {
     if (i === lastIdx) return;
