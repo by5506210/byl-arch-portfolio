@@ -4080,7 +4080,10 @@ function initEdenSequence() {
   function seek(t) {
     if (!ready || Math.abs(t - lastSeek) < 0.033) return;
     lastSeek = t;
-    try { if (video.fastSeek) video.fastSeek(t); else video.currentTime = t; } catch (e) {}
+    // Always seek by exact currentTime (frame-accurate). With the dense keyframes in the
+    // re-encoded clips this decodes cheaply, and it avoids fastSeek's keyframe-snapping
+    // (which looks jumpy in Firefox/Safari).
+    try { video.currentTime = t; } catch (e) {}
   }
   setIdx(0);
 
