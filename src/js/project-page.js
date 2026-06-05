@@ -4001,6 +4001,123 @@ function initProjectsIndexPreview() {
   });
 }
 
+// Eden Art Museum — scroll-scrubbed spatial sequence. A tall track pins the stage; scroll
+// progress drives (1) the section-plan video's currentTime, (2) the active sequence plate,
+// and (3) the final garden-reveal clip-path expansion into a full-bleed "main view".
+function initEdenSequence() {
+  var seq = document.querySelector('[data-eden-seq]');
+  if (!seq) return;
+  var video = seq.querySelector('.eden-seq__video');
+  var platesEl = seq.querySelector('[data-seq-plates]');
+  var reveal = seq.querySelector('[data-seq-reveal]');
+  var revealImg = reveal && reveal.querySelector('img');
+  var bar = seq.querySelector('[data-seq-bar]');
+  var cue = seq.querySelector('[data-seq-cue]');
+  var track = seq.querySelector('.eden-seq__track');
+  if (!video || !platesEl || !reveal || !track) return;
+
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  function clampN(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  var base = (revealImg && revealImg.getAttribute('src') || '../assets/images/eden-museum/hero.jpg').replace(/hero\.jpg(\?.*)?$/, '');
+
+  var SEQ = [
+    ['sequence/sequence-01.png', 'Arrival Hall', 'A compressed entry aligns visitors with a narrow cut of light before the descent begins.'],
+    ['sequence/sequence-02.png', 'Water Edge', 'The exterior path introduces water and planted structure as the first reading of the courtyard below.'],
+    ['sequence/sequence-03.png', 'Garden Threshold', 'A shifted outdoor platform frames the garden as a partially hidden centre rather than an immediate object.'],
+    ['sequence/sequence-04.jpg', 'Stone Descent', 'A darker passage uses rough stone and a luminous seam to pull movement into the earth.'],
+    ['sequence/sequence-05.png', 'Gallery Reception', 'The first interior gallery opens laterally, balancing reception, art, and directional light.'],
+    ['sequence/sequence-06.png', 'Light Ramp', 'A descending ramp gathers a brighter wash of light, turning circulation into anticipation.'],
+    ['sequence/sequence-07.png', 'Slit Passage', 'A tall, narrow aperture sharpens the contrast between enclosure and the next room.'],
+    ['sequence/sequence-08.png', 'Central Gallery', 'An island-like room lets artworks, shadow, and the perimeter path hold the visitor in suspension.'],
+    ['sequence/sequence-09.png', 'Curved Descent', 'A curved wall softens the route while keeping the visitor moving through the lower galleries.'],
+    ['sequence/sequence-10.png', 'Lower Gallery', 'The gallery narrows again, letting the next aperture become the visitor’s guide.'],
+    ['sequence/sequence-11.png', 'Chamber', 'A sculptural room becomes a pause in the sequence before the building folds inward again.'],
+    ['sequence/sequence-12.png', 'Vertical Cut', 'A high slot of daylight marks the courtyard’s depth from the edge of the descending path.'],
+    ['sequence/sequence-13.png', 'Earth Passage', 'The sequence closes in a deep stone corridor, carrying visitors toward the garden reveal.']
+  ];
+
+  var plates = [];
+  var frag = document.createDocumentFragment();
+  for (var i = 0; i < SEQ.length; i++) {
+    var f = document.createElement('figure'); f.className = 'eden-seq__frame';
+    var num = document.createElement('span'); num.className = 'eden-seq__num'; num.textContent = ('0' + (i + 1)).slice(-2);
+    var media = document.createElement('span'); media.className = 'eden-seq__media';
+    var img = document.createElement('img'); img.src = base + SEQ[i][0]; img.alt = SEQ[i][1]; img.decoding = 'async'; img.loading = i < 2 ? 'eager' : 'lazy';
+    media.appendChild(img);
+    var cap = document.createElement('figcaption'); cap.className = 'eden-seq__cap';
+    var ct = document.createElement('span'); ct.className = 'eden-seq__cap-title'; ct.textContent = SEQ[i][1];
+    var cd = document.createElement('span'); cd.className = 'eden-seq__cap-desc'; cd.textContent = SEQ[i][2];
+    cap.appendChild(ct); cap.appendChild(cd);
+    f.appendChild(num); f.appendChild(media); f.appendChild(cap);
+    frag.appendChild(f); plates.push(f);
+  }
+  platesEl.appendChild(frag);
+  seq.classList.add('is-scrub');
+
+  var PLATE_END = 0.8;
+  var duration = 0, ready = false, lastIdx = -1, lastSeek = -1, raf = 0, phase2 = false, primed = false;
+
+  function onMeta() { duration = video.duration || 0; ready = duration > 0.1; if (!raf) raf = requestAnimationFrame(update); }
+  if (video.readyState >= 1) onMeta();
+  video.addEventListener('loadedmetadata', onMeta);
+  try { video.load(); } catch (e) {}
+
+  function setIdx(i) {
+    if (i === lastIdx) return;
+    if (lastIdx >= 0 && plates[lastIdx]) plates[lastIdx].classList.remove('is-active');
+    if (plates[i]) plates[i].classList.add('is-active');
+    lastIdx = i;
+  }
+  function seek(t) {
+    if (!ready || Math.abs(t - lastSeek) < 0.033) return;
+    lastSeek = t;
+    try { if (video.fastSeek) video.fastSeek(t); else video.currentTime = t; } catch (e) {}
+  }
+  setIdx(0);
+
+  function update() {
+    raf = 0;
+    var rect = track.getBoundingClientRect();
+    var range = rect.height - window.innerHeight;
+    var p = range > 0 ? clampN(-rect.top / range, 0, 1) : 0;
+
+    if (cue) cue.style.opacity = p > 0.015 ? '0' : '';
+    if (bar) bar.style.transform = 'scaleX(' + p.toFixed(4) + ')';
+
+    if (p <= PLATE_END) {
+      var vp = p / PLATE_END;
+      seek(vp * duration);
+      setIdx(clampN(Math.floor(vp * plates.length), 0, plates.length - 1));
+      if (phase2) { reveal.classList.remove('is-revealing'); reveal.classList.remove('is-captioned'); phase2 = false; }
+    } else {
+      seek(duration - 0.05);
+      setIdx(plates.length - 1);
+      var ep = clampN((p - PLATE_END) / (1 - PLATE_END), 0, 1);
+      reveal.style.clipPath = 'inset(' + ((1 - ep) * 21).toFixed(2) + '% ' + ((1 - ep) * 22).toFixed(2) + '% round 2px)';
+      if (revealImg) revealImg.style.transform = 'scale(' + (1.06 - ep * 0.06).toFixed(3) + ')';
+      if (!phase2) { reveal.classList.add('is-revealing'); phase2 = true; }
+      reveal.classList.toggle('is-captioned', ep > 0.5);
+    }
+  }
+
+  function onScroll() { if (!raf) raf = requestAnimationFrame(update); }
+  function prime() { if (primed) return; primed = true; var pr = video.play(); if (pr && pr.then) pr.then(function () { video.pause(); }).catch(function () {}); }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  window.addEventListener('touchstart', prime, { passive: true, once: true });
+  update();
+
+  registerProjectPageCleanup(function () {
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onScroll);
+    window.removeEventListener('touchstart', prime);
+    video.removeEventListener('loadedmetadata', onMeta);
+    if (raf) cancelAnimationFrame(raf);
+  });
+}
+
 // Initialize all features
 function initProjectPage(rootContainer) {
   runProjectPageCleanup();
@@ -4016,6 +4133,7 @@ function initProjectPage(rootContainer) {
   initNavBar(rootContainer);
   initSpecCounters();
   initFilmstrip();
+  initEdenSequence();
 }
 
 initProjectPage();

@@ -5529,6 +5529,179 @@ body:has(.contact-page) {
   font-weight: 300;
 }
 
+/* ---- Eden Art Museum: scroll-scrubbed spatial sequence ----
+   The stage pins (sticky) while a tall track scrolls past; JS (initEdenSequence)
+   maps scroll progress to the section-plan video's time, the active sequence plate,
+   and the final garden-reveal expansion. The script adds .is-scrub to enable all of
+   this; without it (no JS / reduced motion) the section degrades to the reveal image. */
+.eden-seq__track { position: relative; }
+
+.eden-seq.is-scrub .eden-seq__track { height: 580vh; }
+.eden-seq.is-scrub .eden-seq__stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  background: #0e0d0b;
+}
+
+.eden-seq__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.eden-seq__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 95% at 50% 28%, rgba(14, 13, 11, 0) 34%, rgba(14, 13, 11, 0.5) 100%),
+    linear-gradient(180deg, rgba(14, 13, 11, 0.42) 0%, rgba(14, 13, 11, 0.12) 36%, rgba(14, 13, 11, 0.66) 100%);
+}
+
+.eden-seq__plates { position: absolute; inset: 0; }
+
+.eden-seq__frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(0.7rem, 1.6vh, 1.2rem);
+  padding: clamp(3.6rem, 9vh, 6.5rem) clamp(1.2rem, 6vw, 5rem);
+  opacity: 0;
+  transform: translateY(14px) scale(0.992);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+  pointer-events: none;
+}
+.eden-seq__frame.is-active { opacity: 1; transform: none; }
+
+.eden-seq__num {
+  font-family: var(--font-primary);
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.16);
+}
+
+.eden-seq__media { display: block; line-height: 0; }
+.eden-seq__media img {
+  display: block;
+  max-width: min(58vw, 1080px);
+  max-height: 60vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 2px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.eden-seq__cap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 48ch;
+  text-align: center;
+}
+.eden-seq__cap-title {
+  font-family: var(--font-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.92);
+}
+.eden-seq__cap-desc {
+  font-family: var(--font-primary);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+/* The garden reveal — expands (via clip-path, set in JS) from the centre to fill the
+   stage as the climax / main view. */
+.eden-seq__reveal {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  clip-path: inset(50% round 2px);
+  will-change: clip-path, opacity;
+}
+.eden-seq__reveal.is-revealing { opacity: 1; }
+.eden-seq__reveal img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+.eden-seq__rcap {
+  position: absolute;
+  left: clamp(1.2rem, 5vw, 4.5rem);
+  bottom: clamp(1.6rem, 6vh, 4rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 38ch;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.eden-seq__reveal.is-captioned .eden-seq__rcap { opacity: 1; }
+
+.eden-seq__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  z-index: 6;
+}
+.eden-seq__progress span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.eden-seq__cue {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1.4rem, 5vh, 3rem);
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  transition: opacity 0.45s ease;
+  z-index: 6;
+}
+
+/* Fallback (script never added .is-scrub): collapse to just the garden-reveal image. */
+.eden-seq:not(.is-scrub) .eden-seq__video,
+.eden-seq:not(.is-scrub) .eden-seq__veil,
+.eden-seq:not(.is-scrub) .eden-seq__plates,
+.eden-seq:not(.is-scrub) .eden-seq__progress,
+.eden-seq:not(.is-scrub) .eden-seq__cue { display: none; }
+.eden-seq:not(.is-scrub) .eden-seq__stage { position: static; height: auto; }
+.eden-seq:not(.is-scrub) .eden-seq__reveal { position: relative; opacity: 1; clip-path: none; }
+.eden-seq:not(.is-scrub) .eden-seq__reveal img { position: relative; height: auto; }
+.eden-seq:not(.is-scrub) .eden-seq__rcap { position: static; opacity: 1; color: var(--text-primary); text-shadow: none; padding: 1rem 0; }
+
 /* Filmstrip arrows */
 .project-filmstrip__arrow {
   position: absolute;
