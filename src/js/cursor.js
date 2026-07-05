@@ -97,21 +97,21 @@
 
     if (href.indexOf('projects') !== -1 || label.indexOf('project') !== -1) {
       return {
-        src: getAssetPath('assets/images/eden-museum/hero.jpg'),
+        src: getAssetPath('assets/images/eden-museum/hero.webp'),
         alt: 'Projects preview'
       };
     }
 
     if (href.indexOf('about') !== -1 || label.indexOf('about') !== -1) {
       return {
-        src: getAssetPath('assets/images/profile/bryan.jpg'),
+        src: getAssetPath('assets/images/profile/bryan.webp'),
         alt: 'About preview'
       };
     }
 
     if (href.indexOf('contact') !== -1 || label.indexOf('contact') !== -1) {
       return {
-        src: getAssetPath('assets/images/act-before-it-burns/hero.png'),
+        src: getAssetPath('assets/images/act-before-it-burns/hero.webp'),
         alt: 'Contact preview',
         objectPosition: '50% 50%'
       };

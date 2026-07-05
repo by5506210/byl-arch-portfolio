@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aphelion Lamp — Bryan Youn</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=eden-seq2-20260606o">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../src/css/style.css?v=webp-perf-20260705">
 </head>
 <body>
   <div class="grain"></div>
@@ -17,15 +17,15 @@
   <main data-barba="container" data-barba-namespace="aphelion">
   <div class="project-page">
     <div class="project-hero">
-      <img src="../assets/images/aphelion/hero.jpg" alt="Aphelion Lamp">
+      <img src="../assets/images/aphelion/hero.webp" alt="Aphelion Lamp" fetchpriority="high" decoding="async">
       <div class="project-hero__overlay">
         <div class="project-hero__category"><span>Interior &amp; Furniture</span></div>
         <h1 class="project-hero__title"><span>Aphelion Lamp</span></h1>
       </div>
     </div>
     <div class="project-gallery">
-      <div class="project-gallery__image"><img src="../assets/images/aphelion/top-view.jpg" alt="Top View"></div>
-      <div class="project-gallery__image"><img src="../assets/images/aphelion/lit-below.jpg" alt="Lit From Below"></div>
+      <div class="project-gallery__image"><img src="../assets/images/aphelion/top-view.webp" alt="Top View" loading="lazy" decoding="async"></div>
+      <div class="project-gallery__image"><img src="../assets/images/aphelion/lit-below.webp" alt="Lit From Below" loading="lazy" decoding="async"></div>
     </div>
     <footer class="site-footer">
       <span class="site-footer__copy">Bryan Youn &mdash; 2025</span>
@@ -37,9 +37,9 @@
   </div>
   </main>
   </div>
-  <script src="../src/js/cursor.js?v=inspo-ribbon-swirl-20260530a"></script>
-  <script src="../src/js/project-page.js?v=eden-smooth-20260606p"></script>
-  <script src="../src/js/transitions.js?v=moodboard-alive-20260531"></script>
-  <script src="../src/js/moodboard-tree.js?v=moodboard-biggertree-20260601k"></script>
+  <script src="../src/js/cursor.js?v=webp-perf-20260705" defer></script>
+  <script src="../src/js/project-page.js?v=webp-perf-20260705" defer></script>
+  <script src="../src/js/transitions.js?v=moodboard-alive-20260531" defer></script>
+  <script src="../src/js/moodboard-tree.js?v=moodboard-biggertree-20260601k" defer></script>
 </body>
 </html>

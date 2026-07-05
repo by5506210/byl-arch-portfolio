@@ -4019,22 +4019,22 @@ function initEdenSequence() {
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   function clampN(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
-  var base = (revealImg && revealImg.getAttribute('src') || '../assets/images/eden-museum/hero.jpg').replace(/hero\.jpg(\?.*)?$/, '');
+  var base = (revealImg && revealImg.getAttribute('src') || '../assets/images/eden-museum/hero.webp').replace(/hero\.(webp|jpg)(\?.*)?$/, '');
 
   var SEQ = [
-    ['sequence/sequence-01.png', 'Arrival Hall', 'A compressed entry aligns visitors with a narrow cut of light before the descent begins.'],
-    ['sequence/sequence-02.png', 'Water Edge', 'The exterior path introduces water and planted structure as the first reading of the courtyard below.'],
-    ['sequence/sequence-03.png', 'Garden Threshold', 'A shifted outdoor platform frames the garden as a partially hidden centre rather than an immediate object.'],
-    ['sequence/sequence-04.jpg', 'Stone Descent', 'A darker passage uses rough stone and a luminous seam to pull movement into the earth.'],
-    ['sequence/sequence-05.png', 'Gallery Reception', 'The first interior gallery opens laterally, balancing reception, art, and directional light.'],
-    ['sequence/sequence-06.png', 'Light Ramp', 'A descending ramp gathers a brighter wash of light, turning circulation into anticipation.'],
-    ['sequence/sequence-07.png', 'Slit Passage', 'A tall, narrow aperture sharpens the contrast between enclosure and the next room.'],
-    ['sequence/sequence-08.png', 'Central Gallery', 'An island-like room lets artworks, shadow, and the perimeter path hold the visitor in suspension.'],
-    ['sequence/sequence-09.png', 'Curved Descent', 'A curved wall softens the route while keeping the visitor moving through the lower galleries.'],
-    ['sequence/sequence-10.png', 'Lower Gallery', 'The gallery narrows again, letting the next aperture become the visitor’s guide.'],
-    ['sequence/sequence-11.png', 'Chamber', 'A sculptural room becomes a pause in the sequence before the building folds inward again.'],
-    ['sequence/sequence-12.png', 'Vertical Cut', 'A high slot of daylight marks the courtyard’s depth from the edge of the descending path.'],
-    ['sequence/sequence-13.png', 'Earth Passage', 'The sequence closes in a deep stone corridor, carrying visitors toward the garden reveal.']
+    ['sequence/sequence-01.webp', 'Arrival Hall', 'A compressed entry aligns visitors with a narrow cut of light before the descent begins.'],
+    ['sequence/sequence-02.webp', 'Water Edge', 'The exterior path introduces water and planted structure as the first reading of the courtyard below.'],
+    ['sequence/sequence-03.webp', 'Garden Threshold', 'A shifted outdoor platform frames the garden as a partially hidden centre rather than an immediate object.'],
+    ['sequence/sequence-04.webp', 'Stone Descent', 'A darker passage uses rough stone and a luminous seam to pull movement into the earth.'],
+    ['sequence/sequence-05.webp', 'Gallery Reception', 'The first interior gallery opens laterally, balancing reception, art, and directional light.'],
+    ['sequence/sequence-06.webp', 'Light Ramp', 'A descending ramp gathers a brighter wash of light, turning circulation into anticipation.'],
+    ['sequence/sequence-07.webp', 'Slit Passage', 'A tall, narrow aperture sharpens the contrast between enclosure and the next room.'],
+    ['sequence/sequence-08.webp', 'Central Gallery', 'An island-like room lets artworks, shadow, and the perimeter path hold the visitor in suspension.'],
+    ['sequence/sequence-09.webp', 'Curved Descent', 'A curved wall softens the route while keeping the visitor moving through the lower galleries.'],
+    ['sequence/sequence-10.webp', 'Lower Gallery', 'The gallery narrows again, letting the next aperture become the visitor’s guide.'],
+    ['sequence/sequence-11.webp', 'Chamber', 'A sculptural room becomes a pause in the sequence before the building folds inward again.'],
+    ['sequence/sequence-12.webp', 'Vertical Cut', 'A high slot of daylight marks the courtyard’s depth from the edge of the descending path.'],
+    ['sequence/sequence-13.webp', 'Earth Passage', 'The sequence closes in a deep stone corridor, carrying visitors toward the garden reveal.']
   ];
 
   var plates = [];

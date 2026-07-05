@@ -9,18 +9,18 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 
   <!-- GSAP (used only for zoom transition) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 
   <!-- Lenis Smooth Scroll -->
-  <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js" defer></script>
 
   <!-- Barba.js Page Transitions -->
-  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js"></script>
+  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js" defer></script>
 
-  <link rel="stylesheet" href="src/css/style.css?v=eden-seq2-20260606o">
+  <link rel="stylesheet" href="src/css/style.css?v=webp-perf-20260705">
 </head>
 <body>
 
@@ -85,7 +85,7 @@
 
         <div class="slideshow__slide" data-project="eden-museum" data-href="pages/eden-museum.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/eden-museum/hero.jpg" alt="Eden Art Museum">
+            <img src="assets/images/eden-museum/hero.webp" alt="Eden Art Museum" fetchpriority="high" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">Eden Art Museum</div>
@@ -94,7 +94,7 @@
 
         <div class="slideshow__slide" data-project="the-triad" data-href="pages/the-triad.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/the-triad/hero.jpg" alt="The Triad">
+            <img src="assets/images/the-triad/hero.jpg" alt="The Triad" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">The Triad</div>
@@ -103,7 +103,7 @@
 
         <div class="slideshow__slide" data-project="arboretum-shed" data-href="pages/arboretum-shed.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/arboretum-shed/main-exterior.jpg" alt="UW-Madison Arboretum Garden Shed">
+            <img src="assets/images/arboretum-shed/main-exterior.webp" alt="UW-Madison Arboretum Garden Shed" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">UW-Madison Arboretum Garden Shed</div>
@@ -121,7 +121,7 @@
 
         <div class="slideshow__slide" data-project="tolman" data-href="pages/tolman.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/tolman/hero.png" alt="Tolman Apartment Living Space">
+            <img src="assets/images/tolman/hero.webp" alt="Tolman Apartment Living Space" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">Tolman Apartment Living Space</div>
@@ -130,7 +130,7 @@
 
         <div class="slideshow__slide" data-project="maple-xi" data-href="pages/maple-xi.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/maple-xi/hero.png" alt="Maple Xi Apartment Interior">
+            <img src="assets/images/maple-xi/hero.webp" alt="Maple Xi Apartment Interior" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">Maple Xi Apartment Interior</div>
@@ -139,7 +139,7 @@
 
         <div class="slideshow__slide" data-project="aphelion" data-href="pages/aphelion.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/aphelion/hero.jpg" alt="Aphelion Lamp">
+            <img src="assets/images/aphelion/hero.webp" alt="Aphelion Lamp" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">Aphelion Lamp</div>
@@ -157,7 +157,7 @@
 
         <div class="slideshow__slide" data-project="modulor" data-href="pages/modulor.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/modulor/hero.png" alt="Modulor Book Cover">
+            <img src="assets/images/modulor/hero.webp" alt="Modulor Book Cover" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">Modulor Book Cover</div>
@@ -166,7 +166,7 @@
 
         <div class="slideshow__slide" data-project="act-before-it-burns" data-href="pages/act-before-it-burns.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/act-before-it-burns/hero.png" alt="ACT BEFORE IT BURNS Poster">
+            <img src="assets/images/act-before-it-burns/hero.webp" alt="ACT BEFORE IT BURNS Poster" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">ACT BEFORE IT BURNS</div>
@@ -175,7 +175,7 @@
 
         <div class="slideshow__slide" data-project="marty-supreme" data-href="pages/marty-supreme.html">
           <div class="slideshow__slide-img-wrapper">
-            <img src="assets/images/marty-supreme/hero.jpg" alt="MARTY SUPREME Poster">
+            <img src="assets/images/marty-supreme/hero.webp" alt="MARTY SUPREME Poster" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper">
             <div class="slideshow__title">MARTY SUPREME</div>
@@ -185,7 +185,7 @@
         <!-- About Me -->
         <div class="slideshow__slide slideshow__slide--about" data-href="pages/about.html">
           <div class="slideshow__slide-img-wrapper slideshow__about-card">
-            <img src="assets/images/profile/bryan.jpg" alt="Bryan Youn">
+            <img src="assets/images/profile/bryan.webp" alt="Bryan Youn" loading="lazy" decoding="async">
           </div>
           <div class="slideshow__title-wrapper slideshow__about-title-wrapper">
             <div class="slideshow__title">About Me</div>
@@ -201,14 +201,14 @@
   </div>
 
 
-  <script src="src/js/cursor.js?v=inspo-ribbon-swirl-20260530a"></script>
-  <script src="src/js/vector-field-webgl.js?v=vf-perf-20260531"></script>
-  <script src="src/js/vector-field.js?v=vf-perf-20260531"></script>
-  <script src="src/js/dot-field.js?v=webgl-dot-field-reveal-ripple-20260530g"></script>
-  <script src="src/js/project-page.js?v=eden-smooth-20260606p"></script>
-  <script src="src/js/landing.js?v=landing-dot-ripple-20260530b"></script>
-  <script src="src/js/slideshow.js"></script>
-  <script src="src/js/transitions.js?v=moodboard-alive-20260531"></script>
-  <script src="src/js/moodboard-tree.js?v=moodboard-biggertree-20260601k"></script>
+  <script src="src/js/cursor.js?v=webp-perf-20260705" defer></script>
+  <script src="src/js/vector-field-webgl.js?v=vf-perf-20260531" defer></script>
+  <script src="src/js/vector-field.js?v=vf-perf-20260531" defer></script>
+  <script src="src/js/dot-field.js?v=webgl-dot-field-reveal-ripple-20260530g" defer></script>
+  <script src="src/js/project-page.js?v=webp-perf-20260705" defer></script>
+  <script src="src/js/landing.js?v=landing-dot-ripple-20260530b" defer></script>
+  <script src="src/js/slideshow.js" defer></script>
+  <script src="src/js/transitions.js?v=moodboard-alive-20260531" defer></script>
+  <script src="src/js/moodboard-tree.js?v=moodboard-biggertree-20260601k" defer></script>
 </body>
 </html>
