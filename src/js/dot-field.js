@@ -37,7 +37,7 @@
     '  float distToMouse = distance(a_position, u_mouse);',
     '  float strength = (1.0 - smoothstep(0.0, cursorRadius, distToMouse)) * u_mousePresence;',
     '  float visibility = smoothstep(0.0, 0.32, strength);',
-    '  float radius = a_dot.x * (0.55 + strength * u_cursorBoost);',
+    '  float radius = a_dot.x * (0.25 + strength * u_cursorBoost);',
     '  float alpha = a_dot.y * visibility * 2.6;',
     '  vec2 animatedPosition = a_position;',
     '  if (u_reveal.x > 0.5) {',
@@ -312,8 +312,8 @@
         spacing: isMobile ? 18 : 26,
         radius: isMobile ? 0.48 : 0.62,
         alpha: this.isDividerField ? 0.26 : 0.21,
-        cursorRadius: isMobile ? 180 : 235,
-        cursorBoost: 6.2,
+        cursorRadius: isMobile ? 120 : 150,
+        cursorBoost: 7.2,
         budget: 3600
       };
     }
@@ -323,8 +323,8 @@
         spacing: isMobile ? 17 : 26,
         radius: isMobile ? 0.58 : 0.78,
         alpha: 0.27,
-        cursorRadius: isMobile ? 195 : 250,
-        cursorBoost: 6.4,
+        cursorRadius: isMobile ? 125 : 160,
+        cursorBoost: 7.4,
         budget: 3600
       };
     }
@@ -333,8 +333,8 @@
       spacing: isMobile ? 18 : 27,
       radius: isMobile ? 0.54 : 0.72,
       alpha: 0.24,
-      cursorRadius: isMobile ? 190 : 245,
-      cursorBoost: 6.3,
+      cursorRadius: isMobile ? 122 : 155,
+      cursorBoost: 7.3,
       budget: 3600
     };
   };
@@ -549,15 +549,13 @@
 
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
-        var jitterX = (fieldNoise(row, col, 8) - 0.5) * this.spacing * 0.22;
-        var jitterY = (fieldNoise(row, col, 9) - 0.5) * this.spacing * 0.22;
-        var x = (col - 0.5) * this.spacing + jitterX;
-        var y = (row - 0.5) * this.spacing + jitterY;
+        var x = (col - 0.5) * this.spacing;
+        var y = (row - 0.5) * this.spacing;
         var layerRand = fieldNoise(row, col, 1);
         var layerAlpha = layerRand < 0.58 ? 1 : (layerRand < 0.86 ? 0.68 : 0.42);
         var radius = this.baseRadius;
         var alpha = this.baseAlpha * layerAlpha * (0.58 + fieldNoise(row, col, 6) * 0.78);
-        var cursorOffset = (fieldNoise(row, col, 7) - 0.5) * 22;
+        var cursorOffset = 0;
 
         positions[index * 2] = x;
         positions[index * 2 + 1] = y;
