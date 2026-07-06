@@ -1231,8 +1231,7 @@ function initVectorFieldCanvas() {
 
       var bhResistance = 0;
       var targetAngle = baseAngle;
-      var restOpacity = p.baseOpacityLayer;
-      var drawOpacity = rippleOpacityBoost + wakeOpacityBoost;
+      var drawOpacity = p.baseOpacityLayer + rippleOpacityBoost + wakeOpacityBoost;
       var drawLen = (lineLen * lcLen) + rippleLenBoost;
       var widthScale = 1;
       var speed = returnSpeed;
@@ -1243,7 +1242,6 @@ function initVectorFieldCanvas() {
 
       // --- AWAKENING: fade opacity in ---
       drawOpacity *= awakenEased;
-      restOpacity *= awakenEased;
 
       if (isLandingPage) {
         var distBHSq = distCenterSq;
@@ -1255,7 +1253,7 @@ function initVectorFieldCanvas() {
           var spiralOffset = bhStrength * 2.0 + _sin(time * 3.5 + p.seed1) * bhStrength * 0.6;
           var bhAngle = p.centerAngle + spiralOffset;
           targetAngle = bhAngle * bhStrength * awakenEased + baseAngle * (1 - bhStrength);
-          drawOpacity = (bhStrength * 0.4 * opacityScale + rippleOpacityBoost + wakeOpacityBoost) * awakenEased;
+          drawOpacity = (p.baseOpacityLayer + bhStrength * 0.4 * opacityScale + rippleOpacityBoost + wakeOpacityBoost) * awakenEased;
           drawLen = lineLen * lcLen + bhStrength * 12 + rippleLenBoost;
           speed = returnSpeed + bhStrength * 0.3;
           if (distBH < 35) { var fade = p.blackHoleCoreFade; drawOpacity *= fade; drawLen = lineLen * lcLen * fade + bhStrength * 12 * fade; }
@@ -1308,14 +1306,12 @@ function initVectorFieldCanvas() {
               drawOpacity *= _max(0.02, 1 - dimFactor * 3);
             } else {
               var brightenAmount = mouseEffect * 0.3 * opacityScale;
-              drawOpacity = _max(drawOpacity, (restOpacity + brightenAmount) * mouseEffect);
+              drawOpacity = _max(drawOpacity, p.baseOpacityLayer + brightenAmount);
             }
 
             var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
             targetAngle += mouseDiff * mouseEffect * 0.9;
-            var sizeSwell = mouseEffect * mouseEffect * (3 - 2 * mouseEffect);
-            drawLen = _max(drawLen, (lineLen * lcLen) * (0.55 + sizeSwell * 1.6) + sizeSwell * 10 * (1 - eeSuppression * particleNearEE));
-            widthScale *= 1 + sizeSwell * 1.1;
+            drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
             speed = _max(speed, followSpeed + mouseEffect * 0.4);
           }
         }
@@ -1330,9 +1326,9 @@ function initVectorFieldCanvas() {
       if (revealActive) {
         var edgeBoost = _max(0, 1 - _abs(p.centerDist - revealRadius) / 56);
         if (edgeBoost > 0) {
-          drawOpacity = _min(1, drawOpacity + edgeBoost * (0.08 + restOpacity * 1.1));
-          drawLen += edgeBoost * 4.2;
-          widthScale *= 1 + edgeBoost * 0.16;
+          drawOpacity = _min(1, drawOpacity + edgeBoost * 0.1);
+          drawLen += edgeBoost * 2.8;
+          widthScale *= 1 + edgeBoost * 0.1;
         }
       }
 
