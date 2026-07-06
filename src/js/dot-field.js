@@ -36,7 +36,8 @@
     '  float cursorRadius = max(80.0, u_cursorRadius + a_dot.z);',
     '  float distToMouse = distance(a_position, u_mouse);',
     '  float strength = (1.0 - smoothstep(0.0, cursorRadius, distToMouse)) * u_mousePresence;',
-    '  float radius = a_dot.x * (1.0 + strength * u_cursorBoost);',
+    '  float sizeStrength = strength * strength * (3.0 - 2.0 * strength);',
+    '  float radius = a_dot.x * (1.0 + sizeStrength * u_cursorBoost);',
     '  float alpha = a_dot.y * (1.0 + strength * 0.9);',
     '  vec2 animatedPosition = a_position;',
     '  if (u_reveal.x > 0.5) {',
@@ -312,7 +313,7 @@
         radius: isMobile ? 0.48 : 0.62,
         alpha: this.isDividerField ? 0.26 : 0.21,
         cursorRadius: isMobile ? 180 : 235,
-        cursorBoost: 2.55,
+        cursorBoost: 3.2,
         budget: 3600
       };
     }
@@ -323,7 +324,7 @@
         radius: isMobile ? 0.58 : 0.78,
         alpha: 0.27,
         cursorRadius: isMobile ? 195 : 250,
-        cursorBoost: 2.65,
+        cursorBoost: 3.3,
         budget: 3600
       };
     }
@@ -333,7 +334,7 @@
       radius: isMobile ? 0.54 : 0.72,
       alpha: 0.24,
       cursorRadius: isMobile ? 190 : 245,
-      cursorBoost: 2.6,
+      cursorBoost: 3.25,
       budget: 3600
     };
   };
@@ -553,11 +554,10 @@
         var x = (col - 0.5) * this.spacing + jitterX;
         var y = (row - 0.5) * this.spacing + jitterY;
         var layerRand = fieldNoise(row, col, 1);
-        var layerSize = layerRand < 0.58 ? 1 : (layerRand < 0.86 ? 0.78 : 0.58);
         var layerAlpha = layerRand < 0.58 ? 1 : (layerRand < 0.86 ? 0.68 : 0.42);
-        var radius = this.baseRadius * layerSize * (0.72 + fieldNoise(row, col, 5) * 0.76);
+        var radius = this.baseRadius;
         var alpha = this.baseAlpha * layerAlpha * (0.58 + fieldNoise(row, col, 6) * 0.78);
-        var cursorOffset = (fieldNoise(row, col, 7) - 0.5) * 54;
+        var cursorOffset = (fieldNoise(row, col, 7) - 0.5) * 22;
 
         positions[index * 2] = x;
         positions[index * 2 + 1] = y;
