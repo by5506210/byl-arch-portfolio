@@ -36,9 +36,9 @@
     '  float cursorRadius = max(80.0, u_cursorRadius + a_dot.z);',
     '  float distToMouse = distance(a_position, u_mouse);',
     '  float strength = (1.0 - smoothstep(0.0, cursorRadius, distToMouse)) * u_mousePresence;',
-    '  float sizeStrength = strength * strength * (3.0 - 2.0 * strength);',
-    '  float radius = a_dot.x * (0.5 + sizeStrength * u_cursorBoost);',
-    '  float alpha = a_dot.y * strength * 2.4;',
+    '  float visibility = smoothstep(0.0, 0.32, strength);',
+    '  float radius = a_dot.x * (0.55 + strength * u_cursorBoost);',
+    '  float alpha = a_dot.y * visibility * 2.6;',
     '  vec2 animatedPosition = a_position;',
     '  if (u_reveal.x > 0.5) {',
     '    vec2 revealDelta = a_position - u_revealCenter;',
@@ -313,7 +313,7 @@
         radius: isMobile ? 0.48 : 0.62,
         alpha: this.isDividerField ? 0.26 : 0.21,
         cursorRadius: isMobile ? 180 : 235,
-        cursorBoost: 3.2,
+        cursorBoost: 6.2,
         budget: 3600
       };
     }
@@ -324,7 +324,7 @@
         radius: isMobile ? 0.58 : 0.78,
         alpha: 0.27,
         cursorRadius: isMobile ? 195 : 250,
-        cursorBoost: 3.3,
+        cursorBoost: 6.4,
         budget: 3600
       };
     }
@@ -334,7 +334,7 @@
       radius: isMobile ? 0.54 : 0.72,
       alpha: 0.24,
       cursorRadius: isMobile ? 190 : 245,
-      cursorBoost: 3.25,
+      cursorBoost: 6.3,
       budget: 3600
     };
   };
