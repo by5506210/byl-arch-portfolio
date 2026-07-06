@@ -558,7 +558,7 @@
         var layerAlpha = layerRand < 0.58 ? 1 : (layerRand < 0.86 ? 0.68 : 0.42);
         var radius = this.baseRadius;
         var alpha = this.baseAlpha * layerAlpha * (0.58 + fieldNoise(row, col, 6) * 0.78);
-        var cursorOffset = 0;
+        var cursorOffset = (fieldNoise(row, col, 7) - 0.5) * 30;
 
         positions[index * 2] = x;
         positions[index * 2 + 1] = y;
