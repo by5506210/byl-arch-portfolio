@@ -23,6 +23,7 @@
 
   var VERTEX_SHADER = [
     'attribute vec2 a_position;',
+    'attribute float a_seed;',
     'uniform vec2 u_resolution;',
     'uniform vec2 u_mouse;',
     'uniform float u_mousePresence;',
@@ -31,18 +32,35 @@
     'uniform float u_baseAlpha;',
     'uniform vec2 u_revealCenter;',
     'uniform vec4 u_reveal;',
+    'uniform int u_rippleCount;',
+    'uniform vec4 u_ripples[6];',
     'varying float v_alpha;',
     'void main() {',
     '  vec2 pos = a_position;',
     '  float alpha = u_baseAlpha;',
     '  vec2 toVertex = a_position - u_mouse;',
     '  float dist = length(toVertex);',
-    '  float t = (1.0 - smoothstep(0.0, u_cursorRadius, dist)) * u_mousePresence;',
+    '  float seededRadius = u_cursorRadius * (0.88 + a_seed * 0.24);',
+    '  float t = (1.0 - smoothstep(0.0, seededRadius, dist)) * u_mousePresence;',
     '  if (t > 0.001) {',
     '    vec2 dir = dist > 0.001 ? toVertex / dist : vec2(0.0, 1.0);',
-    '    float push = t * t * u_warpAmount;',
-    '    pos += dir * push;',
+    '    vec2 tangent = vec2(-dir.y, dir.x);',
+    '    float push = t * t * u_warpAmount * (0.82 + a_seed * 0.36);',
+    '    pos += dir * push + tangent * push * (a_seed - 0.5) * 0.55;',
     '    alpha *= 1.0 + t * 0.85;',
+    '  }',
+    '  for (int i = 0; i < 6; i++) {',
+    '    if (i >= u_rippleCount) break;',
+    '    vec4 rp = u_ripples[i];',
+    '    vec2 rippleDelta = pos - rp.xy;',
+    '    float rippleDist = length(rippleDelta);',
+    '    float band = 1.0 - smoothstep(0.0, 110.0, abs(rippleDist - rp.z));',
+    '    if (band > 0.001) {',
+    '      vec2 rippleDir = rippleDist > 0.001 ? rippleDelta / rippleDist : vec2(0.0, -1.0);',
+    '      float amp = band * rp.w;',
+    '      pos += rippleDir * amp * (9.0 + a_seed * 8.0);',
+    '      alpha += amp * 0.2;',
+    '    }',
     '  }',
     '  if (u_reveal.x > 0.5) {',
     '    float damp = clamp(u_reveal.w, 0.0, 1.0);',
@@ -163,6 +181,9 @@
     if (revealState.active || wasActive) {
       pointerInputBlockedUntil = Date.now() + 220;
       resetPointerState();
+      for (var i = 0; i < instances.length; i++) {
+        if (instances[i].ripples) instances[i].ripples.length = 0;
+      }
     }
     requestRenderAll();
   }
@@ -198,6 +219,13 @@
 
     document.addEventListener('pointerdown', function (event) {
       setPointerPosition(event.clientX, event.clientY);
+      if (!revealState.active && Date.now() >= pointerInputBlockedUntil) {
+        for (var i = 0; i < instances.length; i++) {
+          if (typeof instances[i].addRipple === 'function') {
+            instances[i].addRipple(event.clientX, event.clientY);
+          }
+        }
+      }
     }, { passive: true });
 
     document.addEventListener('pointermove', function (event) {
@@ -254,7 +282,11 @@
     this.program = null;
     this.positionBuffer = null;
     this.positionData = null;
+    this.seedBuffer = null;
+    this.seedData = null;
     this.vertexCount = 0;
+    this.ripples = [];
+    this.rippleUniforms = new Float32Array(24);
 
     this.surface = canvas.getAttribute('data-field-surface') || 'page';
     this.isHomeField = this.surface.indexOf('home') === 0;
@@ -370,6 +402,7 @@
     }
 
     this.positionBuffer = this.gl.createBuffer();
+    this.seedBuffer = this.gl.createBuffer();
     this.cacheLocations();
     this.configureGL();
 
@@ -388,6 +421,9 @@
     var gl = this.gl;
     this.locations = {
       position: gl.getAttribLocation(this.program, 'a_position'),
+      seed: gl.getAttribLocation(this.program, 'a_seed'),
+      rippleCount: gl.getUniformLocation(this.program, 'u_rippleCount'),
+      ripples: gl.getUniformLocation(this.program, 'u_ripples[0]'),
       resolution: gl.getUniformLocation(this.program, 'u_resolution'),
       mouse: gl.getUniformLocation(this.program, 'u_mouse'),
       mousePresence: gl.getUniformLocation(this.program, 'u_mousePresence'),
@@ -422,10 +458,12 @@
 
     if (this.gl) {
       if (this.positionBuffer) this.gl.deleteBuffer(this.positionBuffer);
+      if (this.seedBuffer) this.gl.deleteBuffer(this.seedBuffer);
       if (this.program) this.gl.deleteProgram(this.program);
     }
 
     this.positionBuffer = null;
+    this.seedBuffer = null;
     this.program = null;
     this.gl = null;
   };
@@ -442,6 +480,7 @@
     if (!this.gl) return;
     this.program = createProgram(this.gl);
     this.positionBuffer = this.gl.createBuffer();
+    this.seedBuffer = this.gl.createBuffer();
     this.cacheLocations();
     this.configureGL();
     this.lastCanvasWidth = 0;
@@ -521,8 +560,9 @@
     var cols = Math.ceil(width / spacing) + 1;
     var rows = Math.ceil(height / spacing) + 1;
     var segments = [];
+    var seeds = [];
     var wobble = 1.3;
-    var i, j, prevX, prevY, x, y, offset;
+    var i, j, prevX, prevY, x, y, offset, seed, prevSeed;
 
     // Horizontal lines
     for (i = 0; i < rows; i++) {
@@ -530,13 +570,17 @@
       prevX = -step;
       offset = (fieldNoise(i, 0, 3) - 0.5) * wobble;
       prevY = y + offset;
+      prevSeed = fieldNoise(i, 0, 5);
       var samplesH = Math.ceil((width + step * 2) / step);
       for (j = 1; j <= samplesH; j++) {
         x = -step + j * step;
         offset = (fieldNoise(i, j, 3) - 0.5) * wobble;
+        seed = fieldNoise(i, j, 5);
         segments.push(prevX, prevY, x, y + offset);
+        seeds.push(prevSeed, seed);
         prevX = x;
         prevY = y + offset;
+        prevSeed = seed;
       }
     }
 
@@ -546,26 +590,66 @@
       prevY = -step;
       offset = (fieldNoise(0, i, 4) - 0.5) * wobble;
       prevX = x + offset;
+      prevSeed = fieldNoise(0, i, 6);
       var samplesV = Math.ceil((height + step * 2) / step);
       for (j = 1; j <= samplesV; j++) {
         y = -step + j * step;
         offset = (fieldNoise(j, i, 4) - 0.5) * wobble;
+        seed = fieldNoise(j, i, 6);
         segments.push(prevX, prevY, x + offset, y);
+        seeds.push(prevSeed, seed);
         prevX = x + offset;
         prevY = y;
+        prevSeed = seed;
       }
     }
 
     this.positionData = new Float32Array(segments);
+    this.seedData = new Float32Array(seeds);
     this.vertexCount = segments.length / 2;
   };
 
   DotField.prototype.uploadBuffers = function () {
     var gl = this.gl;
-    if (!gl || !this.positionData) return;
+    if (!gl || !this.positionData || !this.seedData) return;
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, this.positionData, gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.seedBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.seedData, gl.STATIC_DRAW);
+  };
+
+  // A click drops a decaying displacement ring onto the fabric.
+  DotField.prototype.addRipple = function (clientX, clientY) {
+    if (this.reducedMotion) return;
+    var y = clientY;
+    if (!this.isHomeField) {
+      y += window.scrollY || window.pageYOffset || 0;
+    }
+    this.ripples.push({ x: clientX, y: y, start: performance.now() });
+    if (this.ripples.length > 6) this.ripples.shift();
+    this.requestRender();
+  };
+
+  // Prune expired ripples and pack live ones into the uniform array.
+  // Returns the live ripple count.
+  DotField.prototype.updateRipples = function (now) {
+    var RIPPLE_LIFE = 1.15;
+    var live = 0;
+    for (var i = 0; i < this.ripples.length; i++) {
+      var age = (now - this.ripples[i].start) / 1000;
+      if (age >= RIPPLE_LIFE) continue;
+      this.ripples[live] = this.ripples[i];
+      var fade = 1 - age / RIPPLE_LIFE;
+      this.rippleUniforms[live * 4] = this.ripples[i].x;
+      this.rippleUniforms[live * 4 + 1] = this.ripples[i].y;
+      this.rippleUniforms[live * 4 + 2] = 46 + age * 520;
+      this.rippleUniforms[live * 4 + 3] = Math.pow(fade, 1.6);
+      live++;
+    }
+    this.ripples.length = live;
+    return live;
   };
 
   DotField.prototype.resolveMouse = function () {
@@ -628,6 +712,14 @@
     gl.enableVertexAttribArray(this.locations.position);
     gl.vertexAttribPointer(this.locations.position, 2, gl.FLOAT, false, 0, 0);
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.seedBuffer);
+    gl.enableVertexAttribArray(this.locations.seed);
+    gl.vertexAttribPointer(this.locations.seed, 1, gl.FLOAT, false, 0, 0);
+
+    var rippleCount = this.updateRipples(performance.now());
+    gl.uniform1i(this.locations.rippleCount, rippleCount);
+    gl.uniform4fv(this.locations.ripples, this.rippleUniforms);
+
     gl.uniform2f(this.locations.resolution, this.fieldWidth, this.fieldHeight);
     gl.uniform2f(this.locations.mouse, this.smoothedMouseX, this.smoothedMouseY);
     gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
@@ -675,7 +767,7 @@
     if (dt > 0.1) dt = 0.05;
     if (dt <= 0) dt = 1 / 60;
 
-    var changed = this.updateMouse(dt);
+    var changed = this.updateMouse(dt) || this.ripples.length > 0;
     this.draw();
 
     if (changed) {
