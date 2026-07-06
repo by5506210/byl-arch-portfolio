@@ -37,7 +37,8 @@
     '  float distToMouse = distance(a_position, u_mouse);',
     '  float strength = (1.0 - smoothstep(0.0, cursorRadius, distToMouse)) * u_mousePresence;',
     '  float visibility = smoothstep(0.0, 0.32, strength);',
-    '  float radius = a_dot.x * (0.25 + strength * u_cursorBoost);',
+    '  float sizeCurve = strength * strength;',
+    '  float radius = a_dot.x * (0.2 + sizeCurve * u_cursorBoost);',
     '  float alpha = a_dot.y * visibility * 2.6;',
     '  vec2 animatedPosition = a_position;',
     '  if (u_reveal.x > 0.5) {',
@@ -312,8 +313,8 @@
         spacing: isMobile ? 18 : 26,
         radius: isMobile ? 0.48 : 0.62,
         alpha: this.isDividerField ? 0.26 : 0.21,
-        cursorRadius: isMobile ? 120 : 150,
-        cursorBoost: 7.2,
+        cursorRadius: isMobile ? 140 : 185,
+        cursorBoost: 8.4,
         budget: 3600
       };
     }
@@ -323,8 +324,8 @@
         spacing: isMobile ? 17 : 26,
         radius: isMobile ? 0.58 : 0.78,
         alpha: 0.27,
-        cursorRadius: isMobile ? 125 : 160,
-        cursorBoost: 7.4,
+        cursorRadius: isMobile ? 145 : 195,
+        cursorBoost: 8.6,
         budget: 3600
       };
     }
@@ -333,8 +334,8 @@
       spacing: isMobile ? 18 : 27,
       radius: isMobile ? 0.54 : 0.72,
       alpha: 0.24,
-      cursorRadius: isMobile ? 122 : 155,
-      cursorBoost: 7.3,
+      cursorRadius: isMobile ? 142 : 190,
+      cursorBoost: 8.5,
       budget: 3600
     };
   };
@@ -549,8 +550,10 @@
 
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
-        var x = (col - 0.5) * this.spacing;
-        var y = (row - 0.5) * this.spacing;
+        var jitterX = (fieldNoise(row, col, 8) - 0.5) * this.spacing * 0.11;
+        var jitterY = (fieldNoise(row, col, 9) - 0.5) * this.spacing * 0.11;
+        var x = (col - 0.5) * this.spacing + jitterX;
+        var y = (row - 0.5) * this.spacing + jitterY;
         var layerRand = fieldNoise(row, col, 1);
         var layerAlpha = layerRand < 0.58 ? 1 : (layerRand < 0.86 ? 0.68 : 0.42);
         var radius = this.baseRadius;
