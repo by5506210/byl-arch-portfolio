@@ -4022,19 +4022,19 @@ function initEdenSequence() {
   var base = (revealImg && revealImg.getAttribute('src') || '../assets/images/eden-museum/hero.webp').replace(/hero\.(webp|jpg)(\?.*)?$/, '');
 
   var SEQ = [
-    ['sequence/sequence-01.webp', 'Arrival Hall', 'A compressed entry aligns visitors with a narrow cut of light before the descent begins.'],
-    ['sequence/sequence-02.webp', 'Water Edge', 'The exterior path introduces water and planted structure as the first reading of the courtyard below.'],
-    ['sequence/sequence-03.webp', 'Garden Threshold', 'A shifted outdoor platform frames the garden as a partially hidden centre rather than an immediate object.'],
+    ['sequence/sequence-01.webp', 'Reception', 'A low hall of stone and concrete holds the reception desk, set beneath a single cut of light.'],
+    ['sequence/sequence-02.webp', 'Gallery Entry', 'The gallery route begins outdoors, along a long water court lined with elevated trees.'],
+    ['sequence/sequence-03.webp', 'Water Crossing', 'A platform crosses between the pools as the sequence turns downward toward the galleries.'],
     ['sequence/sequence-04.webp', 'Stone Descent', 'A darker passage uses rough stone and a luminous seam to pull movement into the earth.'],
-    ['sequence/sequence-05.webp', 'Gallery Reception', 'The first interior gallery opens laterally, balancing reception, art, and directional light.'],
-    ['sequence/sequence-06.webp', 'Light Ramp', 'A descending ramp gathers a brighter wash of light, turning circulation into anticipation.'],
+    ['sequence/sequence-05.webp', 'Gallery', 'A gallery gathers around a sunken centre, with daylight arriving from the opening above.'],
+    ['sequence/sequence-06.webp', 'Sculpture Hall', 'A taller room of the permanent gallery pairs sculpture with a stair carrying the route deeper.'],
     ['sequence/sequence-07.webp', 'Slit Passage', 'A tall, narrow aperture sharpens the contrast between enclosure and the next room.'],
-    ['sequence/sequence-08.webp', 'Central Gallery', 'An island-like room lets artworks, shadow, and the perimeter path hold the visitor in suspension.'],
-    ['sequence/sequence-09.webp', 'Curved Descent', 'A curved wall softens the route while keeping the visitor moving through the lower galleries.'],
-    ['sequence/sequence-10.webp', 'Lower Gallery', 'The gallery narrows again, letting the next aperture become the visitor’s guide.'],
+    ['sequence/sequence-08.webp', 'Dark Gallery', 'A darkened gallery holds a floating island platform, its edges drawn in light.'],
+    ['sequence/sequence-09.webp', 'Curved Descent', 'A curved wall softens the route while keeping the visitor moving through the permanent gallery.'],
+    ['sequence/sequence-10.webp', 'Lower Gallery', 'The gallery bends again, letting the next aperture become the visitor’s guide.'],
     ['sequence/sequence-11.webp', 'Chamber', 'A sculptural room becomes a pause in the sequence before the building folds inward again.'],
-    ['sequence/sequence-12.webp', 'Vertical Cut', 'A high slot of daylight marks the courtyard’s depth from the edge of the descending path.'],
-    ['sequence/sequence-13.webp', 'Earth Passage', 'The sequence closes in a deep stone corridor, carrying visitors toward the garden reveal.']
+    ['sequence/sequence-12.webp', 'Vertical Cut', 'A tall stone hall is crossed overhead, while a low slot of light marks the way onward.'],
+    ['sequence/sequence-13.webp', 'Earth Passage', 'The permanent gallery closes in a deep stone corridor, opening toward the main garden.']
   ];
 
   var plates = [];
