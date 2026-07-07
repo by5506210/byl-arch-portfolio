@@ -21,6 +21,22 @@
     progress: 0
   };
 
+  // Anisotropic cursor field shared by the line-warp and dimple shaders.
+  // The pocket stretches along the drag vector: strongly behind the motion
+  // (a trailing wake), slightly ahead. dragMag 0 -> perfect circle.
+  var FABRIC_FIELD_GLSL = [
+    'float fabricField(vec2 toVertex, float radius, vec2 drag) {',
+    '  float dragMag = length(drag);',
+    '  vec2 dragDir = dragMag > 0.001 ? drag / dragMag : vec2(1.0, 0.0);',
+    '  float along = dot(toVertex, dragDir);',
+    '  float across = dot(toVertex, vec2(-dragDir.y, dragDir.x));',
+    '  float stretch = along < 0.0 ? 1.9 : 0.55;',
+    '  float axisScale = 1.0 / (1.0 + dragMag * stretch);',
+    '  float dist = length(vec2(along * axisScale, across));',
+    '  return 1.0 - smoothstep(0.0, radius, dist);',
+    '}'
+  ].join('\n');
+
   var VERTEX_SHADER = [
     'attribute vec2 a_position;',
     'attribute float a_seed;',
@@ -30,19 +46,21 @@
     'uniform float u_cursorRadius;',
     'uniform float u_warpAmount;',
     'uniform float u_baseAlpha;',
+    'uniform vec2 u_drag;',
     'uniform vec2 u_revealCenter;',
     'uniform vec4 u_reveal;',
     'uniform int u_rippleCount;',
     'uniform vec4 u_ripples[6];',
     'varying float v_alpha;',
+    FABRIC_FIELD_GLSL,
     'void main() {',
     '  vec2 pos = a_position;',
     '  float alpha = u_baseAlpha;',
     '  vec2 toVertex = a_position - u_mouse;',
-    '  float dist = length(toVertex);',
     '  float seededRadius = u_cursorRadius * (0.88 + a_seed * 0.24);',
-    '  float t = (1.0 - smoothstep(0.0, seededRadius, dist)) * u_mousePresence;',
+    '  float t = fabricField(toVertex, seededRadius, u_drag) * u_mousePresence;',
     '  if (t > 0.001) {',
+    '    float dist = length(toVertex);',
     '    vec2 dir = dist > 0.001 ? toVertex / dist : vec2(0.0, 1.0);',
     '    vec2 tangent = vec2(-dir.y, dir.x);',
     '    float push = t * t * u_warpAmount * (0.82 + a_seed * 0.36);',
@@ -87,6 +105,37 @@
     '}'
   ].join('\n');
 
+  // Soft shadow painted under the lines: the fabric dips into shade where
+  // the cursor presses. Drawn as a fullscreen quad before the grid pass.
+  var DIMPLE_VERTEX_SHADER = [
+    'attribute vec2 a_position;',
+    'uniform vec2 u_resolution;',
+    'varying vec2 v_pos;',
+    'void main() {',
+    '  v_pos = a_position;',
+    '  vec2 zeroToOne = a_position / u_resolution;',
+    '  vec2 clipSpace = zeroToOne * 2.0 - 1.0;',
+    '  gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);',
+    '}'
+  ].join('\n');
+
+  var DIMPLE_FRAGMENT_SHADER = [
+    'precision mediump float;',
+    'uniform vec2 u_mouse;',
+    'uniform float u_mousePresence;',
+    'uniform float u_cursorRadius;',
+    'uniform vec2 u_drag;',
+    'uniform float u_dimpleStrength;',
+    'uniform vec3 u_color;',
+    'varying vec2 v_pos;',
+    FABRIC_FIELD_GLSL,
+    'void main() {',
+    '  float t = fabricField(v_pos - u_mouse, u_cursorRadius, u_drag) * u_mousePresence;',
+    '  float shade = t * t * u_dimpleStrength;',
+    '  gl_FragColor = vec4(u_color, shade);',
+    '}'
+  ].join('\n');
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -113,9 +162,9 @@
     return shader;
   }
 
-  function createProgram(gl) {
-    var vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-    var fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+  function createProgram(gl, vertexSource, fragmentSource) {
+    var vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexSource);
+    var fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
     var program = gl.createProgram();
 
     gl.attachShader(program, vertexShader);
@@ -280,10 +329,12 @@
     this.canvas = canvas;
     this.gl = null;
     this.program = null;
+    this.dimpleProgram = null;
     this.positionBuffer = null;
     this.positionData = null;
     this.seedBuffer = null;
     this.seedData = null;
+    this.dimpleBuffer = null;
     this.vertexCount = 0;
     this.ripples = [];
     this.rippleUniforms = new Float32Array(24);
@@ -307,9 +358,12 @@
     this.baseAlpha = 0.13;
     this.cursorRadius = 185;
     this.warpAmount = 24;
+    this.dimpleStrength = 0.06;
     this.mousePresence = 0;
     this.smoothedMouseX = -1000;
     this.smoothedMouseY = -1000;
+    this.velX = 0;
+    this.velY = 0;
     this.lastFrameTime = 0;
     this.resizeFrame = null;
     this.raf = null;
@@ -329,7 +383,8 @@
         spacing: isMobile ? 30 : 42,
         alpha: this.isDividerField ? 0.15 : 0.12,
         cursorRadius: isMobile ? 140 : 185,
-        warp: isMobile ? 18 : 24
+        warp: isMobile ? 18 : 24,
+        dimple: 0.055
       };
     }
 
@@ -338,7 +393,8 @@
         spacing: isMobile ? 28 : 42,
         alpha: 0.16,
         cursorRadius: isMobile ? 145 : 195,
-        warp: isMobile ? 19 : 26
+        warp: isMobile ? 19 : 26,
+        dimple: 0.07
       };
     }
 
@@ -346,7 +402,8 @@
       spacing: isMobile ? 30 : 44,
       alpha: 0.14,
       cursorRadius: isMobile ? 142 : 190,
-      warp: isMobile ? 18 : 25
+      warp: isMobile ? 18 : 25,
+      dimple: 0.065
     };
   };
 
@@ -374,6 +431,7 @@
     this.baseAlpha = metrics.alpha;
     this.cursorRadius = metrics.cursorRadius;
     this.warpAmount = metrics.warp;
+    this.dimpleStrength = metrics.dimple;
   };
 
   DotField.prototype.init = function () {
@@ -395,7 +453,8 @@
     }
 
     try {
-      this.program = createProgram(this.gl);
+      this.program = createProgram(this.gl, VERTEX_SHADER, FRAGMENT_SHADER);
+      this.dimpleProgram = createProgram(this.gl, DIMPLE_VERTEX_SHADER, DIMPLE_FRAGMENT_SHADER);
     } catch (error) {
       this.canvas.setAttribute('data-renderer', 'dot-webgl-error');
       return;
@@ -403,6 +462,7 @@
 
     this.positionBuffer = this.gl.createBuffer();
     this.seedBuffer = this.gl.createBuffer();
+    this.dimpleBuffer = this.gl.createBuffer();
     this.cacheLocations();
     this.configureGL();
 
@@ -430,9 +490,20 @@
       cursorRadius: gl.getUniformLocation(this.program, 'u_cursorRadius'),
       warpAmount: gl.getUniformLocation(this.program, 'u_warpAmount'),
       baseAlpha: gl.getUniformLocation(this.program, 'u_baseAlpha'),
+      drag: gl.getUniformLocation(this.program, 'u_drag'),
       revealCenter: gl.getUniformLocation(this.program, 'u_revealCenter'),
       reveal: gl.getUniformLocation(this.program, 'u_reveal'),
       color: gl.getUniformLocation(this.program, 'u_color')
+    };
+    this.dimpleLocations = {
+      position: gl.getAttribLocation(this.dimpleProgram, 'a_position'),
+      resolution: gl.getUniformLocation(this.dimpleProgram, 'u_resolution'),
+      mouse: gl.getUniformLocation(this.dimpleProgram, 'u_mouse'),
+      mousePresence: gl.getUniformLocation(this.dimpleProgram, 'u_mousePresence'),
+      cursorRadius: gl.getUniformLocation(this.dimpleProgram, 'u_cursorRadius'),
+      drag: gl.getUniformLocation(this.dimpleProgram, 'u_drag'),
+      dimpleStrength: gl.getUniformLocation(this.dimpleProgram, 'u_dimpleStrength'),
+      color: gl.getUniformLocation(this.dimpleProgram, 'u_color')
     };
   };
 
@@ -459,12 +530,16 @@
     if (this.gl) {
       if (this.positionBuffer) this.gl.deleteBuffer(this.positionBuffer);
       if (this.seedBuffer) this.gl.deleteBuffer(this.seedBuffer);
+      if (this.dimpleBuffer) this.gl.deleteBuffer(this.dimpleBuffer);
       if (this.program) this.gl.deleteProgram(this.program);
+      if (this.dimpleProgram) this.gl.deleteProgram(this.dimpleProgram);
     }
 
     this.positionBuffer = null;
     this.seedBuffer = null;
+    this.dimpleBuffer = null;
     this.program = null;
+    this.dimpleProgram = null;
     this.gl = null;
   };
 
@@ -478,9 +553,11 @@
   DotField.prototype.handleContextRestored = function () {
     this.gl = this.canvas.getContext('webgl') || this.canvas.getContext('experimental-webgl');
     if (!this.gl) return;
-    this.program = createProgram(this.gl);
+    this.program = createProgram(this.gl, VERTEX_SHADER, FRAGMENT_SHADER);
+    this.dimpleProgram = createProgram(this.gl, DIMPLE_VERTEX_SHADER, DIMPLE_FRAGMENT_SHADER);
     this.positionBuffer = this.gl.createBuffer();
     this.seedBuffer = this.gl.createBuffer();
+    this.dimpleBuffer = this.gl.createBuffer();
     this.cacheLocations();
     this.configureGL();
     this.lastCanvasWidth = 0;
@@ -551,7 +628,9 @@
   // Build the grid as tessellated line segments (gl.LINES pairs) so the
   // vertex shader can bend lines smoothly around the cursor. Each line is
   // sampled every few pixels; sample points carry a tiny baked-in
-  // perpendicular wobble for a hand-drawn feel.
+  // perpendicular wobble for a hand-drawn feel, plus a per-point seed so
+  // threads respond to the cursor with individual character. Shared segment
+  // endpoints reuse the same wobble and seed so lines never crack apart.
   DotField.prototype.buildGrid = function () {
     var spacing = this.spacing;
     var step = Math.max(9, spacing * 0.3);
@@ -618,6 +697,11 @@
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.seedBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, this.seedData, gl.STATIC_DRAW);
+
+    var w = this.fieldWidth;
+    var h = this.fieldHeight;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dimpleBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, w, 0, 0, h, w, h]), gl.STATIC_DRAW);
   };
 
   // A click drops a decaying displacement ring onto the fabric.
@@ -665,6 +749,8 @@
     this.mousePresence = 0;
     this.smoothedMouseX = -1000;
     this.smoothedMouseY = -1000;
+    this.velX = 0;
+    this.velY = 0;
     this.lastFrameTime = 0;
     this.requestRender();
   };
@@ -677,6 +763,8 @@
     var priorPresence = this.mousePresence;
     var priorX = this.smoothedMouseX;
     var priorY = this.smoothedMouseY;
+    var priorVelX = this.velX;
+    var priorVelY = this.velY;
 
     this.mousePresence += (targetPresence - this.mousePresence) * presenceEase;
 
@@ -694,18 +782,64 @@
       this.smoothedMouseY = -1000;
     }
 
+    // Smoothed cursor velocity drives the drag stretch of the warp pocket.
+    if (mouseActive && priorX > -500 && priorY > -500) {
+      var instVx = (this.smoothedMouseX - priorX) / dt;
+      var instVy = (this.smoothedMouseY - priorY) / dt;
+      var velEase = 1 - Math.exp(-dt * 7);
+      this.velX += (instVx - this.velX) * velEase;
+      this.velY += (instVy - this.velY) * velEase;
+    } else {
+      var velDecay = Math.exp(-dt * 6);
+      this.velX *= velDecay;
+      this.velY *= velDecay;
+      if (Math.abs(this.velX) < 1) this.velX = 0;
+      if (Math.abs(this.velY) < 1) this.velY = 0;
+    }
+
     return Math.abs(priorPresence - this.mousePresence) > 0.001 ||
       Math.abs(priorX - this.smoothedMouseX) > 0.05 ||
-      Math.abs(priorY - this.smoothedMouseY) > 0.05;
+      Math.abs(priorY - this.smoothedMouseY) > 0.05 ||
+      Math.abs(priorVelX - this.velX) > 0.5 ||
+      Math.abs(priorVelY - this.velY) > 0.5;
+  };
+
+  // Convert smoothed velocity into the drag uniform: a unit-ish vector in
+  // the direction of motion whose length (0..1) is the stretch amount.
+  DotField.prototype.resolveDrag = function () {
+    var speed = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
+    if (speed < 40) return { x: 0, y: 0 };
+    var mag = Math.min(1, speed / 1500);
+    return { x: (this.velX / speed) * mag, y: (this.velY / speed) * mag };
   };
 
   DotField.prototype.draw = function () {
     var gl = this.gl;
-    if (!gl || !this.program || !this.vertexCount) return;
+    if (!gl || !this.program || !this.dimpleProgram || !this.vertexCount) return;
 
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var revealActive = this.isHomeField && revealState.active;
+    var revealInteractionPresence = revealActive ? 0 : 1;
+    var presence = clamp(this.mousePresence * revealInteractionPresence, 0, 1);
+    var drag = this.resolveDrag();
+
+    // Pass 1: gravity dimple shadow under the grid.
+    gl.useProgram(this.dimpleProgram);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.dimpleBuffer);
+    gl.enableVertexAttribArray(this.dimpleLocations.position);
+    gl.vertexAttribPointer(this.dimpleLocations.position, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform2f(this.dimpleLocations.resolution, this.fieldWidth, this.fieldHeight);
+    gl.uniform2f(this.dimpleLocations.mouse, this.smoothedMouseX, this.smoothedMouseY);
+    gl.uniform1f(this.dimpleLocations.mousePresence, presence);
+    gl.uniform1f(this.dimpleLocations.cursorRadius, this.cursorRadius);
+    gl.uniform2f(this.dimpleLocations.drag, drag.x, drag.y);
+    gl.uniform1f(this.dimpleLocations.dimpleStrength, this.dimpleStrength);
+    gl.uniform3f(this.dimpleLocations.color, 0.065, 0.065, 0.065);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Pass 2: the grid lines.
     gl.useProgram(this.program);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -725,9 +859,8 @@
     gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
     gl.uniform1f(this.locations.warpAmount, this.warpAmount);
     gl.uniform1f(this.locations.baseAlpha, this.baseAlpha);
-    var revealActive = this.isHomeField && revealState.active;
-    var revealInteractionPresence = revealActive ? 0 : 1;
-    gl.uniform1f(this.locations.mousePresence, clamp(this.mousePresence * revealInteractionPresence, 0, 1));
+    gl.uniform2f(this.locations.drag, drag.x, drag.y);
+    gl.uniform1f(this.locations.mousePresence, presence);
     var revealDamp = this.reducedMotion ? 1 : (window.innerWidth < 768 ? 0.81 : 0);
     gl.uniform2f(this.locations.revealCenter, revealState.x, revealState.y);
     gl.uniform4f(
