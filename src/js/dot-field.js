@@ -21,10 +21,16 @@
     progress: 0
   };
 
-  // Stiff fabric: creased linear (tent) falloff, and each thread is a rigid
-  // rod - horizontal lines bow only vertically, vertical lines only
-  // horizontally, away from the cursor. a_axis = (0|1 orientation, base
-  // coordinate of the line).
+  var WARP_MODES = { smooth: 0, crease: 1, axis: 2, terrace: 3 };
+  var globalWarpMode = WARP_MODES.terrace;
+
+  // Warp modes (kept for experimentation, selectable via
+  // window.setDotFieldWarpMode or data-field-mode on the canvas):
+  //   0 smooth  - soft radial bell, drapes like cloth
+  //   1 crease  - linear tent falloff, bends like card stock
+  //   2 axis    - threads bow as rigid rods along one axis
+  //   3 terrace - displacement quantized into stepped contour bands
+  // a_axis = (0|1 line orientation, base coordinate of the line).
   var VERTEX_SHADER = [
     'attribute vec2 a_position;',
     'attribute float a_seed;',
@@ -35,6 +41,7 @@
     'uniform float u_cursorRadius;',
     'uniform float u_warpAmount;',
     'uniform float u_baseAlpha;',
+    'uniform int u_warpMode;',
     'uniform vec2 u_revealCenter;',
     'uniform vec4 u_reveal;',
     'uniform int u_rippleCount;',
@@ -46,12 +53,27 @@
     '  vec2 toVertex = a_position - u_mouse;',
     '  float dist = length(toVertex);',
     '  float seededRadius = u_cursorRadius * (0.96 + a_seed * 0.08);',
-    '  float t = max(0.0, 1.0 - dist / seededRadius) * u_mousePresence;',
+    '  float lin = max(0.0, 1.0 - dist / seededRadius);',
+    '  float t;',
+    '  if (u_warpMode == 0) {',
+    '    float s = 1.0 - smoothstep(0.0, seededRadius, dist);',
+    '    t = s * s;',
+    '  } else if (u_warpMode == 3) {',
+    '    t = lin > 0.0 ? ceil(lin * 3.0) / 3.0 * 0.75 : 0.0;',
+    '  } else {',
+    '    t = lin;',
+    '  }',
+    '  t *= u_mousePresence;',
     '  if (t > 0.001) {',
     '    float push = t * u_warpAmount * (0.95 + a_seed * 0.1);',
-    '    float side = a_axis.x < 0.5 ? sign(a_axis.y - u_mouse.y) : sign(a_axis.y - u_mouse.x);',
-    '    pos += a_axis.x < 0.5 ? vec2(0.0, side * push) : vec2(side * push, 0.0);',
-    '    alpha *= 1.0 + t * 0.85;',
+    '    if (u_warpMode == 2) {',
+    '      float side = a_axis.x < 0.5 ? sign(a_axis.y - u_mouse.y) : sign(a_axis.y - u_mouse.x);',
+    '      pos += a_axis.x < 0.5 ? vec2(0.0, side * push) : vec2(side * push, 0.0);',
+    '    } else {',
+    '      vec2 dir = dist > 0.001 ? toVertex / dist : vec2(0.0, 1.0);',
+    '      pos += dir * push;',
+    '    }',
+    '    alpha *= 1.0 + min(t, 1.0) * 0.85;',
     '  }',
     '  for (int i = 0; i < 6; i++) {',
     '    if (i >= u_rippleCount) break;',
@@ -61,9 +83,14 @@
     '    float band = max(0.0, 1.0 - abs(rippleDist - rp.z) / 110.0);',
     '    if (band > 0.001) {',
     '      float amp = band * rp.w;',
-    '      float rippleSide = a_axis.x < 0.5 ? sign(a_axis.y - rp.y) : sign(a_axis.y - rp.x);',
     '      float rippleAmp = amp * (9.0 + a_seed * 8.0);',
-    '      pos += a_axis.x < 0.5 ? vec2(0.0, rippleSide * rippleAmp) : vec2(rippleSide * rippleAmp, 0.0);',
+    '      if (u_warpMode == 2) {',
+    '        float rippleSide = a_axis.x < 0.5 ? sign(a_axis.y - rp.y) : sign(a_axis.y - rp.x);',
+    '        pos += a_axis.x < 0.5 ? vec2(0.0, rippleSide * rippleAmp) : vec2(rippleSide * rippleAmp, 0.0);',
+    '      } else {',
+    '        vec2 rippleDir = rippleDist > 0.001 ? rippleDelta / rippleDist : vec2(0.0, -1.0);',
+    '        pos += rippleDir * rippleAmp;',
+    '      }',
     '      alpha += amp * 0.2;',
     '    }',
     '  }',
@@ -112,12 +139,22 @@
     'uniform float u_mousePresence;',
     'uniform float u_cursorRadius;',
     'uniform float u_dimpleStrength;',
+    'uniform int u_warpMode;',
     'uniform vec3 u_color;',
     'varying vec2 v_pos;',
     'void main() {',
     '  float dist = length(v_pos - u_mouse);',
-    '  float t = max(0.0, 1.0 - dist / u_cursorRadius) * u_mousePresence;',
-    '  float shade = u_dimpleStrength * (0.55 + 0.45 * t) * smoothstep(0.0, 0.08, t);',
+    '  float lin = max(0.0, 1.0 - dist / u_cursorRadius);',
+    '  float t = lin * u_mousePresence;',
+    '  float shade;',
+    '  if (u_warpMode == 0) {',
+    '    shade = u_dimpleStrength * t * t;',
+    '  } else if (u_warpMode == 3) {',
+    '    float band = lin > 0.0 ? ceil(lin * 3.0) / 3.0 : 0.0;',
+    '    shade = u_dimpleStrength * band * u_mousePresence;',
+    '  } else {',
+    '    shade = u_dimpleStrength * (0.55 + 0.45 * t) * smoothstep(0.0, 0.08, t);',
+    '  }',
     '  gl_FragColor = vec4(u_color, shade);',
     '}'
   ].join('\n');
@@ -328,6 +365,8 @@
     this.rippleUniforms = new Float32Array(24);
 
     this.surface = canvas.getAttribute('data-field-surface') || 'page';
+    var modeAttr = canvas.getAttribute('data-field-mode');
+    this.forcedWarpMode = modeAttr && WARP_MODES.hasOwnProperty(modeAttr) ? WARP_MODES[modeAttr] : -1;
     this.isHomeField = this.surface.indexOf('home') === 0;
     this.isDividerField = this.surface === 'home-divider';
     this.isContactPage = this.surface === 'contact';
@@ -478,6 +517,7 @@
       cursorRadius: gl.getUniformLocation(this.program, 'u_cursorRadius'),
       warpAmount: gl.getUniformLocation(this.program, 'u_warpAmount'),
       baseAlpha: gl.getUniformLocation(this.program, 'u_baseAlpha'),
+      warpMode: gl.getUniformLocation(this.program, 'u_warpMode'),
       revealCenter: gl.getUniformLocation(this.program, 'u_revealCenter'),
       reveal: gl.getUniformLocation(this.program, 'u_reveal'),
       color: gl.getUniformLocation(this.program, 'u_color')
@@ -489,6 +529,7 @@
       mousePresence: gl.getUniformLocation(this.dimpleProgram, 'u_mousePresence'),
       cursorRadius: gl.getUniformLocation(this.dimpleProgram, 'u_cursorRadius'),
       dimpleStrength: gl.getUniformLocation(this.dimpleProgram, 'u_dimpleStrength'),
+      warpMode: gl.getUniformLocation(this.dimpleProgram, 'u_warpMode'),
       color: gl.getUniformLocation(this.dimpleProgram, 'u_color')
     };
   };
@@ -790,8 +831,9 @@
     var revealActive = this.isHomeField && revealState.active;
     var revealInteractionPresence = revealActive ? 0 : 1;
     var presence = clamp(this.mousePresence * revealInteractionPresence, 0, 1);
+    var warpMode = this.forcedWarpMode >= 0 ? this.forcedWarpMode : globalWarpMode;
 
-    // Pass 1: pressed-panel shade under the grid.
+    // Pass 1: dimple shade under the grid.
     gl.useProgram(this.dimpleProgram);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.dimpleBuffer);
     gl.enableVertexAttribArray(this.dimpleLocations.position);
@@ -801,6 +843,7 @@
     gl.uniform1f(this.dimpleLocations.mousePresence, presence);
     gl.uniform1f(this.dimpleLocations.cursorRadius, this.cursorRadius);
     gl.uniform1f(this.dimpleLocations.dimpleStrength, this.dimpleStrength);
+    gl.uniform1i(this.dimpleLocations.warpMode, warpMode);
     gl.uniform3f(this.dimpleLocations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -828,6 +871,7 @@
     gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
     gl.uniform1f(this.locations.warpAmount, this.warpAmount);
     gl.uniform1f(this.locations.baseAlpha, this.baseAlpha);
+    gl.uniform1i(this.locations.warpMode, warpMode);
     gl.uniform1f(this.locations.mousePresence, presence);
     var revealDamp = this.reducedMotion ? 1 : (window.innerWidth < 768 ? 0.81 : 0);
     gl.uniform2f(this.locations.revealCenter, revealState.x, revealState.y);
@@ -904,6 +948,12 @@
   window.initDotField = initDotField;
   window.initVectorField = initFieldDispatcher;
   window.setDotFieldTransition = setDotFieldTransition;
+  window.setDotFieldWarpMode = function (name) {
+    if (!WARP_MODES.hasOwnProperty(name)) return false;
+    globalWarpMode = WARP_MODES[name];
+    requestRenderAll();
+    return true;
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
