@@ -1312,7 +1312,14 @@ function initVectorFieldCanvas() {
               drawOpacity = _max(drawOpacity, p.baseOpacityLayer + brightenAmount);
             }
 
-            var mouseDiff = angleDiff(targetAngle, _atan2(dyM, dxM));
+            // Field modes shared with the WebGL renderer via
+            // window.__vectorFieldMode: 0 attract, 1 vortex, 2 repel, 3 scatter.
+            var fieldMode = window.__vectorFieldMode | 0;
+            var mouseTargetAngle = _atan2(dyM, dxM);
+            if (fieldMode === 1) mouseTargetAngle += PI * 0.5;
+            else if (fieldMode === 2) mouseTargetAngle += PI;
+            else if (fieldMode === 3) mouseTargetAngle = p.seed1 * TWO_PI + time * (1.2 + p.seed2 * 2.4);
+            var mouseDiff = angleDiff(targetAngle, mouseTargetAngle);
             targetAngle += mouseDiff * mouseEffect * 0.9;
             drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
             speed = _max(speed, followSpeed + mouseEffect * 0.4);

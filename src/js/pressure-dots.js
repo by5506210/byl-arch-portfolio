@@ -19,6 +19,9 @@
   var pointerY = -1000;
   var pointerClearTimer = null;
 
+  var DOT_MODES = { reveal: 0, glow: 1, repel: 2, attract: 3 };
+  var globalDotMode = DOT_MODES.reveal;
+
   var VERTEX_SHADER = [
     'attribute vec2 a_position;',
     'attribute vec3 a_dot;',
@@ -30,6 +33,7 @@
     'uniform float u_pixelRatio;',
     'uniform vec2 u_drag;',
     'uniform float u_charge;',
+    'uniform int u_dotMode;',
     'uniform int u_rippleCount;',
     'uniform vec4 u_ripples[6];',
     'varying float v_alpha;',
@@ -45,20 +49,46 @@
     '  float dist = length(vec2(along * axisScale, across));',
     '  return 1.0 - smoothstep(0.0, radius, dist);',
     '}',
+    // Dot modes:
+    //   0 reveal  - invisible at rest, exponential bloom under the cursor
+    //   1 glow    - all dots visible; the cursor area brightens and swells
+    //   2 repel   - all dots visible; the cursor craters them outward
+    //   3 attract - all dots visible; dots gather toward the cursor
     'void main() {',
     '  float chargeScale = 1.0 + u_charge * 0.55;',
     '  float cursorRadius = max(80.0, (u_cursorRadius + a_dot.z) * chargeScale);',
     '  vec2 toDot = a_position - u_mouse;',
     '  float strength = fieldStrength(toDot, cursorRadius, u_drag) * u_mousePresence;',
-    '  float visibility = smoothstep(0.0, 0.32, strength);',
     '  float sizeCurve = strength * strength;',
     '  float boost = u_cursorBoost * (1.0 + u_charge * 0.6);',
-    '  float radius = a_dot.x * (0.2 + sizeCurve * boost);',
-    '  float alpha = a_dot.y * visibility * 2.6;',
+    '  float radius;',
+    '  float alpha;',
+    '  float pushAmt = 0.0;',
+    '  if (u_dotMode == 0) {',
+    '    float visibility = smoothstep(0.0, 0.32, strength);',
+    '    radius = a_dot.x * (0.2 + sizeCurve * boost);',
+    '    alpha = a_dot.y * visibility * 2.6;',
+    '    pushAmt = sizeCurve * (10.0 + u_charge * 10.0);',
+    '  } else if (u_dotMode == 1) {',
+    '    radius = a_dot.x * (1.1 + sizeCurve * boost * 0.55);',
+    '    alpha = a_dot.y * (0.85 + strength * 2.2);',
+    '    pushAmt = sizeCurve * 6.0;',
+    '  } else if (u_dotMode == 2) {',
+    '    radius = a_dot.x * (1.15 + sizeCurve * boost * 0.25);',
+    '    alpha = a_dot.y * (0.9 + strength * 1.2);',
+    '    pushAmt = strength * (26.0 + u_charge * 22.0);',
+    '  } else {',
+    '    radius = a_dot.x * (1.1 + sizeCurve * boost * 0.35);',
+    '    alpha = a_dot.y * (0.9 + strength * 1.6);',
+    '    pushAmt = -strength * (18.0 + u_charge * 16.0);',
+    '  }',
     '  vec2 pos = a_position;',
     '  float dist = length(toDot);',
     '  if (strength > 0.001 && dist > 0.001) {',
-    '    pos += (toDot / dist) * sizeCurve * (10.0 + u_charge * 10.0);',
+    '    if (u_dotMode == 3) {',
+    '      pushAmt = -min(-pushAmt, max(dist - 6.0, 0.0));',
+    '    }',
+    '    pos += (toDot / dist) * pushAmt;',
     '  }',
     '  for (int i = 0; i < 6; i++) {',
     '    if (i >= u_rippleCount) break;',
@@ -396,6 +426,7 @@
       pixelRatio: gl.getUniformLocation(this.program, 'u_pixelRatio'),
       drag: gl.getUniformLocation(this.program, 'u_drag'),
       charge: gl.getUniformLocation(this.program, 'u_charge'),
+      dotMode: gl.getUniformLocation(this.program, 'u_dotMode'),
       rippleCount: gl.getUniformLocation(this.program, 'u_rippleCount'),
       ripples: gl.getUniformLocation(this.program, 'u_ripples[0]'),
       color: gl.getUniformLocation(this.program, 'u_color')
@@ -730,6 +761,7 @@
     gl.uniform1f(this.locations.mousePresence, clamp(this.mousePresence, 0, 1));
     gl.uniform2f(this.locations.drag, drag.x, drag.y);
     gl.uniform1f(this.locations.charge, clamp(this.charge, 0, 1));
+    gl.uniform1i(this.locations.dotMode, globalDotMode);
     gl.uniform1i(this.locations.rippleCount, rippleCount);
     gl.uniform4fv(this.locations.ripples, this.rippleUniforms);
     gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
@@ -785,6 +817,12 @@
   }
 
   window.initPressureDots = initDotField;
+  window.setPressureDotsMode = function (name) {
+    if (!DOT_MODES.hasOwnProperty(name)) return false;
+    globalDotMode = DOT_MODES[name];
+    requestRenderAll();
+    return true;
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {

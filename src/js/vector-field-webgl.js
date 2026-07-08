@@ -6,6 +6,8 @@
   'use strict';
 
   var ACTIVE_RENDERER = null;
+  var FIELD_MODES = { attract: 0, vortex: 1, repel: 2, scatter: 3 };
+  var vectorFieldMode = FIELD_MODES.attract;
   var INSTANCE_ID = 0;
 
   var MAX_RIPPLES = 8;
@@ -158,6 +160,7 @@
     'uniform float uAwaken;',
     'uniform vec2 uMouse;',
     'uniform float uMouseActive;',
+    'uniform int uFieldMode;',
     'uniform vec3 uScroll;',
     'uniform vec2 uLine;',
     'uniform vec2 uCenter;',
@@ -318,7 +321,13 @@
     '        } else {',
     '          drawOpacity = max(drawOpacity, aStyle.y * lc.x + mouseEffect * 0.3 * uOpacityScale);',
     '        }',
-    '        targetAngle += angleDelta(targetAngle, atan(toMouse.y, toMouse.x)) * angleInfluence * 0.52;',
+    // Field modes: 0 attract (point at cursor), 1 vortex (orbit it),
+    // 2 repel (point away), 3 scatter (chaotic static near the cursor)
+    '        float mouseAngle = atan(toMouse.y, toMouse.x);',
+    '        if (uFieldMode == 1) { mouseAngle += 1.5707963; }',
+    '        else if (uFieldMode == 2) { mouseAngle += 3.14159265; }',
+    '        else if (uFieldMode == 3) { mouseAngle = aSeed.x * 6.2831853 + uTime * (1.2 + aSeed.y * 2.4); }',
+    '        targetAngle += angleDelta(targetAngle, mouseAngle) * angleInfluence * 0.52;',
     '        drawLen = max(drawLen, uLine.x * lc.w + mouseEffect * 8.0 * (1.0 - uEasterExtra.y * particleNearEE));',
     '      }',
     '    }',
@@ -684,7 +693,7 @@
         assemble2: gl.getAttribLocation(this.vectorProgram, 'aAssemble2')
       },
       uniforms: this.mapUniforms(this.vectorProgram, [
-        'uResolution', 'uTime', 'uAwaken', 'uMouse', 'uMouseActive', 'uScroll', 'uLine',
+        'uResolution', 'uTime', 'uAwaken', 'uMouse', 'uMouseActive', 'uFieldMode', 'uScroll', 'uLine',
         'uCenter', 'uOpacityScale', 'uIsLanding', 'uBlackHoleRadius', 'uMaxGravityDistance',
         'uGravityStrength', 'uEaster', 'uEasterExtra', 'uReveal', 'uAssemble',
         'uRippleCount', 'uRipples[0]', 'uWakeCount', 'uWake[0]',
@@ -1542,6 +1551,7 @@
     gl.uniform1f(u.uAwaken, awakenEased);
     gl.uniform2f(u.uMouse, pageMouseX, pageMouseY);
     gl.uniform1f(u.uMouseActive, mousePresence);
+    gl.uniform1i(u.uFieldMode, vectorFieldMode);
     var scrollVectorShift = (this.isMobile || this.touchCapable) ? 0 : scrollKick;
     gl.uniform3f(u.uScroll, scrollVectorShift, scrollDirection, scrollVectorShift > 0 ? scrollTilt : 0);
     gl.uniform2f(u.uLine, this.lineLen, this.lineWidth);
@@ -1699,6 +1709,13 @@
       }
     };
   }
+
+  window.setVectorFieldMode = function (name) {
+    if (!FIELD_MODES.hasOwnProperty(name)) return false;
+    vectorFieldMode = FIELD_MODES[name];
+    window.__vectorFieldMode = vectorFieldMode;
+    return true;
+  };
 
   window.initVectorFieldWebGL = function () {
     var canvas = document.getElementById('vector-field');

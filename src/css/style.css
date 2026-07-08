@@ -6392,16 +6392,12 @@ body:has(.contact-page) {
 }
 
 .field-lab__modes {
-  display: flex;
+  display: none;
   gap: 0.4rem;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
 }
 
 .field-lab__modes.is-visible {
-  opacity: 1;
-  pointer-events: auto;
+  display: flex;
 }
 
 .field-lab__mode {

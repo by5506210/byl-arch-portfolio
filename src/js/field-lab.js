@@ -1,6 +1,7 @@
 // ============================================
 // APHELION FIELD LAB - switches between the
 // vector / fabric / pressure-dot field systems
+// and each system's A-D behavior modes
 // ============================================
 
 (function () {
@@ -31,8 +32,9 @@
       chip.classList.toggle('is-active', chip.getAttribute('data-lab-field') === name);
     });
 
-    var modes = document.querySelector('.field-lab__modes');
-    if (modes) modes.classList.toggle('is-visible', name === 'fabric');
+    document.querySelectorAll('.field-lab__modes').forEach(function (row) {
+      row.classList.toggle('is-visible', row.getAttribute('data-modes-for') === name);
+    });
 
     // The pressure field self-initializes on page load; this is a safety
     // net in case its canvas arrived after that (e.g. SPA container swap).
@@ -44,6 +46,14 @@
     }
   }
 
+  function activateModeChip(chip) {
+    var row = chip.closest('.field-lab__modes');
+    if (!row) return;
+    row.querySelectorAll('.field-lab__mode').forEach(function (sibling) {
+      sibling.classList.toggle('is-active', sibling === chip);
+    });
+  }
+
   document.addEventListener('click', function (event) {
     var fieldChip = event.target.closest('[data-lab-field]');
     if (fieldChip) {
@@ -51,12 +61,27 @@
       return;
     }
 
-    var modeChip = event.target.closest('[data-lab-mode]');
-    if (modeChip && typeof window.setDotFieldWarpMode === 'function') {
-      window.setDotFieldWarpMode(modeChip.getAttribute('data-lab-mode'));
-      document.querySelectorAll('[data-lab-mode]').forEach(function (chip) {
-        chip.classList.toggle('is-active', chip === modeChip);
-      });
+    var fabricChip = event.target.closest('[data-fabric-mode]');
+    if (fabricChip && typeof window.setDotFieldWarpMode === 'function') {
+      if (window.setDotFieldWarpMode(fabricChip.getAttribute('data-fabric-mode'))) {
+        activateModeChip(fabricChip);
+      }
+      return;
+    }
+
+    var dotsChip = event.target.closest('[data-dots-mode]');
+    if (dotsChip && typeof window.setPressureDotsMode === 'function') {
+      if (window.setPressureDotsMode(dotsChip.getAttribute('data-dots-mode'))) {
+        activateModeChip(dotsChip);
+      }
+      return;
+    }
+
+    var vectorChip = event.target.closest('[data-vector-mode]');
+    if (vectorChip && typeof window.setVectorFieldMode === 'function') {
+      if (window.setVectorFieldMode(vectorChip.getAttribute('data-vector-mode'))) {
+        activateModeChip(vectorChip);
+      }
     }
   });
 
