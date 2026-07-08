@@ -113,7 +113,10 @@ function initVectorFieldCanvas() {
   var darkLineColor = '26, 26, 26';
   var lineColor = isDarkLines ? darkLineColor : lightLineColor;
 
-  var opacityScale = isContentPage ? (isContactPage ? 0.52 : 0.18) : 1.0;
+  var isLabPage = isContentPage && !!document.querySelector('.field-lab-page');
+  var opacityScale = isContentPage
+    ? (isLabPage ? 1.0 : (isContactPage ? 0.52 : 0.18))
+    : 1.0;
 
   var isMobile = window.innerWidth < 768;
 

@@ -47,6 +47,14 @@
       mouseY = -1000;
     });
 
+    // On the Aphelion Field lab, clicks pulse the field.
+    document.addEventListener('pointerdown', function (e) {
+      if (ACTIVE_RENDERER && ACTIVE_RENDERER.isLabPage &&
+          typeof ACTIVE_RENDERER.spawnRipple === 'function') {
+        ACTIVE_RENDERER.spawnRipple(e.clientX, e.clientY);
+      }
+    }, { passive: true });
+
     document.addEventListener('touchstart', function (e) {
       if (!e.touches || !e.touches.length) return;
       mouseX = e.touches[0].clientX;
@@ -502,6 +510,7 @@
     this.isLandingPage = !!document.getElementById('landing');
     this.isContentPage = !this.isLandingPage;
     this.isContactPage = this.isContentPage && !!document.querySelector('.contact-page');
+    this.isLabPage = this.isContentPage && !!document.querySelector('.field-lab-page');
     this.portal = this.isLandingPage ? document.getElementById('landing-portal') : null;
     this.easterEgg = this.isLandingPage ? document.getElementById('easter-egg-portal') : null;
     this.contactPulseAnchor = this.isContactPage ? document.querySelector('.contact-page__card') : null;
@@ -537,7 +546,9 @@
 
     this.isDarkLines = canvas.getAttribute('data-color') === 'dark';
     this.lineColor = this.isDarkLines ? DARK_LINE : LIGHT_LINE;
-    this.opacityScale = this.isContentPage ? (this.isContactPage ? 0.52 : 0.18) : 1.0;
+    this.opacityScale = this.isContentPage
+      ? (this.isLabPage ? 1.0 : (this.isContactPage ? 0.52 : 0.18))
+      : 1.0;
 
     this.time = 0;
     this.lastFrameTime = 0;
@@ -828,7 +839,7 @@
 
     this.spacing = baseSpacing;
     if (!this.isMobile) {
-      var particleBudget = this.isLandingPage ? 4200 : (this.isContactPage ? 3600 : 3000);
+      var particleBudget = this.isLandingPage || this.isLabPage ? 4200 : (this.isContactPage ? 3600 : 3000);
       var budgetSpacing = Math.sqrt((this.fieldWidth * this.fieldHeight) / particleBudget);
       if (budgetSpacing > this.spacing) this.spacing = budgetSpacing;
     }

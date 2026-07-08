@@ -1,5 +1,13 @@
 // ============================================
-// WEBGL DOT FIELD - cursor-proximity background
+// PRESSURE DOTS - cursor-proximity dot field
+// for the Aphelion Field lab.
+//
+// Interactions:
+//   move          dots bloom under the cursor, biggest at the center
+//   move fast     the bloom stretches into a comet along the motion
+//   click         a pulse ring rolls outward through the dots
+//   press + hold  the field charges (grows); release fires a pulse
+//                 whose power matches the charge
 // ============================================
 
 (function () {
@@ -10,14 +18,6 @@
   var pointerX = -1000;
   var pointerY = -1000;
   var pointerClearTimer = null;
-  var pointerInputBlockedUntil = 0;
-  var revealState = {
-    active: false,
-    x: window.innerWidth * 0.5,
-    y: window.innerHeight * 0.5,
-    radius: 0,
-    progress: 0
-  };
 
   var VERTEX_SHADER = [
     'attribute vec2 a_position;',
@@ -28,43 +28,57 @@
     'uniform float u_cursorRadius;',
     'uniform float u_cursorBoost;',
     'uniform float u_pixelRatio;',
-    'uniform vec2 u_revealCenter;',
-    'uniform vec4 u_reveal;',
+    'uniform vec2 u_drag;',
+    'uniform float u_charge;',
+    'uniform int u_rippleCount;',
+    'uniform vec4 u_ripples[6];',
     'varying float v_alpha;',
+    // Anisotropic falloff: the bloom stretches along the drag vector,
+    // strongly behind the motion (a trailing wake), slightly ahead.
+    'float fieldStrength(vec2 toDot, float radius, vec2 drag) {',
+    '  float dragMag = length(drag);',
+    '  vec2 dragDir = dragMag > 0.001 ? drag / dragMag : vec2(1.0, 0.0);',
+    '  float along = dot(toDot, dragDir);',
+    '  float across = dot(toDot, vec2(-dragDir.y, dragDir.x));',
+    '  float stretch = along < 0.0 ? 1.8 : 0.5;',
+    '  float axisScale = 1.0 / (1.0 + dragMag * stretch);',
+    '  float dist = length(vec2(along * axisScale, across));',
+    '  return 1.0 - smoothstep(0.0, radius, dist);',
+    '}',
     'void main() {',
-    '  float cursorRadius = max(80.0, u_cursorRadius + a_dot.z);',
-    '  float distToMouse = distance(a_position, u_mouse);',
-    '  float strength = (1.0 - smoothstep(0.0, cursorRadius, distToMouse)) * u_mousePresence;',
+    '  float chargeScale = 1.0 + u_charge * 0.55;',
+    '  float cursorRadius = max(80.0, (u_cursorRadius + a_dot.z) * chargeScale);',
+    '  vec2 toDot = a_position - u_mouse;',
+    '  float strength = fieldStrength(toDot, cursorRadius, u_drag) * u_mousePresence;',
     '  float visibility = smoothstep(0.0, 0.32, strength);',
     '  float sizeCurve = strength * strength;',
-    '  float radius = a_dot.x * (0.2 + sizeCurve * u_cursorBoost);',
+    '  float boost = u_cursorBoost * (1.0 + u_charge * 0.6);',
+    '  float radius = a_dot.x * (0.2 + sizeCurve * boost);',
     '  float alpha = a_dot.y * visibility * 2.6;',
-    '  vec2 animatedPosition = a_position;',
-    '  if (u_reveal.x > 0.5) {',
-    '    vec2 revealDelta = a_position - u_revealCenter;',
-    '    float revealDist = length(revealDelta);',
-    '    vec2 revealDir = revealDist > 0.001 ? revealDelta / revealDist : vec2(0.0, -1.0);',
-    '    float revealProgress = clamp(u_reveal.z, 0.0, 1.0);',
-    '    float damp = clamp(u_reveal.w, 0.0, 1.0);',
-    '    float motionScale = mix(1.0, 0.33, damp);',
-    '    float alphaScale = mix(1.0, 0.43, damp);',
-    '    float bandWidth = mix(92.0, 146.0, revealProgress) * mix(1.0, 0.67, damp);',
-    '    float edge = 1.0 - smoothstep(0.0, bandWidth, abs(revealDist - u_reveal.y));',
-    '    float insideWake = smoothstep(0.0, 1.0, u_reveal.y - revealDist);',
-    '    float behind = max(0.0, u_reveal.y - revealDist);',
-    '    float wakeFalloff = (1.0 - smoothstep(18.0, 260.0, behind)) * insideWake;',
-    '    float seed = fract(sin(dot(a_position + a_dot.zz, vec2(0.017, 0.031))) * 43758.5453);',
-    '    float ripple = 0.5 + 0.5 * sin(behind * 0.085 - revealProgress * 24.0 + seed * 6.28318);',
-    '    float rippleStrength = wakeFalloff * (0.35 + ripple * 0.65);',
-    '    animatedPosition += revealDir * (edge * (8.0 + ripple * 6.5) + rippleStrength * 4.5) * motionScale;',
-    '    radius *= 1.0 + (edge * 8.4 + rippleStrength * 4.0) * motionScale;',
-    '    alpha = max(alpha, a_dot.y * (edge * 2.8 + rippleStrength * 1.65) * alphaScale + (edge * 0.2 + rippleStrength * 0.09) * alphaScale);',
+    '  vec2 pos = a_position;',
+    '  float dist = length(toDot);',
+    '  if (strength > 0.001 && dist > 0.001) {',
+    '    pos += (toDot / dist) * sizeCurve * (10.0 + u_charge * 10.0);',
     '  }',
-    '  vec2 zeroToOne = animatedPosition / u_resolution;',
+    '  for (int i = 0; i < 6; i++) {',
+    '    if (i >= u_rippleCount) break;',
+    '    vec4 rp = u_ripples[i];',
+    '    vec2 rippleDelta = pos - rp.xy;',
+    '    float rippleDist = length(rippleDelta);',
+    '    float band = max(0.0, 1.0 - abs(rippleDist - rp.z) / 130.0);',
+    '    if (band > 0.001) {',
+    '      float amp = band * rp.w;',
+    '      radius += a_dot.x * amp * 6.5;',
+    '      alpha += amp * (0.22 + a_dot.y * 1.4);',
+    '      vec2 rippleDir = rippleDist > 0.001 ? rippleDelta / rippleDist : vec2(0.0, -1.0);',
+    '      pos += rippleDir * amp * 11.0;',
+    '    }',
+    '  }',
+    '  vec2 zeroToOne = pos / u_resolution;',
     '  vec2 clipSpace = zeroToOne * 2.0 - 1.0;',
     '  gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);',
     '  gl_PointSize = max(1.0, radius * 2.0 * u_pixelRatio);',
-    '  v_alpha = min(alpha, u_reveal.x > 0.5 ? mix(0.82, 0.59, clamp(u_reveal.w, 0.0, 1.0)) : 0.58);',
+    '  v_alpha = min(alpha, 0.72);',
     '}'
   ].join('\n');
 
@@ -101,7 +115,7 @@
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
       var error = gl.getShaderInfoLog(shader);
       gl.deleteShader(shader);
-      throw new Error(error || 'Could not compile dot field shader');
+      throw new Error(error || 'Could not compile pressure dots shader');
     }
 
     return shader;
@@ -121,7 +135,7 @@
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       var error = gl.getProgramInfoLog(program);
       gl.deleteProgram(program);
-      throw new Error(error || 'Could not link dot field shader program');
+      throw new Error(error || 'Could not link pressure dots shader program');
     }
 
     return program;
@@ -149,46 +163,11 @@
     }
   }
 
-  function resetPointerState() {
-    if (pointerClearTimer) {
-      clearTimeout(pointerClearTimer);
-      pointerClearTimer = null;
-    }
-
-    pointerX = -1000;
-    pointerY = -1000;
-
-    for (var i = 0; i < instances.length; i++) {
-      if (typeof instances[i].resetMouseState === 'function') {
-        instances[i].resetMouseState();
-      }
-    }
-  }
-
-  function setDotFieldTransition(config) {
-    var wasActive = revealState.active;
-    revealState.active = !!(config && config.active);
-    revealState.x = config && typeof config.x === 'number' ? config.x : window.innerWidth * 0.5;
-    revealState.y = config && typeof config.y === 'number' ? config.y : window.innerHeight * 0.5;
-    revealState.radius = config && typeof config.radius === 'number' ? Math.max(0, config.radius) : 0;
-    revealState.progress = config && typeof config.progress === 'number' ? clamp(config.progress, 0, 1) : 0;
-    if (revealState.active || wasActive) {
-      pointerInputBlockedUntil = Date.now() + 220;
-      resetPointerState();
-    }
-    requestRenderAll();
-  }
-
   function attachListeners() {
     if (listenersAttached) return;
     listenersAttached = true;
 
     function setPointerPosition(clientX, clientY) {
-      if (revealState.active || Date.now() < pointerInputBlockedUntil) {
-        resetPointerState();
-        return;
-      }
-
       if (pointerClearTimer) {
         clearTimeout(pointerClearTimer);
         pointerClearTimer = null;
@@ -208,8 +187,21 @@
       }, delay || 0);
     }
 
+    function beginHold(clientX, clientY) {
+      for (var i = 0; i < instances.length; i++) {
+        instances[i].beginHold(clientX, clientY);
+      }
+    }
+
+    function releaseHold(clientX, clientY) {
+      for (var i = 0; i < instances.length; i++) {
+        instances[i].releaseHold(clientX, clientY);
+      }
+    }
+
     document.addEventListener('pointerdown', function (event) {
       setPointerPosition(event.clientX, event.clientY);
+      beginHold(event.clientX, event.clientY);
     }, { passive: true });
 
     document.addEventListener('pointermove', function (event) {
@@ -217,10 +209,12 @@
     }, { passive: true });
 
     document.addEventListener('pointerup', function (event) {
+      releaseHold(event.clientX, event.clientY);
       if (event.pointerType === 'touch' || event.pointerType === 'pen') clearPointer(140);
     }, { passive: true });
 
     document.addEventListener('pointercancel', function () {
+      releaseHold(pointerX, pointerY);
       clearPointer(80);
     }, { passive: true });
 
@@ -272,9 +266,7 @@
 
     this.surface = canvas.getAttribute('data-field-surface') || 'page';
     this.isHomeField = this.surface.indexOf('home') === 0;
-    this.isDividerField = this.surface === 'home-divider';
     this.isContactPage = this.surface === 'contact';
-    this.isAboutPage = this.surface === 'about';
     this.reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     this.fieldWidth = 0;
@@ -285,14 +277,21 @@
     this.lastFieldWidth = 0;
     this.lastFieldHeight = 0;
     this.lastSpacing = 0;
-    this.spacing = 32;
-    this.baseRadius = 0.8;
-    this.baseAlpha = 0.12;
-    this.cursorRadius = 185;
-    this.cursorBoost = 2.4;
+    this.spacing = 27;
+    this.baseRadius = 0.72;
+    this.baseAlpha = 0.24;
+    this.cursorRadius = 190;
+    this.cursorBoost = 8.5;
     this.mousePresence = 0;
     this.smoothedMouseX = -1000;
     this.smoothedMouseY = -1000;
+    this.velX = 0;
+    this.velY = 0;
+    this.charge = 0;
+    this.holding = false;
+    this.holdStart = 0;
+    this.ripples = [];
+    this.rippleUniforms = new Float32Array(24);
     this.lastFrameTime = 0;
     this.resizeFrame = null;
     this.raf = null;
@@ -306,28 +305,6 @@
 
   DotField.prototype.resolveMetrics = function () {
     var isMobile = window.innerWidth < 768;
-
-    if (this.isHomeField) {
-      return {
-        spacing: isMobile ? 18 : 26,
-        radius: isMobile ? 0.48 : 0.62,
-        alpha: this.isDividerField ? 0.26 : 0.21,
-        cursorRadius: isMobile ? 140 : 185,
-        cursorBoost: 8.4,
-        budget: 3600
-      };
-    }
-
-    if (this.isContactPage) {
-      return {
-        spacing: isMobile ? 17 : 26,
-        radius: isMobile ? 0.58 : 0.78,
-        alpha: 0.27,
-        cursorRadius: isMobile ? 145 : 195,
-        cursorBoost: 8.6,
-        budget: 3600
-      };
-    }
 
     return {
       spacing: isMobile ? 18 : 27,
@@ -344,12 +321,8 @@
 
     var parent = this.canvas.parentElement;
     var parentHeight = parent ? Math.max(parent.scrollHeight, parent.offsetHeight) : 0;
-    var bodyHeight = Math.max(
-      document.body ? document.body.scrollHeight : 0,
-      document.documentElement ? document.documentElement.scrollHeight : 0
-    );
 
-    return Math.max(window.innerHeight, parentHeight, bodyHeight);
+    return Math.max(window.innerHeight, parentHeight);
   };
 
   DotField.prototype.applyMetrics = function () {
@@ -421,8 +394,10 @@
       cursorRadius: gl.getUniformLocation(this.program, 'u_cursorRadius'),
       cursorBoost: gl.getUniformLocation(this.program, 'u_cursorBoost'),
       pixelRatio: gl.getUniformLocation(this.program, 'u_pixelRatio'),
-      revealCenter: gl.getUniformLocation(this.program, 'u_revealCenter'),
-      reveal: gl.getUniformLocation(this.program, 'u_reveal'),
+      drag: gl.getUniformLocation(this.program, 'u_drag'),
+      charge: gl.getUniformLocation(this.program, 'u_charge'),
+      rippleCount: gl.getUniformLocation(this.program, 'u_rippleCount'),
+      ripples: gl.getUniformLocation(this.program, 'u_ripples[0]'),
       color: gl.getUniformLocation(this.program, 'u_color')
     };
   };
@@ -584,6 +559,61 @@
     gl.bufferData(gl.ARRAY_BUFFER, this.dotData, gl.STATIC_DRAW);
   };
 
+  // --- Interaction: pulses and press-and-hold charge ---
+
+  DotField.prototype.toFieldY = function (clientY) {
+    if (!this.isHomeField && clientY > 0) {
+      return clientY + (window.scrollY || window.pageYOffset || 0);
+    }
+    return clientY;
+  };
+
+  DotField.prototype.addPulse = function (clientX, clientY, power) {
+    if (this.reducedMotion) return;
+    this.ripples.push({
+      x: clientX,
+      y: this.toFieldY(clientY),
+      power: clamp(power || 0.7, 0.3, 1.8),
+      start: performance.now()
+    });
+    if (this.ripples.length > 6) this.ripples.shift();
+    this.requestRender();
+  };
+
+  DotField.prototype.beginHold = function (clientX, clientY) {
+    if (this.reducedMotion) return;
+    this.holding = true;
+    this.holdStart = performance.now();
+    this.requestRender();
+  };
+
+  DotField.prototype.releaseHold = function (clientX, clientY) {
+    if (!this.holding) return;
+    this.holding = false;
+    var heldMs = performance.now() - this.holdStart;
+    var chargeAtRelease = clamp(heldMs / 900, 0, 1);
+    this.addPulse(clientX, clientY, 0.65 + chargeAtRelease * 0.95);
+  };
+
+  // Prune expired pulses and pack live ones into the uniform array.
+  DotField.prototype.updateRipples = function (now) {
+    var RIPPLE_LIFE = 1.2;
+    var live = 0;
+    for (var i = 0; i < this.ripples.length; i++) {
+      var age = (now - this.ripples[i].start) / 1000;
+      if (age >= RIPPLE_LIFE) continue;
+      this.ripples[live] = this.ripples[i];
+      var fade = 1 - age / RIPPLE_LIFE;
+      this.rippleUniforms[live * 4] = this.ripples[i].x;
+      this.rippleUniforms[live * 4 + 1] = this.ripples[i].y;
+      this.rippleUniforms[live * 4 + 2] = 42 + age * 540 * (0.75 + this.ripples[i].power * 0.35);
+      this.rippleUniforms[live * 4 + 3] = Math.pow(fade, 1.5) * this.ripples[i].power;
+      live++;
+    }
+    this.ripples.length = live;
+    return live;
+  };
+
   DotField.prototype.resolveMouse = function () {
     var mouseX = pointerX;
     var mouseY = pointerY;
@@ -597,6 +627,8 @@
     this.mousePresence = 0;
     this.smoothedMouseX = -1000;
     this.smoothedMouseY = -1000;
+    this.velX = 0;
+    this.velY = 0;
     this.lastFrameTime = 0;
     this.requestRender();
   };
@@ -609,6 +641,9 @@
     var priorPresence = this.mousePresence;
     var priorX = this.smoothedMouseX;
     var priorY = this.smoothedMouseY;
+    var priorVelX = this.velX;
+    var priorVelY = this.velY;
+    var priorCharge = this.charge;
 
     this.mousePresence += (targetPresence - this.mousePresence) * presenceEase;
 
@@ -626,9 +661,45 @@
       this.smoothedMouseY = -1000;
     }
 
+    // Smoothed cursor velocity drives the comet stretch of the bloom.
+    if (mouseActive && priorX > -500 && priorY > -500) {
+      var instVx = (this.smoothedMouseX - priorX) / dt;
+      var instVy = (this.smoothedMouseY - priorY) / dt;
+      var velEase = 1 - Math.exp(-dt * 7);
+      this.velX += (instVx - this.velX) * velEase;
+      this.velY += (instVy - this.velY) * velEase;
+    } else {
+      var velDecay = Math.exp(-dt * 6);
+      this.velX *= velDecay;
+      this.velY *= velDecay;
+      if (Math.abs(this.velX) < 1) this.velX = 0;
+      if (Math.abs(this.velY) < 1) this.velY = 0;
+    }
+
+    // Press-and-hold charge: ramps up over ~0.9s, releases quickly.
+    var chargeTarget = this.holding
+      ? clamp((performance.now() - this.holdStart) / 900, 0, 1)
+      : 0;
+    var chargeEase = 1 - Math.exp(-dt * (this.holding ? 6 : 9));
+    this.charge += (chargeTarget - this.charge) * chargeEase;
+    if (!this.holding && this.charge < 0.005) this.charge = 0;
+
     return Math.abs(priorPresence - this.mousePresence) > 0.001 ||
       Math.abs(priorX - this.smoothedMouseX) > 0.05 ||
-      Math.abs(priorY - this.smoothedMouseY) > 0.05;
+      Math.abs(priorY - this.smoothedMouseY) > 0.05 ||
+      Math.abs(priorVelX - this.velX) > 0.5 ||
+      Math.abs(priorVelY - this.velY) > 0.5 ||
+      Math.abs(priorCharge - this.charge) > 0.001 ||
+      this.holding;
+  };
+
+  // Convert smoothed velocity into the drag uniform: direction of motion,
+  // length (0..1) is the stretch amount.
+  DotField.prototype.resolveDrag = function () {
+    var speed = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
+    if (speed < 40) return { x: 0, y: 0 };
+    var mag = Math.min(1, speed / 1500);
+    return { x: (this.velX / speed) * mag, y: (this.velY / speed) * mag };
   };
 
   DotField.prototype.draw = function () {
@@ -648,23 +719,19 @@
     gl.enableVertexAttribArray(this.locations.dot);
     gl.vertexAttribPointer(this.locations.dot, 3, gl.FLOAT, false, 0, 0);
 
+    var drag = this.resolveDrag();
+    var rippleCount = this.updateRipples(performance.now());
+
     gl.uniform2f(this.locations.resolution, this.fieldWidth, this.fieldHeight);
     gl.uniform2f(this.locations.mouse, this.smoothedMouseX, this.smoothedMouseY);
     gl.uniform1f(this.locations.cursorRadius, this.cursorRadius);
     gl.uniform1f(this.locations.cursorBoost, this.cursorBoost);
     gl.uniform1f(this.locations.pixelRatio, this.backingScale);
-    var revealActive = this.isHomeField && revealState.active;
-    var revealInteractionPresence = revealActive ? 0 : 1;
-    gl.uniform1f(this.locations.mousePresence, clamp(this.mousePresence * revealInteractionPresence, 0, 1));
-    var revealDamp = this.reducedMotion ? 1 : (window.innerWidth < 768 ? 0.81 : 0);
-    gl.uniform2f(this.locations.revealCenter, revealState.x, revealState.y);
-    gl.uniform4f(
-      this.locations.reveal,
-      revealActive ? 1 : 0,
-      revealActive ? revealState.radius : 0,
-      revealActive ? revealState.progress : 0,
-      revealDamp
-    );
+    gl.uniform1f(this.locations.mousePresence, clamp(this.mousePresence, 0, 1));
+    gl.uniform2f(this.locations.drag, drag.x, drag.y);
+    gl.uniform1f(this.locations.charge, clamp(this.charge, 0, 1));
+    gl.uniform1i(this.locations.rippleCount, rippleCount);
+    gl.uniform4fv(this.locations.ripples, this.rippleUniforms);
     gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.POINTS, 0, this.pointCount);
   };
@@ -695,7 +762,7 @@
     if (dt > 0.1) dt = 0.05;
     if (dt <= 0) dt = 1 / 60;
 
-    var changed = this.updateMouse(dt);
+    var changed = this.updateMouse(dt) || this.ripples.length > 0;
     this.draw();
 
     if (changed) {
