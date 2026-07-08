@@ -796,7 +796,9 @@ function initProjectsAtlas() {
 
     function continueNavigation() {
       try {
-        if (window.barba && typeof window.barba.go === 'function') {
+        // aphelion-field hard-loads so its field scripts always run
+        if (href && href.indexOf('aphelion-field') === -1 &&
+            window.barba && typeof window.barba.go === 'function') {
           window.barba.go(href);
           return;
         }
@@ -880,7 +882,9 @@ function initProjectsAtlas() {
 
     function continueNavigation() {
       try {
-        if (window.barba && typeof window.barba.go === 'function') {
+        // aphelion-field hard-loads so its field scripts always run
+        if (href && href.indexOf('aphelion-field') === -1 &&
+            window.barba && typeof window.barba.go === 'function') {
           window.barba.go(href);
           return;
         }

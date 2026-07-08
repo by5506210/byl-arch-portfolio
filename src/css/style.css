@@ -6283,3 +6283,170 @@ body:has(.contact-page) {
     --portal-size: 18px;
   }
 }
+
+/* ============================================ */
+/* APHELION FIELD - interactive field lab       */
+/* ============================================ */
+.field-lab-page {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--concrete);
+}
+
+.field-lab-page .vector-field-bg {
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.field-lab-page .vector-field-bg.is-active {
+  opacity: 0.85;
+}
+
+.field-lab__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.field-lab__canvas.is-active {
+  opacity: 1;
+}
+
+.field-lab__home {
+  position: absolute;
+  top: 1.7rem;
+  left: 2rem;
+  z-index: 5;
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.field-lab__caption {
+  position: absolute;
+  left: 2rem;
+  bottom: 2rem;
+  z-index: 5;
+  max-width: 340px;
+}
+
+.field-lab__title {
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.field-lab__desc {
+  font-size: 0.72rem;
+  line-height: 1.65;
+  color: rgba(22, 20, 18, 0.62);
+}
+
+.field-lab__hud {
+  position: absolute;
+  left: 50%;
+  bottom: 2.1rem;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  z-index: 5;
+}
+
+.field-lab__chips {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.field-lab__chip {
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(22, 20, 18, 0.28);
+  border-radius: 999px;
+  background: rgba(244, 242, 236, 0.72);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.field-lab__chip:hover {
+  border-color: rgba(22, 20, 18, 0.6);
+}
+
+.field-lab__chip.is-active {
+  background: var(--text-primary);
+  color: var(--concrete);
+  border-color: var(--text-primary);
+}
+
+.field-lab__modes {
+  display: flex;
+  gap: 0.4rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.field-lab__modes.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.field-lab__mode {
+  font-family: var(--font-primary);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(22, 20, 18, 0.24);
+  border-radius: 999px;
+  background: rgba(244, 242, 236, 0.72);
+  color: rgba(22, 20, 18, 0.72);
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.field-lab__mode:hover {
+  border-color: rgba(22, 20, 18, 0.55);
+}
+
+.field-lab__mode.is-active {
+  background: var(--text-primary);
+  color: var(--concrete);
+  border-color: var(--text-primary);
+}
+
+@media (max-width: 767px) {
+  .field-lab__caption {
+    left: 1.2rem;
+    bottom: 7.4rem;
+    max-width: 240px;
+  }
+
+  .field-lab__home {
+    left: 1.2rem;
+  }
+
+  .field-lab__hud {
+    width: calc(100vw - 2rem);
+    bottom: 1.4rem;
+  }
+
+  .field-lab__chips,
+  .field-lab__modes {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

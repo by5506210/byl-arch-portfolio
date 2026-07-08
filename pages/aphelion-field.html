@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APHELION FIELD &mdash; Bryan Youn</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://unpkg.com/@barba/core@2.10.3/dist/barba.umd.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../src/css/style.css?v=field-lab-20260708a">
+</head>
+<body>
+  <div class="grain"></div>
+  <div data-barba="wrapper">
+    <main data-barba="container" data-barba-namespace="aphelion-field">
+      <div class="field-lab-page">
+        <canvas id="vector-field" class="vector-field-bg" data-color="dark"></canvas>
+        <canvas class="field-lab__canvas" data-field="dots" data-field-surface="lab"></canvas>
+        <canvas class="field-lab__canvas" data-field="pressure-dots" data-field-surface="lab"></canvas>
+
+        <a class="field-lab__home" href="../index.html">BYL</a>
+
+        <div class="field-lab__caption">
+          <div class="field-lab__title">Aphelion Field</div>
+          <p class="field-lab__desc">
+            Three cursor-driven field systems, live. Move to disturb the field,
+            click to drop a ripple, and switch systems below &mdash; the fabric
+            field carries four warp behaviors.
+          </p>
+        </div>
+
+        <div class="field-lab__hud">
+          <div class="field-lab__modes" role="group" aria-label="Fabric warp modes">
+            <button class="field-lab__mode" data-lab-mode="smooth" type="button">A &middot; smooth</button>
+            <button class="field-lab__mode" data-lab-mode="crease" type="button">B &middot; crease</button>
+            <button class="field-lab__mode" data-lab-mode="axis" type="button">C &middot; axis</button>
+            <button class="field-lab__mode is-active" data-lab-mode="terrace" type="button">D &middot; terrace</button>
+          </div>
+          <div class="field-lab__chips" role="group" aria-label="Field systems">
+            <button class="field-lab__chip" data-lab-field="vector" type="button">Vector</button>
+            <button class="field-lab__chip is-active" data-lab-field="fabric" type="button">Fabric</button>
+            <button class="field-lab__chip" data-lab-field="dots" type="button">Dots</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="../src/js/cursor.js?v=webp-perf-20260705" defer></script>
+  <script src="../src/js/vector-field-webgl.js?v=vf-perf-20260531" defer></script>
+  <script src="../src/js/vector-field.js?v=vf-perf-20260531" defer></script>
+  <script src="../src/js/dot-field.js?v=grid-modes-20260707a" defer></script>
+  <script src="../src/js/pressure-dots.js?v=field-lab-20260708a" defer></script>
+  <script src="../src/js/project-page.js?v=field-lab-20260708a" defer></script>
+  <script src="../src/js/transitions.js?v=field-lab-20260708a" defer></script>
+  <script src="../src/js/moodboard-tree.js?v=moodboard-biggertree-20260601k" defer></script>
+  <script src="../src/js/field-lab.js?v=field-lab-20260708a" defer></script>
+</body>
+</html>

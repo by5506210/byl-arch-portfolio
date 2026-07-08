@@ -370,7 +370,7 @@
         duration: opts.overlayDuration || 0.24,
         ease: 'power1.in',
         onComplete: function () {
-          var shouldHardReload = href.indexOf('index.html') !== -1;
+          var shouldHardReload = href.indexOf('index.html') !== -1 || href.indexOf('aphelion-field') !== -1;
           if (!shouldHardReload && window.barba && typeof window.barba.go === 'function') {
             window.barba.go(href);
             return;
@@ -388,6 +388,7 @@
     prevent: function (data) {
       var href = data.href || '';
       if (href.indexOf('index.html') !== -1) return true;
+      if (href.indexOf('aphelion-field') !== -1) return true;
       return false;
     },
     transitions: [{
