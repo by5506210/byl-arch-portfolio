@@ -115,7 +115,7 @@ function initVectorFieldCanvas() {
 
   var isLabPage = isContentPage && !!document.querySelector('.field-lab-page');
   var opacityScale = isContentPage
-    ? (isLabPage ? 1.0 : (isContactPage ? 0.52 : 0.18))
+    ? (isLabPage ? 1.15 : (isContactPage ? 0.52 : 0.18))
     : 1.0;
 
   var isMobile = window.innerWidth < 768;
@@ -130,6 +130,13 @@ function initVectorFieldCanvas() {
     }
 
     if (isContentPage) {
+      if (isLabPage) {
+        return {
+          spacing: isMobile ? 16 : 24,
+          lineLen: isMobile ? 11 : 16,
+          lineWidth: isMobile ? 1.2 : 1.7
+        };
+      }
       return {
         spacing: isMobile ? 20 : 30,
         lineLen: 9,

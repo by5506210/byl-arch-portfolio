@@ -1305,6 +1305,10 @@ function initProjectsAtlas() {
     if (focusContextNode === nextCenter) return;
     focusContextNode = nextCenter;
 
+    // While the cursor is locked onto a project, the moodboard ribbon
+    // recedes with everything else so only the project holds focus.
+    helix.classList.toggle('projects-helix--node-focus', !!nextCenter);
+
     if (!nextCenter) {
       setFocusMode('off');
       nodes.forEach(function (node) {

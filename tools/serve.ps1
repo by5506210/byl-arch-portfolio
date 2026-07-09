@@ -34,6 +34,9 @@ Write-Host "Serving $root at http://localhost:$Port/  (Ctrl+C to stop)"
 while ($true) {
   $client = $listener.AcceptTcpClient()
   try {
+    # Browsers open speculative connections that never send a request;
+    # without a timeout the single-threaded loop blocks on them forever.
+    $client.ReceiveTimeout = 3000
     $stream = $client.GetStream()
     $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::ASCII)
     $requestLine = $reader.ReadLine()

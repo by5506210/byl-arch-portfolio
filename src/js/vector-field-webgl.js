@@ -556,7 +556,7 @@
     this.isDarkLines = canvas.getAttribute('data-color') === 'dark';
     this.lineColor = this.isDarkLines ? DARK_LINE : LIGHT_LINE;
     this.opacityScale = this.isContentPage
-      ? (this.isLabPage ? 1.0 : (this.isContactPage ? 0.52 : 0.18))
+      ? (this.isLabPage ? 1.15 : (this.isContactPage ? 0.52 : 0.18))
       : 1.0;
 
     this.time = 0;
@@ -826,6 +826,15 @@
     }
 
     if (this.isContentPage) {
+      // The Aphelion Field lab shows the field as the exhibit itself, so it
+      // gets landing-tier dash sizes instead of the faint content styling.
+      if (this.isLabPage) {
+        return {
+          spacing: this.isMobile ? 16 : 24,
+          lineLen: this.isMobile ? 11 : 16,
+          lineWidth: this.isMobile ? 1.2 : 1.7
+        };
+      }
       return {
         spacing: this.isMobile ? 20 : 30,
         lineLen: 9,

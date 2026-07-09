@@ -2494,6 +2494,13 @@ body.is-projects-spiral {
   left: 0;
   z-index: 2;
   pointer-events: none;
+  transition: opacity 0.32s ease;
+}
+
+/* While the cursor is locked onto a project node, the moodboard ribbon
+   recedes so only the project holds focus. */
+.projects-helix--node-focus .projects-helix__webgl {
+  opacity: 0.14;
 }
 
 .projects-helix__webgl canvas {
@@ -2540,8 +2547,8 @@ body.is-projects-spiral {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Upright tag pinned just past the corner of the snapped cursor circle. */
-  transform: translate(15px, 9px);
+  /* Upright tag centered above the snapped cursor so a finger never hides it. */
+  transform: translate(-50%, calc(-100% - 22px));
   transform-origin: left center;
   padding: 0.3rem 0.44rem;
   white-space: nowrap;
@@ -3130,7 +3137,7 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 
 .projects-helix--moodboard-hover .projects-helix__moodboard-strip::before {
   opacity: 1;
-  transform: translate(15px, 9px) scale(1.04);
+  transform: translate(-50%, calc(-100% - 22px)) scale(1.04);
 }
 
 .projects-helix--moodboard-hover .projects-helix__node {
@@ -6301,7 +6308,7 @@ body:has(.contact-page) {
 }
 
 .field-lab-page .vector-field-bg.is-active {
-  opacity: 0.85;
+  opacity: 1;
 }
 
 .field-lab__canvas {
@@ -6332,34 +6339,29 @@ body:has(.contact-page) {
 .field-lab__caption {
   position: absolute;
   left: 2rem;
-  bottom: 2rem;
+  top: 3.6rem;
   z-index: 5;
-  max-width: 340px;
 }
 
 .field-lab__title {
-  font-size: 0.8rem;
-  letter-spacing: 0.2em;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
-}
-
-.field-lab__desc {
-  font-size: 0.72rem;
-  line-height: 1.65;
-  color: rgba(22, 20, 18, 0.62);
+  color: rgba(22, 20, 18, 0.55);
 }
 
 .field-lab__hud {
   position: absolute;
   left: 50%;
-  bottom: 2.1rem;
+  bottom: calc(1.8rem + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.7rem;
   z-index: 5;
+  width: max-content;
+  max-width: calc(100vw - 1.6rem);
 }
 
 .field-lab__chips {
@@ -6427,8 +6429,7 @@ body:has(.contact-page) {
 @media (max-width: 767px) {
   .field-lab__caption {
     left: 1.2rem;
-    bottom: 7.4rem;
-    max-width: 240px;
+    top: 3.4rem;
   }
 
   .field-lab__home {
@@ -6436,13 +6437,24 @@ body:has(.contact-page) {
   }
 
   .field-lab__hud {
-    width: calc(100vw - 2rem);
-    bottom: 1.4rem;
+    width: calc(100vw - 1.6rem);
+    gap: 0.6rem;
   }
 
   .field-lab__chips,
   .field-lab__modes {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  /* Larger touch targets on mobile. */
+  .field-lab__chip {
+    padding: 0.7rem 1.15rem;
+    font-size: 0.74rem;
+  }
+
+  .field-lab__mode {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.68rem;
   }
 }
