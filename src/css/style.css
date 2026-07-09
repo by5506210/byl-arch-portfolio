@@ -6458,3 +6458,27 @@ body:has(.contact-page) {
     font-size: 0.68rem;
   }
 }
+
+/* ============================================ */
+/* Touch selection guard                        */
+/* Touch drags on the interactive, canvas-driven screens must not
+   trigger text selection (the blue full-screen highlight on mobile).
+   Text-heavy project detail / about / contact pages stay selectable. */
+/* ============================================ */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.landing,
+.slideshow,
+.slideshow-nav-bar,
+.projects-index,
+.field-lab-page,
+.drafting-room-page,
+.moodboard-page,
+.blackjack-page {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
