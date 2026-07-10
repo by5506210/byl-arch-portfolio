@@ -3045,11 +3045,11 @@ body.custom-cursor-enabled .projects-helix__node {
     --node-base-scale: 0.8;
     --node-depth-scale: 0.3;
     --node-proximity-scale: 0.38;
-    --thumb-base-scale: 0.82;
+    --thumb-base-scale: 0.76;
     --thumb-raster-scale: 1;
     --thumb-raster-compensation: 1;
     --thumb-depth-scale: 0.11;
-    --thumb-proximity-scale: 0.54;
+    --thumb-proximity-scale: 0.48;
     --thumb-image-proximity-scale: 0.06;
     --thumb-image-raster-size: 100%;
     --thumb-image-raster-compensation: 1;
@@ -3101,12 +3101,12 @@ body.custom-cursor-enabled .projects-helix__node {
     --node-base-scale: 0.78;
     --node-depth-scale: 0.27;
     --node-proximity-scale: 0.34;
-    --thumb-base-scale: 0.76;
+    --thumb-base-scale: 0.68;
     --thumb-responsive-scale: 0.94;
     --thumb-raster-scale: 1;
     --thumb-raster-compensation: 1;
     --thumb-depth-scale: 0.09;
-    --thumb-proximity-scale: 0.48;
+    --thumb-proximity-scale: 0.42;
     --thumb-image-proximity-scale: 0.05;
     --thumb-image-raster-size: 100%;
     --thumb-image-raster-compensation: 1;
