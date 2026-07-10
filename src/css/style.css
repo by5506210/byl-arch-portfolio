@@ -5863,15 +5863,15 @@ body:has(.contact-page) {
   }
 
   .slideshow__slide-img-wrapper {
-    width: min(56vw, 288px);
+    width: min(46vw, 250px);
   }
 
   .slideshow__slide-img-wrapper--portrait {
-    width: min(56vw, 288px);
+    width: min(46vw, 250px);
   }
 
   .slideshow__slide-img-wrapper--landscape {
-    width: min(74vw, 360px);
+    width: min(60vw, 310px);
   }
 
   .slideshow__slide--about {
@@ -5879,7 +5879,7 @@ body:has(.contact-page) {
   }
 
   .slideshow__about-card {
-    width: min(46vw, 205px);
+    width: min(40vw, 180px);
   }
 
   .slideshow__slide[data-project='eden-museum'] {
