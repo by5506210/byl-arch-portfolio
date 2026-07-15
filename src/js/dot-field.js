@@ -9,6 +9,8 @@
   var previousInitVectorField = window.initVectorField;
   var instances = [];
   var listenersAttached = false;
+  // The field lab pauses this system while another field is the exhibit.
+  var fieldPaused = false;
   var pointerX = -1000;
   var pointerY = -1000;
   var pointerClearTimer = null;
@@ -887,7 +889,7 @@
   };
 
   DotField.prototype.requestRender = function () {
-    if (!this.running || this.raf || !this.gl) return;
+    if (fieldPaused || !this.running || this.raf || !this.gl) return;
     this.raf = requestAnimationFrame(this.animate);
   };
 
@@ -896,7 +898,7 @@
 
     this.raf = null;
 
-    if (document.hidden) {
+    if (fieldPaused || document.hidden) {
       this.lastFrameTime = 0;
       return;
     }
@@ -925,6 +927,9 @@
   function initDotField(root) {
     stopInstances();
     attachListeners();
+    // A fresh init always starts unpaused; the field lab re-pauses as
+    // needed (pause state must not leak across SPA navigations).
+    fieldPaused = false;
 
     var canvases = getDotCanvases(root);
     for (var i = 0; i < canvases.length; i++) {
@@ -948,6 +953,10 @@
   window.initDotField = initDotField;
   window.initVectorField = initFieldDispatcher;
   window.setDotFieldTransition = setDotFieldTransition;
+  window.setDotFieldActive = function (active) {
+    fieldPaused = !active;
+    if (!fieldPaused) requestRenderAll();
+  };
   window.setDotFieldWarpMode = function (name) {
     if (!WARP_MODES.hasOwnProperty(name)) return false;
     globalWarpMode = WARP_MODES[name];

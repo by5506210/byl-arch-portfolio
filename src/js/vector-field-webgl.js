@@ -709,6 +709,7 @@
     };
 
     this.running = false;
+    this.paused = false;
     this.raf = null;
     this.resizeHandler = this.scheduleResize.bind(this);
     this.hiddenHandler = null;
@@ -934,7 +935,10 @@
 
   WebGLVectorField.prototype.resolveFrameInterval = function () {
     if (this.reducedMotion) return 1000 / 24;
-    if (this.isLandingPage || this.isContactPage) return 0;
+    // The lab shows the field as the exhibit itself, so it gets full
+    // framerate like the landing page (the sibling field systems are
+    // paused there while the vector layer is active).
+    if (this.isLandingPage || this.isContactPage || this.isLabPage) return 0;
     return this.lowPowerDevice ? 1000 / 20 : 1000 / 28;
   };
 
@@ -1698,8 +1702,22 @@
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
+  // Park the render loop while another lab field system is the exhibit.
+  WebGLVectorField.prototype.setPaused = function (paused) {
+    paused = !!paused;
+    if (this.paused === paused) return;
+    this.paused = paused;
+    if (paused) {
+      if (this.raf) cancelAnimationFrame(this.raf);
+      this.raf = null;
+      this.lastFrameTime = 0;
+    } else if (this.running && !this.raf) {
+      this.raf = requestAnimationFrame(this.boundAnimate);
+    }
+  };
+
   WebGLVectorField.prototype.animate = function (timestamp) {
-    if (!this.running || this.id !== INSTANCE_ID) return;
+    if (!this.running || this.paused || this.id !== INSTANCE_ID) return;
 
     if (document.hidden) {
       this.lastFrameTime = 0;
@@ -1833,6 +1851,11 @@
 
       window.startVectorFieldAssemble = function (config) {
         if (ACTIVE_RENDERER) ACTIVE_RENDERER.startAssembleTransition(config);
+      };
+
+      // The field lab pauses whichever field systems aren't the exhibit.
+      window.setVectorFieldActive = function (active) {
+        if (ACTIVE_RENDERER) ACTIVE_RENDERER.setPaused(!active);
       };
 
       renderer.start();

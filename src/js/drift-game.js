@@ -27,6 +27,8 @@
   var page = null;
   var toggleBtn = null;
   var statusEl = null;
+  var hintEl = null;
+  var hintTimer = null;
   var traceCanvas = null;
   var dynCanvas = null;
   var traceCtx = null;
@@ -91,11 +93,15 @@
     dynCanvas.className = 'field-lab__drift-canvas';
     statusEl = document.createElement('div');
     statusEl.className = 'field-lab__drift-status';
+    hintEl = document.createElement('div');
+    hintEl.className = 'field-lab__drift-hint';
+    hintEl.textContent = 'steer the weather — the mote follows the field';
 
     var uiAnchor = page.querySelector('.field-lab__home');
     page.insertBefore(traceCanvas, uiAnchor);
     page.insertBefore(dynCanvas, uiAnchor);
     page.appendChild(statusEl);
+    page.appendChild(hintEl);
 
     traceCtx = traceCanvas.getContext('2d');
     dynCtx = dynCanvas.getContext('2d');
@@ -190,9 +196,20 @@
     traceCanvas.classList.add('is-active');
     dynCanvas.classList.add('is-active');
     statusEl.classList.add('is-visible');
+    page.classList.add('is-drifting');
     if (toggleBtn) {
       toggleBtn.classList.add('is-on');
-      toggleBtn.textContent = 'drift';
+      toggleBtn.textContent = '■ end drift';
+    }
+
+    // Brief premise line on the first run of a page visit.
+    if (hintTimer) clearTimeout(hintTimer);
+    if (runCount === 1) {
+      hintEl.classList.add('is-visible');
+      hintTimer = setTimeout(function () {
+        hintEl.classList.remove('is-visible');
+        hintTimer = null;
+      }, 5200);
     }
 
     if (!raf) raf = requestAnimationFrame(tick);
@@ -203,22 +220,32 @@
     finished = false;
     if (raf) cancelAnimationFrame(raf);
     raf = null;
+    if (page) page.classList.remove('is-drifting');
+    if (hintTimer) {
+      clearTimeout(hintTimer);
+      hintTimer = null;
+    }
     if (traceCanvas) {
       traceCanvas.classList.remove('is-active');
       dynCanvas.classList.remove('is-active');
       statusEl.classList.remove('is-visible');
+      hintEl.classList.remove('is-visible');
     }
     if (toggleBtn) {
       toggleBtn.classList.remove('is-on');
-      toggleBtn.textContent = 'drift';
+      toggleBtn.textContent = '▸ drift';
     }
+  }
+
+  function runLabel() {
+    return 'traverse ' + (runCount < 10 ? '0' : '') + runCount;
   }
 
   function finishRun() {
     finished = true;
     finalTime = (performance.now() - startTime) / 1000;
-    statusEl.textContent = 'traverse complete — ' + formatClock(finalTime) + ' — drift again?';
-    if (toggleBtn) toggleBtn.textContent = 'again';
+    statusEl.textContent = runLabel() + ' · complete\n' + formatClock(finalTime);
+    if (toggleBtn) toggleBtn.textContent = '▸ drift again';
   }
 
   // Ambient current: the same wave family the field lines ride, so the
@@ -422,11 +449,12 @@
   function updateStatus() {
     if (finished) return;
     var elapsed = (performance.now() - startTime) / 1000;
-    var second = Math.floor(elapsed);
-    if (second === statusClock) return;
-    statusClock = second;
-    statusEl.textContent = 'traverse — gate ' + Math.min(gateIndex + 1, gates.length) +
-      '/' + gates.length + ' — ' + formatClock(elapsed);
+    // Refresh on second ticks and on gate passes.
+    var key = Math.floor(elapsed) * 10 + gateIndex;
+    if (key === statusClock) return;
+    statusClock = key;
+    statusEl.textContent = runLabel() + '\ngate ' + Math.min(gateIndex + 1, gates.length) +
+      '/' + gates.length + ' · ' + formatClock(elapsed);
   }
 
   function tick(timestamp) {
@@ -511,12 +539,18 @@
         onToggleClick();
         return;
       }
-      // Leaving the vector system parks the game.
+      // Leaving the vector system parks the game and hides the launcher.
       var fieldChip = e.target.closest('[data-lab-field]');
-      if (fieldChip && fieldChip.getAttribute('data-lab-field') !== 'vector' && running) {
-        stopRun();
+      if (fieldChip) {
+        var isVector = fieldChip.getAttribute('data-lab-field') === 'vector';
+        if (!isVector && running) stopRun();
+        updateLaunchVisibility(isVector);
       }
     });
+  }
+
+  function updateLaunchVisibility(visible) {
+    if (toggleBtn) toggleBtn.classList.toggle('is-visible', !!visible);
   }
 
   function boot() {
@@ -524,6 +558,7 @@
     if (!page) return;
     toggleBtn = page.querySelector('[data-drift-toggle]');
     attachListeners();
+    updateLaunchVisibility(isVectorFieldActive());
   }
 
   if (document.readyState === 'loading') {

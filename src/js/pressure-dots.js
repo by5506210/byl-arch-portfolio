@@ -15,6 +15,8 @@
 
   var instances = [];
   var listenersAttached = false;
+  // The field lab pauses this system while another field is the exhibit.
+  var fieldPaused = false;
   var pointerX = -1000;
   var pointerY = -1000;
   var pointerClearTimer = null;
@@ -65,22 +67,25 @@
     '  float radius;',
     '  float alpha;',
     '  float pushAmt = 0.0;',
+    // All modes share a clearly visible resting field (the base terms
+    // below put dots around 2.3px and ~0.38 alpha, comparable to the
+    // vector field's lines); they differ in how the cursor works it.
     '  if (u_dotMode == 0) {',
     '    float bloom = smoothstep(0.0, 0.32, strength);',
-    '    radius = a_dot.x * (1.0 + sizeCurve * boost);',
-    '    alpha = a_dot.y * (0.85 + bloom * 2.2);',
+    '    radius = a_dot.x * (1.6 + sizeCurve * boost);',
+    '    alpha = a_dot.y * (1.9 + bloom * 2.2);',
     '    pushAmt = sizeCurve * (10.0 + u_charge * 10.0);',
     '  } else if (u_dotMode == 1) {',
-    '    radius = a_dot.x * (1.1 + sizeCurve * boost * 0.55);',
-    '    alpha = a_dot.y * (0.85 + strength * 2.2);',
+    '    radius = a_dot.x * (1.6 + sizeCurve * boost * 0.55);',
+    '    alpha = a_dot.y * (1.9 + strength * 2.2);',
     '    pushAmt = sizeCurve * 6.0;',
     '  } else if (u_dotMode == 2) {',
-    '    radius = a_dot.x * (1.15 + sizeCurve * boost * 0.25);',
-    '    alpha = a_dot.y * (0.9 + strength * 1.2);',
+    '    radius = a_dot.x * (1.6 + sizeCurve * boost * 0.25);',
+    '    alpha = a_dot.y * (1.9 + strength * 1.2);',
     '    pushAmt = strength * (26.0 + u_charge * 22.0);',
     '  } else {',
-    '    radius = a_dot.x * (1.1 + sizeCurve * boost * 0.35);',
-    '    alpha = a_dot.y * (0.9 + strength * 1.6);',
+    '    radius = a_dot.x * (1.6 + sizeCurve * boost * 0.35);',
+    '    alpha = a_dot.y * (1.9 + strength * 1.6);',
     '    pushAmt = -strength * (18.0 + u_charge * 16.0);',
     '  }',
     '  vec2 pos = a_position;',
@@ -770,7 +775,7 @@
   };
 
   DotField.prototype.requestRender = function () {
-    if (!this.running || this.raf || !this.gl) return;
+    if (fieldPaused || !this.running || this.raf || !this.gl) return;
     this.raf = requestAnimationFrame(this.animate);
   };
 
@@ -779,7 +784,7 @@
 
     this.raf = null;
 
-    if (document.hidden) {
+    if (fieldPaused || document.hidden) {
       this.lastFrameTime = 0;
       return;
     }
@@ -808,6 +813,9 @@
   function initDotField(root) {
     stopInstances();
     attachListeners();
+    // A fresh init always starts unpaused; the field lab re-pauses as
+    // needed (pause state must not leak across SPA navigations).
+    fieldPaused = false;
 
     var canvases = getDotCanvases(root);
     for (var i = 0; i < canvases.length; i++) {
@@ -818,6 +826,10 @@
   }
 
   window.initPressureDots = initDotField;
+  window.setPressureDotsActive = function (active) {
+    fieldPaused = !active;
+    if (!fieldPaused) requestRenderAll();
+  };
   window.setPressureDotsMode = function (name) {
     if (!DOT_MODES.hasOwnProperty(name)) return false;
     globalDotMode = DOT_MODES[name];

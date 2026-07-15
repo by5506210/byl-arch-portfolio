@@ -18,6 +18,10 @@ var _vfScrollKick = 0;
 // Set by the active canvas instance on the Aphelion Field lab so clicks
 // fire a high-power pulse (mirrors the WebGL renderer's behavior).
 var _vfLabPulse = null;
+// Lab pause state: the field lab parks whichever systems aren't the
+// active exhibit. Mirrors the WebGL renderer's setPaused.
+var _vfPaused = false;
+var _vfResume = null;
 
 function _vfRegisterScroll(delta) {
   if (!delta || Math.abs(delta) < 0.5) return;
@@ -689,6 +693,9 @@ function initVectorFieldCanvas() {
   function resolveFrameInterval() {
     if (reducedMotion) return 1000 / 24;
     if (isLandingPage || isContactPage) return 0;
+    // The lab shows the field as the exhibit; give the fallback a higher
+    // cap there (the sibling field systems are paused while it runs).
+    if (isLabPage) return lowPowerDevice ? 1000 / 24 : 1000 / 40;
     return lowPowerDevice ? 1000 / 20 : 1000 / 28;
   }
 
@@ -796,6 +803,11 @@ function initVectorFieldCanvas() {
 
   function animate(timestamp) {
     if (myId !== _vectorFieldInstanceId) return;
+
+    if (_vfPaused) {
+      lastFrameTime = 0;
+      return;
+    }
 
     if (document.hidden) {
       lastFrameTime = 0;
@@ -1601,6 +1613,18 @@ function initVectorFieldCanvas() {
   _vfResizeHandler = scheduleResize;
   window.addEventListener('resize', scheduleResize);
   resize();
+  _vfPaused = false;
+  _vfResume = function () {
+    if (myId !== _vectorFieldInstanceId) return;
+    lastFrameTime = 0;
+    requestAnimationFrame(animate);
+  };
+  window.setVectorFieldActive = function (active) {
+    var nextPaused = !active;
+    if (_vfPaused === nextPaused) return;
+    _vfPaused = nextPaused;
+    if (!nextPaused && _vfResume) _vfResume();
+  };
   requestAnimationFrame(animate);
 
   // Stop on landing hide

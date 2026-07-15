@@ -28,6 +28,18 @@
       if (layers[key]) layers[key].classList.toggle('is-active', key === name);
     });
 
+    // Only the exhibited system gets to render; the hidden ones would
+    // otherwise keep drawing full-screen frames behind zero opacity.
+    if (typeof window.setVectorFieldActive === 'function') {
+      window.setVectorFieldActive(name === 'vector');
+    }
+    if (typeof window.setDotFieldActive === 'function') {
+      window.setDotFieldActive(name === 'fabric');
+    }
+    if (typeof window.setPressureDotsActive === 'function') {
+      window.setPressureDotsActive(name === 'dots');
+    }
+
     document.querySelectorAll('[data-lab-field]').forEach(function (chip) {
       chip.classList.toggle('is-active', chip.getAttribute('data-lab-field') === name);
     });
