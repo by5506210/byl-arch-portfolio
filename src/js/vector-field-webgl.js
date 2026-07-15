@@ -49,11 +49,14 @@
       mouseY = -1000;
     });
 
-    // On the Aphelion Field lab, clicks pulse the field.
+    // On the Aphelion Field lab, clicks fire a high-power shockwave:
+    // faster wavefront, physical displacement, impact flash, and a short
+    // cooldown so rapid clicks each land.
     document.addEventListener('pointerdown', function (e) {
       if (ACTIVE_RENDERER && ACTIVE_RENDERER.isLabPage &&
+          ACTIVE_RENDERER.canvas && ACTIVE_RENDERER.canvas.isConnected &&
           typeof ACTIVE_RENDERER.spawnRipple === 'function') {
-        ACTIVE_RENDERER.spawnRipple(e.clientX, e.clientY);
+        ACTIVE_RENDERER.spawnRipple(e.clientX, e.clientY, null, 2.1, 470, 0.12);
       }
     }, { passive: true });
 
@@ -160,7 +163,9 @@
     'uniform float uAwaken;',
     'uniform vec2 uMouse;',
     'uniform float uMouseActive;',
+    'uniform float uMouseRadius;',
     'uniform int uFieldMode;',
+    'uniform float uModeIntensity;',
     'uniform vec3 uScroll;',
     'uniform vec2 uLine;',
     'uniform vec2 uCenter;',
@@ -230,6 +235,7 @@
     '  float bhResistance = 0.0;',
     '  float rippleOpacityBoost = 0.0;',
     '  float rippleLenBoost = 0.0;',
+    '  vec2 rippleShift = vec2(0.0);',
     '',
     '  for (int i = 0; i < 8; i++) {',
     '    if (i >= uRippleCount) break;',
@@ -248,6 +254,9 @@
     '    targetAngle += angleDelta(0.0, tangentAngle + radialAngle * 0.15) * strength * 0.7;',
     '    rippleOpacityBoost += strength * 0.2 * uOpacityScale;',
     '    rippleLenBoost += strength * 6.0;',
+    // The wavefront physically shoves lines outward, so a strong pulse
+    // reads as a shockwave instead of a subtle rotation.
+    '    rippleShift += (dist > 0.001 ? delta / dist : vec2(0.0, -1.0)) * strength * 12.0;',
     '  }',
     '',
     '  drawOpacity += rippleOpacityBoost;',
@@ -303,12 +312,13 @@
     '    }',
     '  }',
     '',
+    '  vec2 mouseShift = vec2(0.0);',
     '  if (uMouseActive > 0.001) {',
     '    vec2 toMouse = uMouse - basePos;',
     '    float distMouseSq = dot(toMouse, toMouse);',
-    '    float maxMouseRadius = 285.0;',
+    '    float maxMouseRadius = uMouseRadius + 65.0;',
     '    if (distMouseSq < maxMouseRadius * maxMouseRadius) {',
-    '      float particleMouseRadius = 220.0 + aStyle.z + sin(uTime * 3.0 + aSeed.x * 5.0) * 25.0;',
+    '      float particleMouseRadius = uMouseRadius + aStyle.z + sin(uTime * 3.0 + aSeed.x * 5.0) * 25.0;',
     '      float distMouse = sqrt(distMouseSq);',
     '      if (distMouse < particleMouseRadius) {',
     '        float radiusRatio = clamp(distMouse / particleMouseRadius, 0.0, 1.0);',
@@ -321,14 +331,53 @@
     '        } else {',
     '          drawOpacity = max(drawOpacity, aStyle.y * lc.x + mouseEffect * 0.3 * uOpacityScale);',
     '        }',
-    // Field modes: 0 attract (point at cursor), 1 vortex (orbit it),
-    // 2 repel (point away), 3 scatter (chaotic static near the cursor)
+    // Field modes, each with its own kinematics (angle alone can't
+    // distinguish them: a centered segment pointing at the cursor looks
+    // identical to one pointing away). uModeIntensity gates the physical
+    // displacement / opacity shaping to the lab page so the landing and
+    // content pages keep their calmer cursor response.
+    //   0 attract - lines aim at the cursor and crowd inward (iron filings)
+    //   1 vortex  - tangential alignment + swirling displacement (whirlpool)
+    //   2 repel   - lines aim away and get shoved out; the core empties
+    //               into a crater with a bright rim
+    //   3 scatter - coherent turbulence: eddies of wind churning the field
     '        float mouseAngle = atan(toMouse.y, toMouse.x);',
-    '        if (uFieldMode == 1) { mouseAngle += 1.5707963; }',
-    '        else if (uFieldMode == 2) { mouseAngle += 3.14159265; }',
-    '        else if (uFieldMode == 3) { mouseAngle = aSeed.x * 6.2831853 + uTime * (1.2 + aSeed.y * 2.4); }',
-    '        targetAngle += angleDelta(targetAngle, mouseAngle) * angleInfluence * 0.52;',
-    '        drawLen = max(drawLen, uLine.x * lc.w + mouseEffect * 8.0 * (1.0 - uEasterExtra.y * particleNearEE));',
+    '        vec2 mouseDir = distMouse > 0.001 ? toMouse / distMouse : vec2(0.0, 0.0);',
+    '        vec2 mouseTangent = vec2(-mouseDir.y, mouseDir.x);',
+    '        float modeAlign = 0.52;',
+    '        float modeLenBoost = 8.0;',
+    '        if (uFieldMode == 0) {',
+    '          mouseShift = mouseDir * mouseEffect * min(distMouse * 0.5, 30.0);',
+    '          modeAlign = 0.85;',
+    '          modeLenBoost = 13.0;',
+    '          drawOpacity = min(1.0, drawOpacity + mouseEffect * 0.35 * uOpacityScale * uModeIntensity);',
+    '        } else if (uFieldMode == 1) {',
+    '          mouseAngle += 1.5707963 + mouseEffect * 0.45 * uModeIntensity;',
+    '          float swirlPump = 0.75 + 0.25 * sin(uTime * 2.6 - distMouse * 0.045);',
+    '          mouseShift = (mouseTangent * 40.0 * swirlPump + mouseDir * 12.0) * mouseEffect;',
+    '          modeAlign = 0.9;',
+    '          modeLenBoost = 12.0;',
+    '        } else if (uFieldMode == 2) {',
+    '          mouseAngle += 3.14159265;',
+    '          mouseShift = -mouseDir * mouseEffect * 44.0;',
+    '          modeAlign = 0.85;',
+    '          modeLenBoost = 11.0;',
+    '          float core = 1.0 - smoothstep(0.0, 90.0, distMouse);',
+    '          float rim = smoothstep(0.15, 0.4, mStrength) * (1.0 - smoothstep(0.5, 0.85, mStrength));',
+    '          drawOpacity *= 1.0 - core * 0.85 * uModeIntensity;',
+    '          drawOpacity = min(1.0, drawOpacity + rim * 0.45 * uOpacityScale * uModeIntensity);',
+    '        } else if (uFieldMode == 3) {',
+    '          float turb = sin(basePos.x * 0.03 + uTime * 3.0) + cos(basePos.y * 0.027 - uTime * 2.2) + sin((basePos.x + basePos.y) * 0.02 + uTime * 1.6);',
+    // Off the lab, keep the legacy per-particle churn so a mode carried
+    // over from the lab page cannot change other pages' feel.
+    '          mouseAngle = mix(aSeed.x * 6.2831853 + uTime * (1.2 + aSeed.y * 2.4), turb * 2.2, uModeIntensity);',
+    '          mouseShift = vec2(cos(mouseAngle), sin(mouseAngle)) * mouseEffect * 22.0;',
+    '          modeAlign = 0.95;',
+    '          modeLenBoost = 6.0 + (sin(turb * 4.7) * 0.5 + 0.5) * 14.0;',
+    '        }',
+    '        mouseShift *= uModeIntensity;',
+    '        targetAngle += angleDelta(targetAngle, mouseAngle) * angleInfluence * mix(0.52, modeAlign, uModeIntensity);',
+    '        drawLen = max(drawLen, uLine.x * lc.w + mouseEffect * mix(8.0, modeLenBoost, uModeIntensity) * (1.0 - uEasterExtra.y * particleNearEE));',
     '      }',
     '    }',
     '  }',
@@ -340,7 +389,7 @@
     '    widthScale *= 1.0 + edgeBoost * 0.1;',
     '  }',
     '',
-    '  vec2 drawPos = basePos;',
+    '  vec2 drawPos = basePos + rippleShift + mouseShift;',
     '  float drawAngle = targetAngle;',
     '  float lineWidth = uLine.y * lc.y * (0.6 + abs(sin(drawAngle)) * 0.6) * widthScale;',
     '',
@@ -467,13 +516,24 @@
     '    if (i >= uRippleCount) break;',
     '    vec4 rp = uRipples[i];',
     '    float dist = length(vPixel - rp.xy);',
-    '    float ring = 1.0 - smoothstep(0.0, 2.8, abs(dist - rp.z));',
+    // rp.w carries fade * power. Only the power EXCESS over the ambient 1.0
+    // widens/flashes, so the landing and contact pages' power-1 ripples
+    // render exactly as before this existed.
+    '    float excess = max(0.0, rp.w - 1.0);',
+    '    float ringWidth = 2.8 + excess * 4.5;',
+    '    float ring = 1.0 - smoothstep(0.0, ringWidth, abs(dist - rp.z));',
     '    float innerRing = 1.0 - smoothstep(0.0, 2.2, abs(dist - rp.z * 0.85));',
-    '    float ageFadeSq = rp.w;',
-    '    float baseAlpha = ageFadeSq * (uIsLanding > 0.5 ? 0.15 : 0.22);',
+    '    float baseAlpha = rp.w * (uIsLanding > 0.5 ? 0.15 : 0.22);',
     '    vec3 color = (uReveal.x > 0.5 && rp.z <= uReveal.y) ? uDarkColor : uLineColor;',
     '    outColor = over(outColor, color, ring * baseAlpha);',
     '    outColor = over(outColor, color, innerRing * baseAlpha * 0.5);',
+    // Impact flash: a soft disc that blooms at the pulse origin and dies
+    // by the time the wavefront reaches ~150px, so clicks land with a punch.
+    '    float youth = max(0.0, 1.0 - rp.z / 150.0);',
+    '    if (youth > 0.0 && excess > 0.0) {',
+    '      float flash = max(0.0, 1.0 - dist / max(rp.z + 24.0, 24.0));',
+    '      outColor = over(outColor, color, flash * flash * youth * excess * 0.55);',
+    '    }',
     '  }',
     '',
     '  if (uIsLanding > 0.5) {',
@@ -580,7 +640,10 @@
     this.maxGravityDistance = 0;
     this.gravityStrength = this.isMobile && this.isLandingPage ? 0.25 : 0;
     this.easterEggRadius = 200;
-    this.mouseInfluence = 220;
+    // The lab is the exhibit, so the cursor gets a wider reach there and
+    // the mode kinematics (displacement, crater, swirl) run at full force.
+    this.mouseInfluence = this.isLabPage ? 300 : 220;
+    this.modeIntensity = this.isLabPage ? 1 : 0;
 
     this.ripples = [];
     this.rippleUniforms = new Float32Array(MAX_RIPPLES * 4);
@@ -693,7 +756,8 @@
         assemble2: gl.getAttribLocation(this.vectorProgram, 'aAssemble2')
       },
       uniforms: this.mapUniforms(this.vectorProgram, [
-        'uResolution', 'uTime', 'uAwaken', 'uMouse', 'uMouseActive', 'uFieldMode', 'uScroll', 'uLine',
+        'uResolution', 'uTime', 'uAwaken', 'uMouse', 'uMouseActive', 'uMouseRadius', 'uFieldMode',
+        'uModeIntensity', 'uScroll', 'uLine',
         'uCenter', 'uOpacityScale', 'uIsLanding', 'uBlackHoleRadius', 'uMaxGravityDistance',
         'uGravityStrength', 'uEaster', 'uEasterExtra', 'uReveal', 'uAssemble',
         'uRippleCount', 'uRipples[0]', 'uWakeCount', 'uWake[0]',
@@ -1129,14 +1193,20 @@
     if (href) window.location.href = href;
   };
 
-  WebGLVectorField.prototype.spawnRipple = function (originX, originY, maxRadiusOverride) {
-    if (this.time - this.lastRippleTime < this.rippleCooldown) return;
+  // power scales the pulse's rotation/opacity/displacement and its drawn
+  // ring; speed sets the wavefront's px/s; cooldownOverride lets clicks
+  // bypass the ambient 0.35s throttle.
+  WebGLVectorField.prototype.spawnRipple = function (originX, originY, maxRadiusOverride, power, speedOverride, cooldownOverride) {
+    var cooldown = typeof cooldownOverride === 'number' ? cooldownOverride : this.rippleCooldown;
+    if (this.time - this.lastRippleTime < cooldown) return;
     this.lastRippleTime = this.time;
     this.ripples.push({
       x: typeof originX === 'number' ? originX : this.centerX,
       y: typeof originY === 'number' ? originY : this.centerY,
       radius: 0,
       maxRadius: typeof maxRadiusOverride === 'number' ? maxRadiusOverride : this.rippleMaxRadius,
+      power: typeof power === 'number' ? power : 1,
+      speed: typeof speedOverride === 'number' ? speedOverride : this.rippleSpeed,
       ageFadeSq: 1
     });
     if (this.ripples.length > MAX_RIPPLES) this.ripples.shift();
@@ -1273,7 +1343,7 @@
   WebGLVectorField.prototype.updateRipples = function (dt) {
     for (var i = this.ripples.length - 1; i >= 0; i--) {
       var rip = this.ripples[i];
-      rip.radius += this.rippleSpeed * dt;
+      rip.radius += (rip.speed || this.rippleSpeed) * dt;
       if (rip.radius > rip.maxRadius) {
         this.ripples.splice(i, 1);
       } else {
@@ -1290,7 +1360,8 @@
       this.rippleUniforms[offset] = rp.x;
       this.rippleUniforms[offset + 1] = rp.y;
       this.rippleUniforms[offset + 2] = rp.radius;
-      this.rippleUniforms[offset + 3] = rp.ageFadeSq;
+      // Fade and power share one slot; the shaders treat w as strength.
+      this.rippleUniforms[offset + 3] = rp.ageFadeSq * (rp.power || 1);
     }
   };
 
@@ -1560,7 +1631,9 @@
     gl.uniform1f(u.uAwaken, awakenEased);
     gl.uniform2f(u.uMouse, pageMouseX, pageMouseY);
     gl.uniform1f(u.uMouseActive, mousePresence);
+    gl.uniform1f(u.uMouseRadius, this.mouseInfluence);
     gl.uniform1i(u.uFieldMode, vectorFieldMode);
+    gl.uniform1f(u.uModeIntensity, this.modeIntensity);
     var scrollVectorShift = (this.isMobile || this.touchCapable) ? 0 : scrollKick;
     gl.uniform3f(u.uScroll, scrollVectorShift, scrollDirection, scrollVectorShift > 0 ? scrollTilt : 0);
     gl.uniform2f(u.uLine, this.lineLen, this.lineWidth);

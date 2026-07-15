@@ -15,6 +15,9 @@ var _vfLastTouchY = null;
 var _vfScrollVelocity = 0;
 var _vfScrollDirection = 0;
 var _vfScrollKick = 0;
+// Set by the active canvas instance on the Aphelion Field lab so clicks
+// fire a high-power pulse (mirrors the WebGL renderer's behavior).
+var _vfLabPulse = null;
 
 function _vfRegisterScroll(delta) {
   if (!delta || Math.abs(delta) < 0.5) return;
@@ -35,6 +38,9 @@ function _vfAttachListeners() {
     _vfMouseX = -1000;
     _vfMouseY = -1000;
   });
+  document.addEventListener('pointerdown', function (e) {
+    if (_vfLabPulse) _vfLabPulse(e.clientX, e.clientY);
+  }, { passive: true });
   document.addEventListener('touchstart', function (e) {
     _vfMouseX = e.touches[0].clientX;
     _vfMouseY = e.touches[0].clientY;
@@ -155,7 +161,7 @@ function initVectorFieldCanvas() {
   var spacing = fieldMetrics.spacing;
   var lineLen = fieldMetrics.lineLen;
   var lineWidth = fieldMetrics.lineWidth;
-  var mouseInfluence = 220;
+  var mouseInfluence = isLabPage ? 300 : 220;
   var returnSpeed = 0.08;
   var followSpeed = 0.25;
   var blackHoleRadius = 300;
@@ -169,6 +175,12 @@ function initVectorFieldCanvas() {
   var maxGravityDistance = 0;
   var particles = [];
   var time = 0;
+  // Eased cursor presence for the per-particle influence block, mirroring
+  // the WebGL renderer's smoothed mouse: effects fade out instead of
+  // popping off when the cursor leaves the window.
+  var kinPresence = 0;
+  var kinX = -1000;
+  var kinY = -1000;
   var lastFrameTime = 0;
   var minFrameMs = resolveFrameInterval();
   var assembleState = null;
@@ -493,8 +505,9 @@ function initVectorFieldCanvas() {
     return d;
   }
 
-  function spawnRipple(originX, originY, maxRadiusOverride) {
-    if (time - lastRippleTime < rippleCooldown) return;
+  function spawnRipple(originX, originY, maxRadiusOverride, power, speedOverride, cooldownOverride) {
+    var cooldown = typeof cooldownOverride === 'number' ? cooldownOverride : rippleCooldown;
+    if (time - lastRippleTime < cooldown) return;
     lastRippleTime = time;
     var rippleX = typeof originX === 'number' ? originX : centerX;
     var rippleY = typeof originY === 'number' ? originY : centerY;
@@ -504,8 +517,26 @@ function initVectorFieldCanvas() {
       y: rippleY,
       birthTime: time,
       radius: 0,
-      maxRadius: rippleRadiusCap
+      maxRadius: rippleRadiusCap,
+      power: typeof power === 'number' ? power : 1,
+      speed: typeof speedOverride === 'number' ? speedOverride : rippleSpeed
     });
+    if (ripples.length > 8) ripples.shift();
+  }
+
+  if (isLabPage) {
+    _vfLabPulse = function (x, y) {
+      // Self-detach if this instance was superseded or its canvas left the
+      // DOM (barba can navigate to a page with no vector field, which
+      // never re-runs init and would otherwise leave this hook live).
+      if (myId !== _vectorFieldInstanceId || !canvas.isConnected) {
+        _vfLabPulse = null;
+        return;
+      }
+      spawnRipple(x, y, null, 2.1, 470, 0.12);
+    };
+  } else {
+    _vfLabPulse = null;
   }
 
   function resolveContactPulseCenter(scrollY) {
@@ -794,6 +825,12 @@ function initVectorFieldCanvas() {
       if (mouseY > 0) mouseY += pageScrollY;
     }
     var mouseActive = mouseX > 0 && mouseY > 0;
+    if (mouseActive) {
+      kinX = mouseX;
+      kinY = mouseY;
+    }
+    kinPresence += ((mouseActive ? 1 : 0) - kinPresence) * (1 - Math.exp(-dt * 9));
+    if (!mouseActive && kinPresence < 0.01) kinPresence = 0;
     _vfScrollVelocity *= 0.9;
     _vfScrollKick *= 0.9;
     if (isMobile || touchCapable) {
@@ -1091,14 +1128,15 @@ function initVectorFieldCanvas() {
     // Update ripples
     for (var ri = ripples.length - 1; ri >= 0; ri--) {
       var rip = ripples[ri];
-      rip.radius += rippleSpeed * dt;
+      rip.radius += (rip.speed || rippleSpeed) * dt;
       if (rip.radius > rip.maxRadius) {
         ripples.splice(ri, 1);
       } else {
         rip.outer = rip.radius + rippleRingWidth;
         rip.inner = rip.radius - rippleRingWidth;
         var ripAgeFade = _max(0, 1 - rip.radius / rip.maxRadius);
-        rip.ageFadeSq = ripAgeFade * ripAgeFade;
+        // Fade and power fold into one strength factor, like the WebGL path.
+        rip.ageFadeSq = ripAgeFade * ripAgeFade * (rip.power || 1);
       }
     }
 
@@ -1185,6 +1223,8 @@ function initVectorFieldCanvas() {
       var rippleAngleOffset = 0;
       var rippleOpacityBoost = 0;
       var rippleLenBoost = 0;
+      var shiftX = 0;
+      var shiftY = 0;
       for (var rj = 0; rj < ripples.length; rj++) {
         var rp = ripples[rj];
         var rdx = p.x - rp.x;
@@ -1206,6 +1246,11 @@ function initVectorFieldCanvas() {
           rippleAngleOffset += angleDiff(0, tangentAngle + outwardPush) * ringStrength * 0.7;
           rippleOpacityBoost += ringStrength * 0.2 * opacityScale;
           rippleLenBoost += ringStrength * 6;
+          // The wavefront physically shoves lines outward (shockwave).
+          if (rDist > 0.001) {
+            shiftX += (rdx / rDist) * ringStrength * 12;
+            shiftY += (rdy / rDist) * ringStrength * 12;
+          }
         }
       }
 
@@ -1289,9 +1334,9 @@ function initVectorFieldCanvas() {
         }
       }
 
-      if (mouseActive) {
-        var dxM = mouseX - p.x;
-        var dyM = mouseY - p.y;
+      if (kinPresence > 0.001) {
+        var dxM = kinX - p.x;
+        var dyM = kinY - p.y;
         var distMSq = dxM * dxM + dyM * dyM;
 
         if (distMSq < maxMouseRadiusSq) {
@@ -1309,7 +1354,7 @@ function initVectorFieldCanvas() {
             var distM = _sqrt(distMSq);
             var mStrength = (1 - distM / particleMouseRadius);
             mStrength = mStrength * mStrength;
-            var mouseEffect = mStrength * (1 - bhResistance * 0.85);
+            var mouseEffect = mStrength * kinPresence * (1 - bhResistance * 0.85);
 
             if (particleNearEE > 0) {
               var dimFactor = particleNearEE * mouseEffect;
@@ -1321,14 +1366,49 @@ function initVectorFieldCanvas() {
 
             // Field modes shared with the WebGL renderer via
             // window.__vectorFieldMode: 0 attract, 1 vortex, 2 repel, 3 scatter.
+            // On the lab each mode also gets physical kinematics (pull,
+            // swirl, crater, turbulence) mirroring the WebGL shader.
             var fieldMode = window.__vectorFieldMode | 0;
             var mouseTargetAngle = _atan2(dyM, dxM);
-            if (fieldMode === 1) mouseTargetAngle += PI * 0.5;
-            else if (fieldMode === 2) mouseTargetAngle += PI;
-            else if (fieldMode === 3) mouseTargetAngle = p.seed1 * TWO_PI + time * (1.2 + p.seed2 * 2.4);
+            var modeLenBoost = 10;
+            if (isLabPage) {
+              var invDistM = distM > 0.001 ? 1 / distM : 0;
+              var dirX = dxM * invDistM;
+              var dirY = dyM * invDistM;
+              if (fieldMode === 0) {
+                var pull = mouseEffect * _min(distM * 0.5, 30);
+                shiftX += dirX * pull;
+                shiftY += dirY * pull;
+                modeLenBoost = 13;
+                drawOpacity = _min(1, drawOpacity + mouseEffect * 0.35 * opacityScale);
+              } else if (fieldMode === 1) {
+                mouseTargetAngle += PI * 0.5 + mouseEffect * 0.45;
+                var swirlPump = 0.75 + 0.25 * _sin(time * 2.6 - distM * 0.045);
+                shiftX += (-dirY * 40 * swirlPump + dirX * 12) * mouseEffect;
+                shiftY += (dirX * 40 * swirlPump + dirY * 12) * mouseEffect;
+                modeLenBoost = 12;
+              } else if (fieldMode === 2) {
+                mouseTargetAngle += PI;
+                shiftX -= dirX * mouseEffect * 44;
+                shiftY -= dirY * mouseEffect * 44;
+                modeLenBoost = 11;
+                var craterCore = 1 - _min(1, distM / 90);
+                drawOpacity *= 1 - craterCore * 0.85;
+              } else if (fieldMode === 3) {
+                var turb = _sin(p.x * 0.03 + time * 3.0) + _cos(p.y * 0.027 - time * 2.2) + _sin((p.x + p.y) * 0.02 + time * 1.6);
+                mouseTargetAngle = turb * 2.2;
+                shiftX += _cos(mouseTargetAngle) * mouseEffect * 22;
+                shiftY += _sin(mouseTargetAngle) * mouseEffect * 22;
+                modeLenBoost = 6 + (_sin(turb * 4.7) * 0.5 + 0.5) * 14;
+              }
+            } else {
+              if (fieldMode === 1) mouseTargetAngle += PI * 0.5;
+              else if (fieldMode === 2) mouseTargetAngle += PI;
+              else if (fieldMode === 3) mouseTargetAngle = p.seed1 * TWO_PI + time * (1.2 + p.seed2 * 2.4);
+            }
             var mouseDiff = angleDiff(targetAngle, mouseTargetAngle);
             targetAngle += mouseDiff * mouseEffect * 0.9;
-            drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * 10 * (1 - eeSuppression * particleNearEE));
+            drawLen = _max(drawLen, lineLen * lcLen + mouseEffect * modeLenBoost * (1 - eeSuppression * particleNearEE));
             speed = _max(speed, followSpeed + mouseEffect * 0.4);
           }
         }
@@ -1367,10 +1447,10 @@ function initVectorFieldCanvas() {
       addStrokeSegment(
         bucketSet,
         bucketIdx,
-        p.x - cosA * halfLen,
-        p.y - sinA * halfLen,
-        p.x + cosA * halfLen,
-        p.y + sinA * halfLen,
+        p.x + shiftX - cosA * halfLen,
+        p.y + shiftY - sinA * halfLen,
+        p.x + shiftX + cosA * halfLen,
+        p.y + shiftY + sinA * halfLen,
         angleWidth
       );
     }
@@ -1382,11 +1462,11 @@ function initVectorFieldCanvas() {
     }
 
     // --- DRAW RIPPLE RINGS ---
-    if (isLandingPage || isContactPage) {
+    if (isLandingPage || isContactPage || isLabPage) {
       for (var rk = 0; rk < ripples.length; rk++) {
         var drip = ripples[rk];
         var ripAge = drip.radius / drip.maxRadius;
-        var ripAlpha = (1 - ripAge) * (1 - ripAge) * (isLandingPage ? 0.15 : 0.22);
+        var ripAlpha = (1 - ripAge) * (1 - ripAge) * (isLandingPage ? 0.15 : 0.22) * (drip.power || 1);
         if (ripAlpha < 0.005) continue;
 
         ctx.beginPath();
@@ -1402,6 +1482,26 @@ function initVectorFieldCanvas() {
           ctx.strokeStyle = 'rgba(' + ((revealActive && innerR <= revealRadius) ? darkLineColor : lineColor) + ', ' + (ripAlpha * 0.5) + ')';
           ctx.lineWidth = 1;
           ctx.stroke();
+        }
+
+        // Impact flash: a soft disc that blooms at the pulse origin and dies
+        // by the time the wavefront reaches ~150px (mirrors the WebGL path).
+        // Only power above the ambient 1.0 flashes, so landing/contact
+        // auto-ripples (power 1) draw no disc.
+        if (drip.radius < 150) {
+          var flashYouth = 1 - drip.radius / 150;
+          var flashAlpha = flashYouth * _max(0, (drip.ageFadeSq || 1) - 1) * 0.55;
+          if (flashAlpha > 0.01) {
+            var flashR = drip.radius + 24;
+            var flashGrad = ctx.createRadialGradient(drip.x, drip.y, 0, drip.x, drip.y, flashR);
+            flashGrad.addColorStop(0, 'rgba(' + lineColor + ', ' + _min(0.75, flashAlpha) + ')');
+            flashGrad.addColorStop(0.55, 'rgba(' + lineColor + ', ' + _min(0.75, flashAlpha * 0.35) + ')');
+            flashGrad.addColorStop(1, 'rgba(' + lineColor + ', 0)');
+            ctx.fillStyle = flashGrad;
+            ctx.beginPath();
+            ctx.arc(drip.x, drip.y, flashR, 0, TWO_PI);
+            ctx.fill();
+          }
         }
       }
     }

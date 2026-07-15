@@ -50,7 +50,8 @@
     '  return 1.0 - smoothstep(0.0, radius, dist);',
     '}',
     // Dot modes:
-    //   0 reveal  - invisible at rest, exponential bloom under the cursor
+    //   0 reveal  - whole field visible at rest; dramatic exponential
+    //               bloom under the cursor (the signature mode)
     //   1 glow    - all dots visible; the cursor area brightens and swells
     //   2 repel   - all dots visible; the cursor craters them outward
     //   3 attract - all dots visible; dots gather toward the cursor
@@ -65,9 +66,9 @@
     '  float alpha;',
     '  float pushAmt = 0.0;',
     '  if (u_dotMode == 0) {',
-    '    float visibility = smoothstep(0.0, 0.32, strength);',
-    '    radius = a_dot.x * (0.2 + sizeCurve * boost);',
-    '    alpha = a_dot.y * visibility * 2.6;',
+    '    float bloom = smoothstep(0.0, 0.32, strength);',
+    '    radius = a_dot.x * (1.0 + sizeCurve * boost);',
+    '    alpha = a_dot.y * (0.85 + bloom * 2.2);',
     '    pushAmt = sizeCurve * (10.0 + u_charge * 10.0);',
     '  } else if (u_dotMode == 1) {',
     '    radius = a_dot.x * (1.1 + sizeCurve * boost * 0.55);',
