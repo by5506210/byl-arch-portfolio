@@ -6426,10 +6426,64 @@ body:has(.contact-page) {
   border-color: var(--text-primary);
 }
 
+/* DRIFT traverse game (vector system only) */
+.field-lab__drift-toggle {
+  margin-left: 0.55rem;
+  border-style: dashed;
+}
+
+.field-lab__drift-toggle.is-on {
+  background: var(--text-primary);
+  color: var(--concrete);
+  border-color: var(--text-primary);
+  border-style: solid;
+}
+
+.field-lab__drift-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.field-lab__drift-canvas.is-active {
+  opacity: 1;
+}
+
+.field-lab__drift-status {
+  position: absolute;
+  top: 3.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  color: rgba(22, 20, 18, 0.55);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.field-lab__drift-status.is-visible {
+  opacity: 1;
+}
+
 @media (max-width: 767px) {
   .field-lab__caption {
     left: 1.2rem;
     top: 3.4rem;
+  }
+
+  .field-lab__drift-status {
+    top: 5.4rem;
+    font-size: 0.6rem;
+    max-width: calc(100vw - 2rem);
+    white-space: normal;
   }
 
   .field-lab__home {
