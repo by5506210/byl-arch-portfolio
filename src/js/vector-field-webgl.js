@@ -161,6 +161,7 @@
     'uniform vec2 uResolution;',
     'uniform float uTime;',
     'uniform float uAwaken;',
+    'uniform float uBreathe;',
     'uniform vec2 uMouse;',
     'uniform float uMouseActive;',
     'uniform float uMouseRadius;',
@@ -215,7 +216,9 @@
     '  float randomDrift = aSeed.w * sin(waveTime * 0.7 + aSeed.x) * 0.08 +',
     '    sin(waveTime * 1.3 + aSeed.y * 5.0) * 0.05 +',
     '    cos(waveTime * 0.9 + aSeed.z * 3.0) * 0.04;',
-    '  float liveAngle = swell + cross + deep + randomDrift;',
+    // uBreathe scales the ambient sea state: 0 lays the field flat and
+    // still, 1 is the default swell, 2 is a storm.
+    '  float liveAngle = (swell + cross + deep + randomDrift) * uBreathe;',
     '',
     '  vec2 toCenter = uCenter - basePos;',
     '  float centerDist = length(toCenter);',
@@ -757,7 +760,7 @@
         assemble2: gl.getAttribLocation(this.vectorProgram, 'aAssemble2')
       },
       uniforms: this.mapUniforms(this.vectorProgram, [
-        'uResolution', 'uTime', 'uAwaken', 'uMouse', 'uMouseActive', 'uMouseRadius', 'uFieldMode',
+        'uResolution', 'uTime', 'uAwaken', 'uBreathe', 'uMouse', 'uMouseActive', 'uMouseRadius', 'uFieldMode',
         'uModeIntensity', 'uScroll', 'uLine',
         'uCenter', 'uOpacityScale', 'uIsLanding', 'uBlackHoleRadius', 'uMaxGravityDistance',
         'uGravityStrength', 'uEaster', 'uEasterExtra', 'uReveal', 'uAssemble',
@@ -1633,6 +1636,7 @@
     gl.uniform2f(u.uResolution, this.fieldWidth, this.fieldHeight);
     gl.uniform1f(u.uTime, this.time);
     gl.uniform1f(u.uAwaken, awakenEased);
+    gl.uniform1f(u.uBreathe, typeof window.__fieldBreathe === 'number' ? window.__fieldBreathe : 1);
     gl.uniform2f(u.uMouse, pageMouseX, pageMouseY);
     gl.uniform1f(u.uMouseActive, mousePresence);
     gl.uniform1f(u.uMouseRadius, this.mouseInfluence);

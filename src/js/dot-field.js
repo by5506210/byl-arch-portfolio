@@ -11,6 +11,12 @@
   var listenersAttached = false;
   // The field lab pauses this system while another field is the exhibit.
   var fieldPaused = false;
+
+  // Ambient breathing intensity, shared across all lab field systems via
+  // window.__fieldBreathe (0 = still, 1 = default, 2 = storm).
+  function getBreathe() {
+    return typeof window.__fieldBreathe === 'number' ? window.__fieldBreathe : 1;
+  }
   var pointerX = -1000;
   var pointerY = -1000;
   var pointerClearTimer = null;
@@ -53,10 +59,21 @@
     // amplitude (px), w = radius. Zero count = shader behaves as before.
     'uniform int u_terrainCount;',
     'uniform vec4 u_terrain[16];',
+    'uniform float u_time;',
+    'uniform float u_breathe;',
     'varying float v_alpha;',
     'void main() {',
     '  vec2 pos = a_position;',
     '  float alpha = u_baseAlpha;',
+    // Ambient breathing: the same slow wave family the vector field
+    // rides, so the fabric undulates like cloth instead of sitting still.
+    // u_breathe is the displacement in px (0 disables entirely).
+    '  if (u_breathe > 0.001) {',
+    '    float bwx = sin(a_position.x * 0.006 + u_time * 1.15) * 1.4 + sin(a_position.y * 0.008 + u_time * 0.85) * 1.0;',
+    '    float bwy = cos(a_position.x * 0.005 - u_time * 1.0) * 1.2 + sin((a_position.x + a_position.y) * 0.0035 + u_time * 0.7) * 1.2;',
+    '    pos += vec2(bwx, bwy) * u_breathe;',
+    '    alpha *= 1.0 + sin(u_time * 0.8 + a_position.x * 0.004 + a_position.y * 0.005) * min(u_breathe * 0.045, 0.16);',
+    '  }',
     '  vec2 toVertex = a_position - u_mouse;',
     '  float dist = length(toVertex);',
     '  float seededRadius = u_cursorRadius * (0.96 + a_seed * 0.08);',
@@ -393,6 +410,7 @@
     this.rippleUniforms = new Float32Array(24);
     this.terrainUniforms = new Float32Array(64);
     this.terrainCount = 0;
+    this.time = 0;
 
     this.surface = canvas.getAttribute('data-field-surface') || 'page';
     var modeAttr = canvas.getAttribute('data-field-mode');
@@ -531,6 +549,8 @@
     this.running = true;
     this.resize();
     this.draw();
+    // Kick the loop so ambient breathing runs without waiting for input.
+    this.requestRender();
   };
 
   DotField.prototype.cacheLocations = function () {
@@ -543,6 +563,8 @@
       ripples: gl.getUniformLocation(this.program, 'u_ripples[0]'),
       terrainCount: gl.getUniformLocation(this.program, 'u_terrainCount'),
       terrain: gl.getUniformLocation(this.program, 'u_terrain[0]'),
+      time: gl.getUniformLocation(this.program, 'u_time'),
+      breathe: gl.getUniformLocation(this.program, 'u_breathe'),
       resolution: gl.getUniformLocation(this.program, 'u_resolution'),
       mouse: gl.getUniformLocation(this.program, 'u_mouse'),
       mousePresence: gl.getUniformLocation(this.program, 'u_mousePresence'),
@@ -899,6 +921,8 @@
     gl.uniform4fv(this.locations.ripples, this.rippleUniforms);
     gl.uniform1i(this.locations.terrainCount, this.terrainCount);
     gl.uniform4fv(this.locations.terrain, this.terrainUniforms);
+    gl.uniform1f(this.locations.time, this.time);
+    gl.uniform1f(this.locations.breathe, this.reducedMotion ? 0 : getBreathe() * 2.6);
 
     gl.uniform2f(this.locations.resolution, this.fieldWidth, this.fieldHeight);
     gl.uniform2f(this.locations.mouse, this.smoothedMouseX, this.smoothedMouseY);
@@ -959,8 +983,12 @@
     this.lastFrameTime = timestamp;
     if (dt > 0.1) dt = 0.05;
     if (dt <= 0) dt = 1 / 60;
+    this.time += dt;
 
-    var changed = this.updateMouse(dt) || this.ripples.length > 0;
+    // Breathing keeps the loop alive so the ambient wave actually moves;
+    // at breathe 0 (or reduced motion) it reverts to render-on-demand.
+    var breathing = !this.reducedMotion && getBreathe() > 0.001;
+    var changed = this.updateMouse(dt) || this.ripples.length > 0 || breathing;
     this.draw();
 
     if (changed) {
@@ -1009,6 +1037,8 @@
       instances[i].setTerrain(blobs);
     }
   };
+  // Wake the loop after window.__fieldBreathe changes (e.g. slider input).
+  window.refreshDotField = requestRenderAll;
   window.setDotFieldWarpMode = function (name) {
     if (!WARP_MODES.hasOwnProperty(name)) return false;
     globalWarpMode = WARP_MODES[name];

@@ -97,6 +97,20 @@
     }
   });
 
+  // Ambient breathing slider: one global intensity shared by all three
+  // field systems (0 still, 1 default, 2 storm). The renderers read
+  // window.__fieldBreathe every frame; the refresh hooks wake the
+  // on-demand loops so a change is visible immediately.
+  document.addEventListener('input', function (event) {
+    var slider = event.target.closest('[data-breathe-slider]');
+    if (!slider) return;
+    var value = parseFloat(slider.value);
+    if (isNaN(value)) return;
+    window.__fieldBreathe = Math.max(0, Math.min(2, value));
+    if (typeof window.refreshDotField === 'function') window.refreshDotField();
+    if (typeof window.refreshPressureDots === 'function') window.refreshPressureDots();
+  });
+
   function boot() {
     if (getPage()) setField('fabric');
   }

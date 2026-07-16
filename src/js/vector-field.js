@@ -1213,7 +1213,10 @@ function initVectorFieldCanvas() {
                  + _sin(waveTime * 1.3 + p.seed2Wave) * 0.05
                  + _cos(waveTime * 0.9 + p.seed3Wave) * 0.04;
 
-      var liveAngle = swell + cross + deep + random;
+      // window.__fieldBreathe scales the ambient sea state (0 still,
+      // 1 default, 2 storm) — shared with the WebGL renderer.
+      var liveAngle = (swell + cross + deep + random) *
+        (typeof window.__fieldBreathe === 'number' ? window.__fieldBreathe : 1);
 
       // --- #1: GRAVITATIONAL CURRENT (mobile only) ---
       // Subtle inward bias — like water circling a drain

@@ -17,6 +17,12 @@
   var listenersAttached = false;
   // The field lab pauses this system while another field is the exhibit.
   var fieldPaused = false;
+
+  // Ambient breathing intensity, shared across all lab field systems via
+  // window.__fieldBreathe (0 = still, 1 = default, 2 = storm).
+  function getBreathe() {
+    return typeof window.__fieldBreathe === 'number' ? window.__fieldBreathe : 1;
+  }
   var pointerX = -1000;
   var pointerY = -1000;
   var pointerClearTimer = null;
@@ -38,6 +44,8 @@
     'uniform int u_dotMode;',
     'uniform int u_rippleCount;',
     'uniform vec4 u_ripples[6];',
+    'uniform float u_time;',
+    'uniform float u_breathe;',
     'varying float v_alpha;',
     // Anisotropic falloff: the bloom stretches along the drag vector,
     // strongly behind the motion (a trailing wake), slightly ahead.
@@ -89,6 +97,15 @@
     '    pushAmt = -strength * (18.0 + u_charge * 16.0);',
     '  }',
     '  vec2 pos = a_position;',
+    // Ambient breathing: dots drift on the same slow wave family the
+    // vector field rides, with a faint size pulse. u_breathe is the
+    // drift in px (0 disables entirely).
+    '  if (u_breathe > 0.001) {',
+    '    float bwx = sin(a_position.x * 0.007 + u_time * 1.1) * 1.3 + sin(a_position.y * 0.009 + u_time * 0.8) * 1.0;',
+    '    float bwy = cos(a_position.x * 0.006 - u_time * 0.95) * 1.2 + sin((a_position.x + a_position.y) * 0.004 + u_time * 0.65) * 1.1;',
+    '    pos += vec2(bwx, bwy) * u_breathe;',
+    '    radius *= 1.0 + sin(u_time * 0.85 + a_position.x * 0.008 + a_position.y * 0.006) * min(u_breathe * 0.055, 0.24);',
+    '  }',
     '  float dist = length(toDot);',
     '  if (strength > 0.001 && dist > 0.001) {',
     '    if (u_dotMode == 3) {',
@@ -326,6 +343,7 @@
     this.charge = 0;
     this.holding = false;
     this.holdStart = 0;
+    this.time = 0;
     this.ripples = [];
     this.rippleUniforms = new Float32Array(24);
     this.lastFrameTime = 0;
@@ -417,6 +435,8 @@
     this.running = true;
     this.resize();
     this.draw();
+    // Kick the loop so ambient breathing runs without waiting for input.
+    this.requestRender();
   };
 
   DotField.prototype.cacheLocations = function () {
@@ -435,6 +455,8 @@
       dotMode: gl.getUniformLocation(this.program, 'u_dotMode'),
       rippleCount: gl.getUniformLocation(this.program, 'u_rippleCount'),
       ripples: gl.getUniformLocation(this.program, 'u_ripples[0]'),
+      time: gl.getUniformLocation(this.program, 'u_time'),
+      breathe: gl.getUniformLocation(this.program, 'u_breathe'),
       color: gl.getUniformLocation(this.program, 'u_color')
     };
   };
@@ -770,6 +792,8 @@
     gl.uniform1i(this.locations.dotMode, globalDotMode);
     gl.uniform1i(this.locations.rippleCount, rippleCount);
     gl.uniform4fv(this.locations.ripples, this.rippleUniforms);
+    gl.uniform1f(this.locations.time, this.time);
+    gl.uniform1f(this.locations.breathe, this.reducedMotion ? 0 : getBreathe() * 2.2);
     gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.POINTS, 0, this.pointCount);
   };
@@ -799,8 +823,12 @@
     this.lastFrameTime = timestamp;
     if (dt > 0.1) dt = 0.05;
     if (dt <= 0) dt = 1 / 60;
+    this.time += dt;
 
-    var changed = this.updateMouse(dt) || this.ripples.length > 0;
+    // Breathing keeps the loop alive so the ambient wave actually moves;
+    // at breathe 0 (or reduced motion) it reverts to render-on-demand.
+    var breathing = !this.reducedMotion && getBreathe() > 0.001;
+    var changed = this.updateMouse(dt) || this.ripples.length > 0 || breathing;
     this.draw();
 
     if (changed) {
@@ -837,6 +865,8 @@
       instances[i].addPulse(x, y, power);
     }
   };
+  // Wake the loop after window.__fieldBreathe changes (e.g. slider input).
+  window.refreshPressureDots = requestRenderAll;
   window.setPressureDotsMode = function (name) {
     if (!DOT_MODES.hasOwnProperty(name)) return false;
     globalDotMode = DOT_MODES[name];

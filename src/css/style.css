@@ -6369,6 +6369,66 @@ body:has(.contact-page) {
   gap: 0.5rem;
 }
 
+/* Ambient breathing slider (still — swell) */
+.field-lab__breathe {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.field-lab__breathe-label {
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(22, 20, 18, 0.45);
+}
+
+.field-lab__breathe input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 150px;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+
+.field-lab__breathe input[type='range']::-webkit-slider-runnable-track {
+  height: 1px;
+  background: rgba(22, 20, 18, 0.32);
+}
+
+.field-lab__breathe input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--concrete);
+  border: 1px solid rgba(22, 20, 18, 0.75);
+  margin-top: -5px;
+  transition: background 0.2s ease;
+}
+
+.field-lab__breathe input[type='range']::-webkit-slider-thumb:hover {
+  background: var(--text-primary);
+}
+
+.field-lab__breathe input[type='range']::-moz-range-track {
+  height: 1px;
+  background: rgba(22, 20, 18, 0.32);
+}
+
+.field-lab__breathe input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--concrete);
+  border: 1px solid rgba(22, 20, 18, 0.75);
+}
+
 .field-lab__chip {
   font-family: var(--font-primary);
   font-size: 0.7rem;
