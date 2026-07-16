@@ -6429,7 +6429,7 @@ body:has(.contact-page) {
 /* DRIFT traverse game (vector system only). Running drift turns the
    viewport into a numbered survey plate: sheet border, title block
    top-right, premise hint top-center. */
-.field-lab__drift-launch {
+.field-lab__plate-launch {
   display: none;
   font-family: 'Courier Prime', monospace;
   font-size: 0.66rem;
@@ -6444,16 +6444,16 @@ body:has(.contact-page) {
   transition: color 0.25s ease, border-color 0.25s ease;
 }
 
-.field-lab__drift-launch.is-visible {
+.field-lab__plate-launch.is-visible {
   display: inline-block;
 }
 
-.field-lab__drift-launch:hover {
+.field-lab__plate-launch:hover {
   color: var(--text-primary);
   border-bottom-color: rgba(22, 20, 18, 0.7);
 }
 
-.field-lab__drift-launch.is-on {
+.field-lab__plate-launch.is-on {
   color: var(--text-primary);
   border-bottom-style: solid;
   border-bottom-color: var(--text-primary);
@@ -6471,11 +6471,11 @@ body:has(.contact-page) {
   transition: opacity 0.45s ease;
 }
 
-.field-lab-page.is-drifting::after {
+.field-lab-page.is-plate::after {
   opacity: 1;
 }
 
-.field-lab__drift-canvas {
+.field-lab__plate-canvas {
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -6484,12 +6484,12 @@ body:has(.contact-page) {
   transition: opacity 0.45s ease;
 }
 
-.field-lab__drift-canvas.is-active {
+.field-lab__plate-canvas.is-active {
   opacity: 1;
 }
 
 /* Title block, top-right corner of the plate. */
-.field-lab__drift-status {
+.field-lab__plate-status {
   position: absolute;
   top: 1.7rem;
   right: 2rem;
@@ -6510,11 +6510,11 @@ body:has(.contact-page) {
   pointer-events: none;
 }
 
-.field-lab__drift-status.is-visible {
+.field-lab__plate-status.is-visible {
   opacity: 1;
 }
 
-.field-lab__drift-hint {
+.field-lab__plate-hint {
   position: absolute;
   top: 3.6rem;
   left: 50%;
@@ -6530,7 +6530,7 @@ body:has(.contact-page) {
   pointer-events: none;
 }
 
-.field-lab__drift-hint.is-visible {
+.field-lab__plate-hint.is-visible {
   opacity: 1;
 }
 
@@ -6540,14 +6540,14 @@ body:has(.contact-page) {
     top: 3.4rem;
   }
 
-  .field-lab__drift-status {
+  .field-lab__plate-status {
     top: 1.5rem;
     right: 1.2rem;
     font-size: 0.58rem;
     padding: 0.4rem 0.6rem;
   }
 
-  .field-lab__drift-hint {
+  .field-lab__plate-hint {
     top: 5.6rem;
     font-size: 0.58rem;
     max-width: calc(100vw - 2.4rem);

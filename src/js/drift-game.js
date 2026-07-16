@@ -88,13 +88,13 @@
     if (traceCanvas) return;
 
     traceCanvas = document.createElement('canvas');
-    traceCanvas.className = 'field-lab__drift-canvas';
+    traceCanvas.className = 'field-lab__plate-canvas';
     dynCanvas = document.createElement('canvas');
-    dynCanvas.className = 'field-lab__drift-canvas';
+    dynCanvas.className = 'field-lab__plate-canvas';
     statusEl = document.createElement('div');
-    statusEl.className = 'field-lab__drift-status';
+    statusEl.className = 'field-lab__plate-status';
     hintEl = document.createElement('div');
-    hintEl.className = 'field-lab__drift-hint';
+    hintEl.className = 'field-lab__plate-hint';
     hintEl.textContent = 'steer the weather — the mote follows the field';
 
     var uiAnchor = page.querySelector('.field-lab__home');
@@ -196,7 +196,7 @@
     traceCanvas.classList.add('is-active');
     dynCanvas.classList.add('is-active');
     statusEl.classList.add('is-visible');
-    page.classList.add('is-drifting');
+    page.classList.add('is-plate');
     if (toggleBtn) {
       toggleBtn.classList.add('is-on');
       toggleBtn.textContent = '■ end drift';
@@ -220,7 +220,7 @@
     finished = false;
     if (raf) cancelAnimationFrame(raf);
     raf = null;
-    if (page) page.classList.remove('is-drifting');
+    if (page) page.classList.remove('is-plate');
     if (hintTimer) {
       clearTimeout(hintTimer);
       hintTimer = null;
@@ -241,10 +241,24 @@
     return 'traverse ' + (runCount < 10 ? '0' : '') + runCount;
   }
 
+  // Completing all three lab games (drift / sounding / contour) in one
+  // visit earns a quiet combined mark.
+  function markSurvey() {
+    var done = false;
+    try {
+      sessionStorage.setItem('bylSurvey-drift', '1');
+      done = !!(sessionStorage.getItem('bylSurvey-drift') &&
+        sessionStorage.getItem('bylSurvey-sounding') &&
+        sessionStorage.getItem('bylSurvey-contour'));
+    } catch (err) {}
+    return done;
+  }
+
   function finishRun() {
     finished = true;
     finalTime = (performance.now() - startTime) / 1000;
-    statusEl.textContent = runLabel() + ' · complete\n' + formatClock(finalTime);
+    var surveyLine = markSurvey() ? '\nsite survey complete' : '';
+    statusEl.textContent = runLabel() + ' · complete\n' + formatClock(finalTime) + surveyLine;
     if (toggleBtn) toggleBtn.textContent = '▸ drift again';
   }
 

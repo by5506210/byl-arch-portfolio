@@ -48,6 +48,11 @@
     'uniform vec4 u_reveal;',
     'uniform int u_rippleCount;',
     'uniform vec4 u_ripples[6];',
+    // Persistent terrain (CONTOUR game): deposited mass blobs that warp
+    // the grid exactly like held cursor presses. xy = center, z = push
+    // amplitude (px), w = radius. Zero count = shader behaves as before.
+    'uniform int u_terrainCount;',
+    'uniform vec4 u_terrain[16];',
     'varying float v_alpha;',
     'void main() {',
     '  vec2 pos = a_position;',
@@ -76,6 +81,27 @@
     '      pos += dir * push;',
     '    }',
     '    alpha *= 1.0 + min(t, 1.0) * 0.85;',
+    '  }',
+    '  for (int k = 0; k < 16; k++) {',
+    '    if (k >= u_terrainCount) break;',
+    '    vec4 tb = u_terrain[k];',
+    '    vec2 tDelta = a_position - tb.xy;',
+    '    float tDist = length(tDelta);',
+    '    float tLin = max(0.0, 1.0 - tDist / max(tb.w, 1.0));',
+    '    float tt;',
+    '    if (u_warpMode == 0) {',
+    '      float ts = 1.0 - smoothstep(0.0, tb.w, tDist);',
+    '      tt = ts * ts;',
+    '    } else if (u_warpMode == 3) {',
+    '      tt = tLin > 0.0 ? ceil(tLin * 3.0) / 3.0 * 0.75 : 0.0;',
+    '    } else {',
+    '      tt = tLin;',
+    '    }',
+    '    if (tt > 0.001) {',
+    '      vec2 tDir = tDist > 0.001 ? tDelta / tDist : vec2(0.0, 1.0);',
+    '      pos += tDir * tt * tb.z;',
+    '      alpha *= 1.0 + min(tt, 1.0) * 0.5;',
+    '    }',
     '  }',
     '  for (int i = 0; i < 6; i++) {',
     '    if (i >= u_rippleCount) break;',
@@ -365,6 +391,8 @@
     this.vertexCount = 0;
     this.ripples = [];
     this.rippleUniforms = new Float32Array(24);
+    this.terrainUniforms = new Float32Array(64);
+    this.terrainCount = 0;
 
     this.surface = canvas.getAttribute('data-field-surface') || 'page';
     var modeAttr = canvas.getAttribute('data-field-mode');
@@ -513,6 +541,8 @@
       axis: gl.getAttribLocation(this.program, 'a_axis'),
       rippleCount: gl.getUniformLocation(this.program, 'u_rippleCount'),
       ripples: gl.getUniformLocation(this.program, 'u_ripples[0]'),
+      terrainCount: gl.getUniformLocation(this.program, 'u_terrainCount'),
+      terrain: gl.getUniformLocation(this.program, 'u_terrain[0]'),
       resolution: gl.getUniformLocation(this.program, 'u_resolution'),
       mouse: gl.getUniformLocation(this.program, 'u_mouse'),
       mousePresence: gl.getUniformLocation(this.program, 'u_mousePresence'),
@@ -867,6 +897,8 @@
     var rippleCount = this.updateRipples(performance.now());
     gl.uniform1i(this.locations.rippleCount, rippleCount);
     gl.uniform4fv(this.locations.ripples, this.rippleUniforms);
+    gl.uniform1i(this.locations.terrainCount, this.terrainCount);
+    gl.uniform4fv(this.locations.terrain, this.terrainUniforms);
 
     gl.uniform2f(this.locations.resolution, this.fieldWidth, this.fieldHeight);
     gl.uniform2f(this.locations.mouse, this.smoothedMouseX, this.smoothedMouseY);
@@ -886,6 +918,20 @@
     );
     gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.LINES, 0, this.vertexCount);
+  };
+
+  DotField.prototype.setTerrain = function (blobs) {
+    var count = Math.min(16, blobs ? blobs.length : 0);
+    this.terrainUniforms.fill(0);
+    for (var i = 0; i < count; i++) {
+      var blob = blobs[i];
+      this.terrainUniforms[i * 4] = blob.x;
+      this.terrainUniforms[i * 4 + 1] = blob.y;
+      this.terrainUniforms[i * 4 + 2] = blob.amp;
+      this.terrainUniforms[i * 4 + 3] = blob.radius;
+    }
+    this.terrainCount = count;
+    this.requestRender();
   };
 
   DotField.prototype.requestRender = function () {
@@ -956,6 +1002,12 @@
   window.setDotFieldActive = function (active) {
     fieldPaused = !active;
     if (!fieldPaused) requestRenderAll();
+  };
+  // CONTOUR game: persistent deposited-mass blobs ({x, y, amp, radius}).
+  window.setDotFieldTerrain = function (blobs) {
+    for (var i = 0; i < instances.length; i++) {
+      instances[i].setTerrain(blobs);
+    }
   };
   window.setDotFieldWarpMode = function (name) {
     if (!WARP_MODES.hasOwnProperty(name)) return false;

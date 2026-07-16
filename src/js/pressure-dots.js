@@ -830,6 +830,13 @@
     fieldPaused = !active;
     if (!fieldPaused) requestRenderAll();
   };
+  // SOUNDING game: fire a pulse ring through the dots from an arbitrary
+  // point (buried stations answering a sonar ping).
+  window.pressureDotsPulse = function (x, y, power) {
+    for (var i = 0; i < instances.length; i++) {
+      instances[i].addPulse(x, y, power);
+    }
+  };
   window.setPressureDotsMode = function (name) {
     if (!DOT_MODES.hasOwnProperty(name)) return false;
     globalDotMode = DOT_MODES[name];
