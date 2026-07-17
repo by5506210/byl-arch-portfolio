@@ -6302,13 +6302,18 @@ body:has(.contact-page) {
   background: var(--concrete);
 }
 
+/* Hidden field layers get visibility:hidden (after the opacity fade) so
+   the compositor stops paying for full-screen transparent canvases. */
 .field-lab-page .vector-field-bg {
   opacity: 0;
-  transition: opacity 0.45s ease;
+  visibility: hidden;
+  transition: opacity 0.45s ease, visibility 0s linear 0.45s;
 }
 
 .field-lab-page .vector-field-bg.is-active {
   opacity: 1;
+  visibility: visible;
+  transition: opacity 0.45s ease, visibility 0s;
 }
 
 .field-lab__canvas {
@@ -6318,11 +6323,14 @@ body:has(.contact-page) {
   z-index: 0;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  visibility: hidden;
+  transition: opacity 0.45s ease, visibility 0s linear 0.45s;
 }
 
 .field-lab__canvas.is-active {
   opacity: 1;
+  visibility: visible;
+  transition: opacity 0.45s ease, visibility 0s;
 }
 
 .field-lab__home {
@@ -6541,11 +6549,14 @@ body:has(.contact-page) {
   z-index: 2;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  visibility: hidden;
+  transition: opacity 0.45s ease, visibility 0s linear 0.45s;
 }
 
 .field-lab__plate-canvas.is-active {
   opacity: 1;
+  visibility: visible;
+  transition: opacity 0.45s ease, visibility 0s;
 }
 
 /* Title block, top-right corner of the plate. */

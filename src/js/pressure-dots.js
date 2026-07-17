@@ -822,9 +822,15 @@
       return;
     }
 
-    var rect = this.canvas.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0 && (Math.abs(rect.width - this.fieldWidth) > 2 || Math.abs(rect.height - this.fieldHeight) > 2)) {
-      this.scheduleResize();
+    // getBoundingClientRect can force layout; at 60fps that's real cost,
+    // and the size only ever changes on resize-scale events. Check it
+    // roughly twice a second instead of every frame.
+    this.frameTick = (this.frameTick || 0) + 1;
+    if ((this.frameTick & 31) === 0) {
+      var rect = this.canvas.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0 && (Math.abs(rect.width - this.fieldWidth) > 2 || Math.abs(rect.height - this.fieldHeight) > 2)) {
+        this.scheduleResize();
+      }
     }
 
     if (!this.lastFrameTime) this.lastFrameTime = timestamp;

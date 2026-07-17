@@ -895,19 +895,24 @@
     var presence = clamp(this.mousePresence * revealInteractionPresence, 0, 1);
     var warpMode = this.forcedWarpMode >= 0 ? this.forcedWarpMode : globalWarpMode;
 
-    // Pass 1: dimple shade under the grid.
-    gl.useProgram(this.dimpleProgram);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.dimpleBuffer);
-    gl.enableVertexAttribArray(this.dimpleLocations.position);
-    gl.vertexAttribPointer(this.dimpleLocations.position, 2, gl.FLOAT, false, 0, 0);
-    gl.uniform2f(this.dimpleLocations.resolution, this.fieldWidth, this.fieldHeight);
-    gl.uniform2f(this.dimpleLocations.mouse, this.smoothedMouseX, this.smoothedMouseY);
-    gl.uniform1f(this.dimpleLocations.mousePresence, presence);
-    gl.uniform1f(this.dimpleLocations.cursorRadius, this.cursorRadius);
-    gl.uniform1f(this.dimpleLocations.dimpleStrength, this.dimpleStrength);
-    gl.uniform1i(this.dimpleLocations.warpMode, warpMode);
-    gl.uniform3f(this.dimpleLocations.color, 0.065, 0.065, 0.065);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    // Pass 1: dimple shade under the grid. Full-screen fragment work, so
+    // skip it entirely while the cursor is absent (its output is zero
+    // everywhere then) — the breathing loop would otherwise pay for a
+    // useless full-screen pass every frame.
+    if (presence > 0.003) {
+      gl.useProgram(this.dimpleProgram);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.dimpleBuffer);
+      gl.enableVertexAttribArray(this.dimpleLocations.position);
+      gl.vertexAttribPointer(this.dimpleLocations.position, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform2f(this.dimpleLocations.resolution, this.fieldWidth, this.fieldHeight);
+      gl.uniform2f(this.dimpleLocations.mouse, this.smoothedMouseX, this.smoothedMouseY);
+      gl.uniform1f(this.dimpleLocations.mousePresence, presence);
+      gl.uniform1f(this.dimpleLocations.cursorRadius, this.cursorRadius);
+      gl.uniform1f(this.dimpleLocations.dimpleStrength, this.dimpleStrength);
+      gl.uniform1i(this.dimpleLocations.warpMode, warpMode);
+      gl.uniform3f(this.dimpleLocations.color, 0.065, 0.065, 0.065);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
 
     // Pass 2: the grid lines.
     gl.useProgram(this.program);
@@ -981,9 +986,15 @@
       return;
     }
 
-    var rect = this.canvas.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0 && (Math.abs(rect.width - this.fieldWidth) > 2 || Math.abs(rect.height - this.fieldHeight) > 2)) {
-      this.scheduleResize();
+    // getBoundingClientRect can force layout; at 60fps that's real cost,
+    // and the size only ever changes on resize-scale events. Check it
+    // roughly twice a second instead of every frame.
+    this.frameTick = (this.frameTick || 0) + 1;
+    if ((this.frameTick & 31) === 0) {
+      var rect = this.canvas.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0 && (Math.abs(rect.width - this.fieldWidth) > 2 || Math.abs(rect.height - this.fieldHeight) > 2)) {
+        this.scheduleResize();
+      }
     }
 
     if (!this.lastFrameTime) this.lastFrameTime = timestamp;

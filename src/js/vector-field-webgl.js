@@ -6,8 +6,11 @@
   'use strict';
 
   var ACTIVE_RENDERER = null;
-  var FIELD_MODES = { attract: 0, vortex: 1, repel: 2, scatter: 3 };
-  var vectorFieldMode = FIELD_MODES.attract;
+  // "flow" is the plain drifting field of the intro screen: ambient waves
+  // plus the gentle default cursor response, no mode kinematics.
+  var FIELD_MODES = { flow: 3, attract: 0, vortex: 1, repel: 2 };
+  var vectorFieldMode = FIELD_MODES.flow;
+  window.__vectorFieldMode = vectorFieldMode;
   var INSTANCE_ID = 0;
 
   var MAX_RIPPLES = 8;
@@ -343,7 +346,8 @@
     //   1 vortex  - tangential alignment + swirling displacement (whirlpool)
     //   2 repel   - lines aim away and get shoved out; the core empties
     //               into a crater with a bright rim
-    //   3 scatter - coherent turbulence: eddies of wind churning the field
+    //   3 flow    - no kinematics at all: the intro screen's plain
+    //               drifting field with the gentle default response
     '        float mouseAngle = atan(toMouse.y, toMouse.x);',
     '        vec2 mouseDir = distMouse > 0.001 ? toMouse / distMouse : vec2(0.0, 0.0);',
     '        vec2 mouseTangent = vec2(-mouseDir.y, mouseDir.x);',
@@ -369,15 +373,10 @@
     '          float rim = smoothstep(0.15, 0.4, mStrength) * (1.0 - smoothstep(0.5, 0.85, mStrength));',
     '          drawOpacity *= 1.0 - core * 0.85 * uModeIntensity;',
     '          drawOpacity = min(1.0, drawOpacity + rim * 0.45 * uOpacityScale * uModeIntensity);',
-    '        } else if (uFieldMode == 3) {',
-    '          float turb = sin(basePos.x * 0.03 + uTime * 3.0) + cos(basePos.y * 0.027 - uTime * 2.2) + sin((basePos.x + basePos.y) * 0.02 + uTime * 1.6);',
-    // Off the lab, keep the legacy per-particle churn so a mode carried
-    // over from the lab page cannot change other pages' feel.
-    '          mouseAngle = mix(aSeed.x * 6.2831853 + uTime * (1.2 + aSeed.y * 2.4), turb * 2.2, uModeIntensity);',
-    '          mouseShift = vec2(cos(mouseAngle), sin(mouseAngle)) * mouseEffect * 22.0;',
-    '          modeAlign = 0.95;',
-    '          modeLenBoost = 6.0 + (sin(turb * 4.7) * 0.5 + 0.5) * 14.0;',
     '        }',
+    // Mode 3 (flow) intentionally has no branch: modeAlign/modeLenBoost
+    // keep their 0.52 / 8.0 defaults and mouseShift stays zero, which is
+    // exactly the landing page's cursor response.
     '        mouseShift *= uModeIntensity;',
     '        targetAngle += angleDelta(targetAngle, mouseAngle) * angleInfluence * mix(0.52, modeAlign, uModeIntensity);',
     '        drawLen = max(drawLen, uLine.x * lc.w + mouseEffect * mix(8.0, modeLenBoost, uModeIntensity) * (1.0 - uEasterExtra.y * particleNearEE));',
@@ -1700,10 +1699,16 @@
     this.setVectorUniforms(mousePresence, pageMouseX, pageMouseY, scrollTilt);
     this.drawInstanced();
 
-    gl.useProgram(this.effectProgram);
-    this.bindEffectAttributes();
-    this.setEffectUniforms(mousePresence, pageMouseX, pageMouseY);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // The effect program is a full-screen fragment pass. Off the landing
+    // page (portal glow, easter-egg shading) it only ever draws ripple
+    // rings, so skip it entirely while no ripples are alive instead of
+    // shading every pixel to output nothing.
+    if (this.isLandingPage || this.ripples.length > 0) {
+      gl.useProgram(this.effectProgram);
+      this.bindEffectAttributes();
+      this.setEffectUniforms(mousePresence, pageMouseX, pageMouseY);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
   };
 
   // Park the render loop while another lab field system is the exhibit.

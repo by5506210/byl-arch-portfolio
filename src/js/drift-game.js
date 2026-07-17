@@ -170,6 +170,12 @@
 
   function startRun() {
     ensureSurfaces();
+    // Flow (mode 3) applies no cursor force, so a fresh run switches to
+    // attract — the game's core steering verb — keeping chips in sync.
+    if ((window.__vectorFieldMode | 0) === 3) {
+      var attractChip = document.querySelector('[data-vector-mode="attract"]');
+      if (attractChip) attractChip.click();
+    }
     running = true;
     finished = false;
     runCount++;
@@ -293,22 +299,25 @@
       var mode = window.__vectorFieldMode | 0;
 
       if (mode === 0) {
-        ax += ux * CURSOR_FORCE * falloff;
-        ay += uy * CURSOR_FORCE * falloff;
+        // Arrival steering instead of a raw pull: chase a desired
+        // velocity that points at the cursor and slows on approach.
+        // The velocity-correction term kills sideways motion, so the
+        // mote homes in and parks instead of slingshotting into orbits
+        // that read as "avoiding" the cursor.
+        var authority = 1 - dist / CURSOR_RADIUS;
+        var desiredSpeed = Math.min(1, dist / 150) * MAX_SPEED * 0.85;
+        var gain = 5.2 * authority;
+        ax += (ux * desiredSpeed - mote.vx) * gain;
+        ay += (uy * desiredSpeed - mote.vy) * gain;
       } else if (mode === 1) {
         ax += (-uy + ux * 0.35) * CURSOR_FORCE * falloff;
         ay += (ux + uy * 0.35) * CURSOR_FORCE * falloff;
       } else if (mode === 2) {
         ax -= ux * CURSOR_FORCE * falloff;
         ay -= uy * CURSOR_FORCE * falloff;
-      } else {
-        var turb = Math.sin(mote.x * 0.011 + time * 2.2) +
-          Math.cos(mote.y * 0.013 - time * 1.7) +
-          Math.sin((mote.x + mote.y) * 0.008 + time * 1.3);
-        var turbAngle = turb * 2.2;
-        ax += Math.cos(turbAngle) * CURSOR_FORCE * falloff * 0.9;
-        ay += Math.sin(turbAngle) * CURSOR_FORCE * falloff * 0.9;
       }
+      // Mode 3 (flow) applies no cursor force: the mote only rides the
+      // ambient current and click shockwaves.
     }
 
     // Click shockwaves shove the mote outward as the front passes.

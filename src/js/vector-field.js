@@ -1186,6 +1186,8 @@ function initVectorFieldCanvas() {
 
     var maxMouseRadius = mouseInfluence + 65;
     var maxMouseRadiusSq = maxMouseRadius * maxMouseRadius;
+    // Hoisted out of the per-particle loop: one global read per frame.
+    var fieldBreathe = typeof window.__fieldBreathe === 'number' ? window.__fieldBreathe : 1;
     var wakeRadiusSq = wakeRadius * wakeRadius;
     var wakeLen = wakeTrail.length;
     for (var wf = 0; wf < wakeLen; wf++) {
@@ -1213,10 +1215,9 @@ function initVectorFieldCanvas() {
                  + _sin(waveTime * 1.3 + p.seed2Wave) * 0.05
                  + _cos(waveTime * 0.9 + p.seed3Wave) * 0.04;
 
-      // window.__fieldBreathe scales the ambient sea state (0 still,
-      // 1 default, 2 storm) — shared with the WebGL renderer.
-      var liveAngle = (swell + cross + deep + random) *
-        (typeof window.__fieldBreathe === 'number' ? window.__fieldBreathe : 1);
+      // fieldBreathe scales the ambient sea state (0 still, 1 default,
+      // 2 storm) — shared with the WebGL renderer.
+      var liveAngle = (swell + cross + deep + random) * fieldBreathe;
 
       // --- #1: GRAVITATIONAL CURRENT (mobile only) ---
       // Subtle inward bias — like water circling a drain
@@ -1409,17 +1410,12 @@ function initVectorFieldCanvas() {
                 modeLenBoost = 11;
                 var craterCore = 1 - _min(1, distM / 90);
                 drawOpacity *= 1 - craterCore * 0.85;
-              } else if (fieldMode === 3) {
-                var turb = _sin(p.x * 0.03 + time * 3.0) + _cos(p.y * 0.027 - time * 2.2) + _sin((p.x + p.y) * 0.02 + time * 1.6);
-                mouseTargetAngle = turb * 2.2;
-                shiftX += _cos(mouseTargetAngle) * mouseEffect * 22;
-                shiftY += _sin(mouseTargetAngle) * mouseEffect * 22;
-                modeLenBoost = 6 + (_sin(turb * 4.7) * 0.5 + 0.5) * 14;
               }
+              // Mode 3 (flow) has no branch: no shift, default length
+              // boost — the intro screen's plain cursor response.
             } else {
               if (fieldMode === 1) mouseTargetAngle += PI * 0.5;
               else if (fieldMode === 2) mouseTargetAngle += PI;
-              else if (fieldMode === 3) mouseTargetAngle = p.seed1 * TWO_PI + time * (1.2 + p.seed2 * 2.4);
             }
             var mouseDiff = angleDiff(targetAngle, mouseTargetAngle);
             targetAngle += mouseDiff * mouseEffect * 0.9;
