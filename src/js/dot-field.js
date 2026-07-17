@@ -65,14 +65,16 @@
     'void main() {',
     '  vec2 pos = a_position;',
     '  float alpha = u_baseAlpha;',
-    // Ambient breathing: the same slow wave family the vector field
-    // rides, so the fabric undulates like cloth instead of sitting still.
-    // u_breathe is the displacement in px (0 disables entirely).
+    // Ambient breathing (u_breathe = intensity 0..2, 0 disables): the
+    // fabric rolls like cloth on water. Mixed wavelengths make the grid
+    // visibly undulate locally (a long swell plus ~300px ripples), and a
+    // brightness wave travels across the lines like light on a sea.
     '  if (u_breathe > 0.001) {',
-    '    float bwx = sin(a_position.x * 0.006 + u_time * 1.15) * 1.4 + sin(a_position.y * 0.008 + u_time * 0.85) * 1.0;',
-    '    float bwy = cos(a_position.x * 0.005 - u_time * 1.0) * 1.2 + sin((a_position.x + a_position.y) * 0.0035 + u_time * 0.7) * 1.2;',
-    '    pos += vec2(bwx, bwy) * u_breathe;',
-    '    alpha *= 1.0 + sin(u_time * 0.8 + a_position.x * 0.004 + a_position.y * 0.005) * min(u_breathe * 0.045, 0.16);',
+    '    float bwx = sin(a_position.x * 0.006 + u_time * 1.15) * 1.5 + sin(a_position.y * 0.021 + u_time * 0.9) * 0.9 + sin((a_position.x + a_position.y) * 0.012 - u_time * 1.3) * 0.7;',
+    '    float bwy = cos(a_position.y * 0.007 - u_time * 1.0) * 1.5 + sin(a_position.x * 0.018 + u_time * 0.75) * 0.9 + cos((a_position.x - a_position.y) * 0.014 + u_time * 1.1) * 0.7;',
+    '    pos += vec2(bwx, bwy) * u_breathe * 3.4;',
+    '    float bAlphaWave = sin(a_position.x * 0.008 + a_position.y * 0.005 - u_time * 1.4);',
+    '    alpha *= 1.0 + bAlphaWave * min(0.16 * u_breathe, 0.34);',
     '  }',
     '  vec2 toVertex = a_position - u_mouse;',
     '  float dist = length(toVertex);',
@@ -384,6 +386,12 @@
     }, { passive: true });
 
     window.addEventListener('scroll', requestRenderAll, { passive: true });
+
+    // The loop parks while the tab is hidden; restart the ambient
+    // breathing as soon as it becomes visible again.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) requestRenderAll();
+    });
   }
 
   function stopInstances() {
@@ -922,7 +930,7 @@
     gl.uniform1i(this.locations.terrainCount, this.terrainCount);
     gl.uniform4fv(this.locations.terrain, this.terrainUniforms);
     gl.uniform1f(this.locations.time, this.time);
-    gl.uniform1f(this.locations.breathe, this.reducedMotion ? 0 : getBreathe() * 2.6);
+    gl.uniform1f(this.locations.breathe, this.reducedMotion ? 0 : getBreathe());
 
     gl.uniform2f(this.locations.resolution, this.fieldWidth, this.fieldHeight);
     gl.uniform2f(this.locations.mouse, this.smoothedMouseX, this.smoothedMouseY);

@@ -97,14 +97,17 @@
     '    pushAmt = -strength * (18.0 + u_charge * 16.0);',
     '  }',
     '  vec2 pos = a_position;',
-    // Ambient breathing: dots drift on the same slow wave family the
-    // vector field rides, with a faint size pulse. u_breathe is the
-    // drift in px (0 disables entirely).
+    // Ambient breathing (u_breathe = intensity 0..2, 0 disables): dots
+    // sway on mixed-wavelength waves while a swell rolls through the
+    // field, visibly growing and shrinking the dots in traveling bands,
+    // with a brightness wave running on a different diagonal.
     '  if (u_breathe > 0.001) {',
-    '    float bwx = sin(a_position.x * 0.007 + u_time * 1.1) * 1.3 + sin(a_position.y * 0.009 + u_time * 0.8) * 1.0;',
-    '    float bwy = cos(a_position.x * 0.006 - u_time * 0.95) * 1.2 + sin((a_position.x + a_position.y) * 0.004 + u_time * 0.65) * 1.1;',
-    '    pos += vec2(bwx, bwy) * u_breathe;',
-    '    radius *= 1.0 + sin(u_time * 0.85 + a_position.x * 0.008 + a_position.y * 0.006) * min(u_breathe * 0.055, 0.24);',
+    '    float bwx = sin(a_position.x * 0.007 + u_time * 1.1) * 1.4 + sin(a_position.y * 0.02 + u_time * 0.85) * 0.8;',
+    '    float bwy = cos(a_position.x * 0.017 - u_time * 0.95) * 1.2 + sin((a_position.x + a_position.y) * 0.004 + u_time * 0.7) * 1.0;',
+    '    pos += vec2(bwx, bwy) * u_breathe * 2.6;',
+    '    float swellWave = sin(a_position.x * 0.009 + a_position.y * 0.006 - u_time * 1.3);',
+    '    radius *= 1.0 + swellWave * min(0.28 * u_breathe, 0.6);',
+    '    alpha *= 1.0 + sin(a_position.x * 0.006 - a_position.y * 0.008 + u_time * 1.05) * min(0.18 * u_breathe, 0.4);',
     '  }',
     '  float dist = length(toDot);',
     '  if (strength > 0.001 && dist > 0.001) {',
@@ -298,6 +301,12 @@
     }, { passive: true });
 
     window.addEventListener('scroll', requestRenderAll, { passive: true });
+
+    // The loop parks while the tab is hidden; restart the ambient
+    // breathing as soon as it becomes visible again.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) requestRenderAll();
+    });
   }
 
   function stopInstances() {
@@ -793,7 +802,7 @@
     gl.uniform1i(this.locations.rippleCount, rippleCount);
     gl.uniform4fv(this.locations.ripples, this.rippleUniforms);
     gl.uniform1f(this.locations.time, this.time);
-    gl.uniform1f(this.locations.breathe, this.reducedMotion ? 0 : getBreathe() * 2.2);
+    gl.uniform1f(this.locations.breathe, this.reducedMotion ? 0 : getBreathe());
     gl.uniform3f(this.locations.color, 0.065, 0.065, 0.065);
     gl.drawArrays(gl.POINTS, 0, this.pointCount);
   };
