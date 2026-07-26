@@ -686,7 +686,7 @@
 
     this.easterEggVisible = false;
     this.easterEggCharge = 0;
-    this.easterEggChargeDuration = 4;
+    this.easterEggChargeDuration = 2;
     this.easterEggHoldRadius = this.touchCapable ? 128 : 108;
     this.easterEggHoldTriggered = false;
     this.easterEggStyleCache = {};

@@ -221,7 +221,7 @@ function initVectorFieldCanvas() {
   var easterEgg = isLandingPage ? document.getElementById('easter-egg-portal') : null;
   var easterEggVisible = false;
   var easterEggCharge = 0;
-  var easterEggChargeDuration = 4;
+  var easterEggChargeDuration = 2;
   var easterEggHoldRadius = touchCapable ? 128 : 108;
   var easterEggHoldTriggered = false;
   var easterEggStyleCache = {};
