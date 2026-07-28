@@ -101,6 +101,31 @@ function initParallaxHero() {
   });
 }
 
+// About page — profile photo crossfades to childhood photos by cursor side,
+// and clicks through to the memory tree.
+function initMemoryPhoto() {
+  var photo = document.querySelector('[data-memory-photo]');
+  if (!photo) return;
+
+  function onMove(e) {
+    var rect = photo.getBoundingClientRect();
+    var isLeft = (e.clientX - rect.left) < rect.width * 0.5;
+    photo.classList.toggle('is-young-left', isLeft);
+    photo.classList.toggle('is-young-right', !isLeft);
+  }
+
+  function onLeave() {
+    photo.classList.remove('is-young-left', 'is-young-right');
+  }
+
+  photo.addEventListener('mousemove', onMove, { passive: true });
+  photo.addEventListener('mouseleave', onLeave, { passive: true });
+  registerProjectPageCleanup(function () {
+    photo.removeEventListener('mousemove', onMove);
+    photo.removeEventListener('mouseleave', onLeave);
+  });
+}
+
 // Integrated nav bar — contains back, project name, and nav links
 function initNavBar(rootContainer) {
   var scope = rootContainer && rootContainer.querySelector
@@ -127,7 +152,8 @@ function initNavBar(rootContainer) {
 
   if (isProjectDetail) {
     var backLink = document.createElement('a');
-    backLink.href = 'projects.html';
+    // The memory tree is reached from the About page, so Back returns there.
+    backLink.href = scope.querySelector('.memory-page') ? 'about.html' : 'projects.html';
     backLink.classList.add('project-nav-bar__back');
     backLink.setAttribute('aria-label', 'Back to Projects');
     backLink.textContent = 'Back';
@@ -4149,6 +4175,7 @@ function initProjectPage(rootContainer) {
   initGalleryReveals();
   initParallaxHero();
   initNavBar(rootContainer);
+  initMemoryPhoto();
   initSpecCounters();
   initFilmstrip();
   initEdenSequence();

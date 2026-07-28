@@ -449,7 +449,7 @@
         // deterministic, beforeEnter path the projects helix uses — instead of leaning
         // only on the MutationObserver / after-hook timing. The tree's own ready-guard
         // makes the later observer/after calls harmless no-ops.
-        if (nextNamespace === 'moodboard' && typeof window.initMoodboardMindmap === 'function') {
+        if ((nextNamespace === 'moodboard' || nextNamespace === 'memory-tree') && typeof window.initMoodboardMindmap === 'function') {
           window.initMoodboardMindmap(data && data.next ? data.next.container : null);
         }
       },

@@ -559,6 +559,13 @@
       return;
     }
 
+    // The about-page portrait is a full-image link; snapping a box over it looks
+    // wrong, so give it the same soft circle as slideshow image hovers.
+    if (target.closest('.about__photo-link')) {
+      setHoverImageState();
+      return;
+    }
+
     var link = target.closest('a, button, .project-back');
     if (link && !target.closest('.slideshow__slide')) {
       beginSnap(link, {

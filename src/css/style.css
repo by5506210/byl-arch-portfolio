@@ -3618,6 +3618,8 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 }
 
 .about__photo {
+  display: block;
+  position: relative;
   width: 100%;
   max-width: 300px;
   overflow: hidden;
@@ -3626,6 +3628,7 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 }
 
 .about__photo img {
+  display: block;
   width: 100%;
   transform: none;
   transition: none;
@@ -3633,6 +3636,46 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 
 .about__photo:hover img {
   transform: none;
+}
+
+/* Young-photo crossfade: left half of the portrait reveals one childhood
+   photo, right half the other. Driven by is-young-left / is-young-right
+   classes set in project-page.js. */
+.about__photo-young {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+
+.about__photo.is-young-left .about__photo-young--left,
+.about__photo.is-young-right .about__photo-young--right {
+  opacity: 1;
+}
+
+.about__photo-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 0.6rem;
+  transform: translateX(-50%) translateY(4px);
+  font-family: var(--font-mono, 'Courier Prime', monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: #f2efe9;
+  background: rgba(17, 17, 15, 0.62);
+  padding: 0.28rem 0.65rem;
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+
+.about__photo:hover .about__photo-hint {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .about__content {
