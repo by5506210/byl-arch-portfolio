@@ -3812,6 +3812,23 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   text-decoration-color: rgba(17, 17, 15, 0.52);
 }
 
+/* Education: degrees hang under their school with a soft dash marker. */
+.about__edu-degree {
+  font-family: var(--font-primary);
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--dark-gray);
+  position: relative;
+  padding-left: 0.75rem;
+}
+
+.about__edu-degree::before {
+  content: '\2013';
+  position: absolute;
+  left: 0;
+  color: rgba(17, 17, 15, 0.35);
+}
+
 .about__exp-date {
   font-family: var(--font-primary);
   font-size: 0.65rem;
