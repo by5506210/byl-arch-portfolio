@@ -3641,13 +3641,13 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 /* Young-photo crossfade: left half of the portrait reveals one childhood
    photo, right half the other. Driven by is-young-left / is-young-right
    classes set in project-page.js. */
-.about__photo-young {
+.about__photo img.about__photo-young {
   position: absolute;
   inset: 0;
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  transition: opacity 1.6s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 
@@ -3659,23 +3659,22 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 .about__photo-hint {
   position: absolute;
   left: 50%;
-  bottom: 0.6rem;
-  transform: translateX(-50%) translateY(4px);
+  bottom: 0.55rem;
+  transform: translateX(-50%);
   font-family: var(--font-mono, 'Courier Prime', monospace);
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
+  font-size: 0.48rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
   white-space: nowrap;
-  color: #f2efe9;
-  background: rgba(17, 17, 15, 0.62);
-  padding: 0.28rem 0.65rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
   opacity: 0;
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  transition: opacity 1.2s ease;
   pointer-events: none;
 }
 
 .about__photo:hover .about__photo-hint {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
 }
 
 .about__content {
@@ -6345,6 +6344,78 @@ body:has(.contact-page) {
 @media (max-width: 767px) {
   .landing__portal {
     --portal-size: 18px;
+  }
+}
+
+/* ============================================
+   MY MEMORY TREE — plain gallery of childhood sketches
+   ============================================ */
+.memory-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(92% 52% at 50% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 68%),
+    linear-gradient(180deg, #f7f5ef 0%, #ece7dc 100%);
+  padding: clamp(3.6rem, 5.4vw, 4.9rem) clamp(1rem, 3vw, 2.2rem) clamp(2rem, 4vw, 3.5rem);
+}
+
+.memory-page__header {
+  width: min(1100px, 100%);
+  margin: 0 auto 1.6rem;
+}
+
+.memory-page__title {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: 0.78rem;
+  line-height: 1.1;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(17, 17, 15, 0.78);
+}
+
+.memory-page__sub {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-mono, 'Courier Prime', monospace);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  color: rgba(17, 17, 15, 0.42);
+}
+
+.memory-page__grid {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  columns: 2 380px;
+  column-gap: 1.6rem;
+}
+
+.memory-page__item {
+  margin: 0 0 1.6rem;
+  break-inside: avoid;
+}
+
+.memory-page__item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border: 1px solid rgba(17, 17, 15, 0.08);
+}
+
+.memory-page__item figcaption {
+  margin-top: 0.4rem;
+  font-family: var(--font-mono, 'Courier Prime', monospace);
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  color: rgba(17, 17, 15, 0.45);
+}
+
+@media (max-width: 640px) {
+  .memory-page {
+    padding: 3.75rem 0.8rem 1.6rem;
+  }
+
+  .memory-page__grid {
+    columns: 1;
   }
 }
 

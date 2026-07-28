@@ -137,7 +137,7 @@ function initNavBar(rootContainer) {
 
   var hero = scope.querySelector('.project-hero');
   var isProjectsHelix = !!scope.querySelector('.projects-helix');
-  var isMoodboard = !!scope.querySelector('.moodboard-page');
+  var isMoodboard = !!scope.querySelector('.moodboard-page, .memory-page');
   var isProjectDetail = !!scope.querySelector('.project-page, .coming-soon-page') || isMoodboard;
 
   // Build the unified bar
