@@ -146,7 +146,7 @@ function initNavBar(rootContainer) {
   links.classList.add('project-nav-bar__links');
   links.innerHTML =
     '<a href="projects.html" class="project-nav-bar__link">Projects</a>' +
-    '<a href="about.html" class="project-nav-bar__link" aria-label="About">?</a>';
+    '<a href="about.html" class="project-nav-bar__link nav-qmark" aria-label="About">?</a>';
   bar.appendChild(links);
 
   document.body.appendChild(bar);

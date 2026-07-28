@@ -3756,6 +3756,8 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
 }
 
 .about__exp-link {
+  align-self: flex-start;
+  width: fit-content;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.14em;
@@ -6301,6 +6303,15 @@ body:has(.contact-page) {
   .landing__portal {
     --portal-size: 18px;
   }
+}
+
+/* "?" nav tab — bigger than the text links, with extra breathing room.
+   Kept at end of file so it wins over the per-nav link font sizes. */
+a.nav-qmark {
+  font-size: 1rem;
+  line-height: 1;
+  margin-left: 0.7rem;
+  align-self: center;
 }
 
 /* ============================================ */
