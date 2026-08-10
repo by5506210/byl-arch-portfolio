@@ -1452,6 +1452,32 @@ body.portfolio-transition-active .slideshow__scroll-hint {
   contain-intrinsic-size: none;
 }
 
+/* Side-by-side gallery rows — keeps long image sets scannable */
+.project-gallery--duet,
+.project-gallery--trio {
+  display: grid;
+  gap: clamp(1.25rem, 2.5vw, 2.5rem);
+  width: 85%;
+  margin: 0 auto;
+  padding: 2.5rem 0;
+  align-items: start;
+}
+
+.project-gallery--duet {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+}
+
+.project-gallery--trio {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.project-gallery--duet .project-gallery__image,
+.project-gallery--trio .project-gallery__image {
+  width: 100%;
+  margin: 0;
+}
+
 .project-gallery--main-views .project-gallery__image img {
   clip-path: inset(0 0 0 0);
   filter: saturate(1);
@@ -6018,6 +6044,20 @@ body:has(.contact-page) {
 
   .project-gallery__image {
     width: 95%;
+  }
+
+  .project-gallery--duet,
+  .project-gallery--trio {
+    width: 95%;
+    gap: 1rem;
+  }
+
+  .project-gallery--duet {
+    grid-template-columns: 1fr;
+  }
+
+  .project-gallery--trio {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .project-single img {
