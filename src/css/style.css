@@ -3703,6 +3703,87 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   opacity: 1;
 }
 
+/* Locked state — the portrait opens on the childhood photo and the
+   memory-tree affordance stays hidden until the trace paper is lifted. */
+.about__photo.is-locked .about__photo-young--left {
+  opacity: 1;
+}
+
+.about__photo.is-locked .about__photo-hint {
+  display: none;
+}
+
+.about__photo.is-locked {
+  cursor: default;
+}
+
+/* Trace-paper flap covering the closing bio lines */
+.about__reveal {
+  position: relative;
+}
+
+.about__trace {
+  position: absolute;
+  inset: -0.55rem -0.9rem -0.35rem -0.7rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(243, 240, 234, 0.55);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.09), 0 2px 6px rgba(0, 0, 0, 0.05);
+  transform: rotate(-1.1deg);
+  cursor: pointer;
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 0.5s ease,
+              opacity 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@supports not ((backdrop-filter: blur(7px)) or (-webkit-backdrop-filter: blur(7px))) {
+  .about__trace {
+    background: rgba(243, 240, 234, 0.97);
+  }
+}
+
+/* Folded corner, bottom right */
+.about__trace::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 13px 13px;
+  border-color: transparent transparent rgba(26, 26, 26, 0.12) transparent;
+}
+
+.about__trace-label {
+  font-family: var(--font-mono, 'Courier Prime', monospace);
+  font-size: 0.5rem;
+  letter-spacing: 0.22em;
+  color: rgba(26, 26, 26, 0.62);
+}
+
+.about__trace:hover {
+  transform: rotate(-1.7deg) translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.12), 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.about__trace:focus-visible {
+  outline: 1px dashed rgba(26, 26, 26, 0.45);
+  outline-offset: 3px;
+}
+
+.about__reveal.is-revealed .about__trace {
+  opacity: 0;
+  transform: rotate(-4.5deg) translate(0.9rem, -1.9rem);
+  pointer-events: none;
+}
+
 .about__content {
   padding-top: 0.4rem;
 }

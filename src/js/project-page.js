@@ -101,28 +101,93 @@ function initParallaxHero() {
   });
 }
 
-// About page — profile photo crossfades to childhood photos by cursor side,
-// and clicks through to the memory tree.
+// About page — the portrait opens on the childhood photo while a trace-paper
+// flap hides the closing bio lines. Lifting the trace reveals the text and
+// crossfades the portrait to the present day; only then does the memory-tree
+// link arm itself. Once unlocked, cursor position (or a finger swiped across
+// the photo, on touch) picks which childhood photo shows.
 function initMemoryPhoto() {
   var photo = document.querySelector('[data-memory-photo]');
   if (!photo) return;
 
-  function onMove(e) {
+  var reveal = document.querySelector('[data-trace-reveal]');
+  var trace = reveal ? reveal.querySelector('.about__trace') : null;
+  var locked = !!trace && photo.classList.contains('is-locked');
+  if (!trace) photo.classList.remove('is-locked');
+
+  var touchFadeTimer = null;
+
+  function setSide(clientX) {
     var rect = photo.getBoundingClientRect();
-    var isLeft = (e.clientX - rect.left) < rect.width * 0.5;
+    var isLeft = (clientX - rect.left) < rect.width * 0.5;
     photo.classList.toggle('is-young-left', isLeft);
     photo.classList.toggle('is-young-right', !isLeft);
   }
 
-  function onLeave() {
+  function clearSide() {
     photo.classList.remove('is-young-left', 'is-young-right');
+  }
+
+  function onMove(e) {
+    if (locked) return;
+    setSide(e.clientX);
+  }
+
+  function onLeave() {
+    if (locked) return;
+    clearSide();
+  }
+
+  // Touch: swiping a finger across the portrait drives the same crossfade
+  // hover does on desktop; it eases back shortly after the finger lifts.
+  function onTouchMove(e) {
+    if (locked) return;
+    if (e.touches && e.touches.length) {
+      if (touchFadeTimer) {
+        clearTimeout(touchFadeTimer);
+        touchFadeTimer = null;
+      }
+      setSide(e.touches[0].clientX);
+    }
+  }
+
+  function onTouchEnd() {
+    if (locked) return;
+    if (touchFadeTimer) clearTimeout(touchFadeTimer);
+    touchFadeTimer = setTimeout(clearSide, 1200);
+  }
+
+  function onPhotoClick(e) {
+    if (locked) e.preventDefault();
+  }
+
+  function onTraceLift() {
+    locked = false;
+    reveal.classList.add('is-revealed');
+    trace.setAttribute('aria-expanded', 'true');
+    Array.prototype.forEach.call(reveal.querySelectorAll('.about__bio'), function (p) {
+      p.removeAttribute('aria-hidden');
+    });
+    photo.classList.remove('is-locked');
   }
 
   photo.addEventListener('mousemove', onMove, { passive: true });
   photo.addEventListener('mouseleave', onLeave, { passive: true });
+  photo.addEventListener('touchmove', onTouchMove, { passive: true });
+  photo.addEventListener('touchend', onTouchEnd, { passive: true });
+  photo.addEventListener('touchcancel', onTouchEnd, { passive: true });
+  photo.addEventListener('click', onPhotoClick);
+  if (trace) trace.addEventListener('click', onTraceLift, { once: true });
+
   registerProjectPageCleanup(function () {
     photo.removeEventListener('mousemove', onMove);
     photo.removeEventListener('mouseleave', onLeave);
+    photo.removeEventListener('touchmove', onTouchMove);
+    photo.removeEventListener('touchend', onTouchEnd);
+    photo.removeEventListener('touchcancel', onTouchEnd);
+    photo.removeEventListener('click', onPhotoClick);
+    if (trace) trace.removeEventListener('click', onTraceLift);
+    if (touchFadeTimer) clearTimeout(touchFadeTimer);
   });
 }
 

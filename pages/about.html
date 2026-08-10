@@ -9,16 +9,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../src/css/style.css?v=clearing-20260810b">
+  <link rel="stylesheet" href="../src/css/style.css?v=trace-reveal-20260810c">
 </head>
 <body>
   <div class="grain"></div>
   <div data-barba="wrapper">
   <main data-barba="container" data-barba-namespace="about">
   <div class="about">
-    <a href="memory-tree.html" class="about__photo about__photo-link" data-memory-photo aria-label="Open my memory tree">
+    <a href="memory-tree.html" class="about__photo about__photo-link is-locked" data-memory-photo aria-label="Open my memory tree">
       <img src="../assets/images/profile/bryan.webp" alt="Bryan Youn" fetchpriority="high" decoding="async">
-      <img class="about__photo-young about__photo-young--left" src="../assets/images/profile/young-1.jpg" alt="Bryan as a kid" loading="lazy" decoding="async">
+      <img class="about__photo-young about__photo-young--left" src="../assets/images/profile/young-1.jpg" alt="Bryan as a kid, holding a cardboard castle" fetchpriority="high" decoding="async">
       <img class="about__photo-young about__photo-young--right" src="../assets/images/profile/young-2.jpg" alt="Bryan as a kid" loading="lazy" decoding="async">
       <span class="about__photo-hint">my memory tree</span>
     </a>
@@ -28,12 +28,17 @@
       <p class="about__bio">
         Bryan was a kid endlessly curious about architecture and the built environment. He wondered why buildings looked the way they did, how spaces could change the way people felt, and what might exist beyond every wall, window, and door.
       </p>
-      <p class="about__bio">
-        He still does.
-      </p>
-      <p class="about__bio">
-        Only now, he wonders not just why the world looks the way it does, but how else it could.
-      </p>
+      <div class="about__reveal" data-trace-reveal>
+        <p class="about__bio" aria-hidden="true">
+          He still does.
+        </p>
+        <p class="about__bio" aria-hidden="true">
+          Only now, he wonders not just why the world looks the way it does, but how else it could.
+        </p>
+        <button class="about__trace" type="button" aria-expanded="false" aria-label="Lift the trace paper to read the rest">
+          <span class="about__trace-label">lift the trace</span>
+        </button>
+      </div>
       <div class="about__actions">
         <a href="../assets/docs/Bryan-Youn-CV-2026.pdf" class="about__cv-button" download>Download CV</a>
       </div>
@@ -108,7 +113,7 @@
   </div>
   <script src="../src/js/cursor.js?v=memory-gallery-20260728d" defer></script>
   <script src="../src/js/dot-field.js?v=mobile-field-20260810a" defer></script>
-  <script src="../src/js/project-page.js?v=memory-gallery-20260728d" defer></script>
+  <script src="../src/js/project-page.js?v=trace-reveal-20260810c" defer></script>
   <script src="../src/js/transitions.js?v=memory-gallery-20260728d" defer></script>
   <script src="../src/js/moodboard-tree.js?v=moodboard-biggertree-20260601k" defer></script>
 </body>
