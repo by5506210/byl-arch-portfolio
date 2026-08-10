@@ -112,8 +112,12 @@ function initMemoryPhoto() {
 
   var reveal = document.querySelector('[data-trace-reveal]');
   var trace = reveal ? reveal.querySelector('.about__trace') : null;
+  var aboutRoot = document.querySelector('.about');
   var locked = !!trace && photo.classList.contains('is-locked');
-  if (!trace) photo.classList.remove('is-locked');
+  if (!trace) {
+    photo.classList.remove('is-locked');
+    if (aboutRoot) aboutRoot.classList.remove('about--locked');
+  }
 
   var touchFadeTimer = null;
 
@@ -169,6 +173,7 @@ function initMemoryPhoto() {
       p.removeAttribute('aria-hidden');
     });
     photo.classList.remove('is-locked');
+    if (aboutRoot) aboutRoot.classList.remove('about--locked');
   }
 
   photo.addEventListener('mousemove', onMove, { passive: true });

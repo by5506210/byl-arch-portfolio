@@ -3770,6 +3770,25 @@ body:not(.custom-cursor-enabled) .projects-helix--moodboard-hover .projects-heli
   pointer-events: none;
 }
 
+/* Everything below the reveal (CV, education, experience, contact) stays
+   hidden until the trace is lifted; space is reserved so nothing jumps. */
+.about__actions,
+.about__sections {
+  transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.23, 1, 0.32, 1), visibility 0s;
+}
+
+.about__sections {
+  transition-delay: 0.15s, 0.15s, 0s;
+}
+
+.about--locked .about__actions,
+.about--locked .about__sections {
+  opacity: 0;
+  transform: translateY(14px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .about__content {
   padding-top: 0.4rem;
 }
