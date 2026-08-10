@@ -964,7 +964,7 @@
 
     var rawDpr = window.devicePixelRatio || 1;
     var dprCap = this.isContentPage
-      ? (nextIsMobile ? 1.5 : 1.35)
+      ? (nextIsMobile ? (this.isLabPage ? 2 : 1.5) : 1.35)
       : (nextIsMobile ? 1.75 : 1.5);
     var dprFloor = this.lowPowerDevice ? 1 : (this.isContentPage ? 1.2 : 1.35);
     var nextDpr = Math.min(dprCap, Math.max(rawDpr, dprFloor));

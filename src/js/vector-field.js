@@ -339,7 +339,7 @@ function initVectorFieldCanvas() {
 
     var rawDpr = window.devicePixelRatio || 1;
     var dprCap = isContentPage
-      ? (nextIsMobile ? 1.2 : 1)
+      ? (nextIsMobile ? (isLabPage ? 2 : 1.2) : 1)
       : (nextIsMobile ? 1.5 : 1);
     var nextDpr = rawDpr > dprCap ? dprCap : rawDpr;
     var nextBackingScale = nextDpr;

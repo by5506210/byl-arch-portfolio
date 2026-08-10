@@ -6452,8 +6452,12 @@ a.nav-qmark {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--concrete);
+  /* Swiping the field must never scroll or rubber-band the page on touch devices */
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 /* Hidden field layers get visibility:hidden (after the opacity fade) so

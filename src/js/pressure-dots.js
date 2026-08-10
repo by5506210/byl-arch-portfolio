@@ -532,7 +532,7 @@
     var nextFieldHeight = this.resolveFieldHeight();
     var isMobile = nextFieldWidth < 768;
     var rawDpr = window.devicePixelRatio || 1;
-    var dprCap = isMobile ? 1.25 : 1.1;
+    var dprCap = isMobile ? 2 : 1.1;
     var nextDpr = Math.min(rawDpr, dprCap);
     var pixelBudget = 1800000;
     var scaledPixels = nextFieldWidth * nextFieldHeight * nextDpr * nextDpr;
