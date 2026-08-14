@@ -651,9 +651,48 @@ function initProjectsAtlas() {
     }, 1040);
   }
 
+  // The spiral stays hidden (--is-entering) until every photo it renders — the ribbon
+  // source images and the project thumbnails — has finished loading, so it never appears
+  // spinning with empty frames. The timeout is a safety valve: a stalled image can delay
+  // the reveal, but never leave the page blank forever.
+  var HELIX_PHOTO_WAIT_MAX_MS = 12000;
+  var helixPhotosLoadedPromise = null;
+
+  function whenHelixPhotosLoaded() {
+    if (helixPhotosLoadedPromise) return helixPhotosLoadedPromise;
+    var images = Array.prototype.slice.call(helix.querySelectorAll('img'));
+    var waits = images
+      .map(function (img) {
+        // complete + naturalWidth 0 means the image already failed; don't block on it.
+        if (img.complete) return null;
+        return new Promise(function (resolve) {
+          img.addEventListener('load', resolve, { once: true });
+          img.addEventListener('error', resolve, { once: true });
+        });
+      })
+      .filter(Boolean);
+    helixPhotosLoadedPromise = Promise.race([
+      Promise.all(waits),
+      new Promise(function (resolve) {
+        window.setTimeout(resolve, HELIX_PHOTO_WAIT_MAX_MS);
+      })
+    ]);
+    return helixPhotosLoadedPromise;
+  }
+
+  function fireReadyWhenPhotosLoaded() {
+    whenHelixPhotosLoaded().then(function () {
+      if (disposed || !helix.isConnected) return;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(setHelixReadyState);
+      });
+    });
+  }
+
   function scheduleHelixReadyState() {
     if (disposed || entryReadyScheduled) return;
     entryReadyScheduled = true;
+    whenHelixPhotosLoaded();
 
     function releaseReady() {
       if (disposed || entryReadyTimer) return;
@@ -668,9 +707,7 @@ function initProjectsAtlas() {
       entryReadyTimer = window.setTimeout(function () {
         entryReadyTimer = null;
         if (disposed || !helix.isConnected) return;
-        requestAnimationFrame(function () {
-          requestAnimationFrame(setHelixReadyState);
-        });
+        fireReadyWhenPhotosLoaded();
       }, 70);
     }
 
@@ -684,9 +721,7 @@ function initProjectsAtlas() {
     entryReadyTimer = window.setTimeout(function () {
       entryReadyTimer = null;
       if (disposed || !helix.isConnected) return;
-      requestAnimationFrame(function () {
-        requestAnimationFrame(setHelixReadyState);
-      });
+      fireReadyWhenPhotosLoaded();
     }, 70);
   }
 
