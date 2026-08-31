@@ -628,6 +628,33 @@ function initProjectsAtlas() {
   var fallbackRibbonTangentProjection = { x: 0, depth: 0 };
   var hasTouchInput = 'ontouchstart' in window || !!(navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
 
+  // ---- Mobile spiral fit knobs ----
+  // On phones the spinning thumbnails must stay on-screen at the widest point of their
+  // swing: radiusX + anchor arm + half a thumbnail + edge pad <= visible half-width.
+  // These shape HOW the spiral fits that budget without shrinking uniformly.
+  var MOBILE_ANCHOR_ARM = 0.92;       // outward push from thread to photo, world units (desktop: 1.58)
+  var MOBILE_ELLIPSE_X = 0.85;        // side-to-side squash of the orbit (1 = perfect circle)
+  var MOBILE_EDGE_PAD_PX = 10;        // min air between a side thumbnail and the stage edge
+  var MOBILE_HEIGHT_BOOST_MAX = 1.8;  // extra tube height (world units) unlocked on tall screens
+  var MOBILE_RADIUS_X_FLOOR = 1.55;   // world units: never squash the orbit below this, even if it clips
+
+  // Half of the widest thumbnail as it appears at the side of the swing (mid depth, at rest),
+  // plus breathing room — the horizontal overhang the width budget must reserve.
+  function getSideThumbHalfPx(padPx) {
+    var maxThumbW = 0;
+    for (var ti = 0; ti < nodes.length; ti++) {
+      var w = nodes[ti].__helixThumbW || 72;
+      if (w > maxThumbW) maxThumbW = w;
+    }
+    var thumbProfile = getThumbScaleProfile();
+    var nodeProfile = getNodeScaleProfile();
+    var sideDepth = 0.5;
+    var sideScale = thumbProfile.base * thumbProfile.responsive *
+      (1 + sideDepth * thumbProfile.depth) *
+      (nodeProfile.base + sideDepth * nodeProfile.depth);
+    return maxThumbW * sideScale * 0.5 + padPx;
+  }
+
   if (!stage || nodes.length === 0) return;
   helix.classList.remove('projects-helix--ribbon-ready');
   helix.classList.remove('projects-helix--is-ready');
@@ -1831,11 +1858,11 @@ function initProjectsAtlas() {
       return line;
     }
 
-    function ringPoints(radius, y, segments) {
+    function ringPoints(radiusX, radiusZ, y, segments) {
       var points = [];
       for (var i = 0; i <= segments; i++) {
         var angle = (i / segments) * Math.PI * 2;
-        points.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius));
+        points.push(new THREE.Vector3(Math.cos(angle) * radiusX, y, Math.sin(angle) * radiusZ));
       }
       return points;
     }
@@ -2026,9 +2053,9 @@ function initProjectsAtlas() {
         var u = i / stripSegments;
         var t = config.startT + (config.endT - config.startT) * u;
         var theta = config.startAngle + t * Math.PI * 2 + config.phaseShift;
-        var centerX = Math.sin(theta) * config.radius;
+        var centerX = Math.sin(theta) * config.radiusX;
         var centerY = (0.5 - t) * config.height;
-        var centerZ = Math.cos(theta) * config.radius;
+        var centerZ = Math.cos(theta) * config.radiusZ;
         var radialX = Math.sin(theta);
         var radialZ = Math.cos(theta);
         var edgeTilt = Math.sin(theta * 1.35) * config.tilt;
@@ -2299,8 +2326,36 @@ function initProjectsAtlas() {
       var helixRadius = isMobile
         ? Math.max(2.45, Math.min(3.35, 2.85 + (width - 390) / 380))
         : Math.max(4.6, Math.min(6.8, 5.2 + (width - 980) / 380));
-      var ribbonRadius = helixRadius * (isMobile ? 0.78 : 0.72);
+      var anchorArm = isMobile ? MOBILE_ANCHOR_ARM : 1.58;
+      var helixRadiusX = helixRadius;
+      var helixRadiusZ = helixRadius;
       var helixHeight = isMobile ? 6.7 : 10.2;
+
+      if (isMobile) {
+        // Width budget: at the side of the swing a thumbnail's center sits at
+        // radiusX + arm from the axis, and half the photo sticks out past that.
+        // Solve for the radius that keeps all of it on-screen. `height` here is the
+        // canvas (stage + top bleed); world scale is referenced to the stage alone.
+        var stageHeightPx = Math.max(1, height - canvasTopBleed);
+        var worldPerPx = frustumSize / stageHeightPx;
+        var visibleHalfWorld = width * 0.5 * worldPerPx;
+        var sideThumbHalfWorld = getSideThumbHalfPx(MOBILE_EDGE_PAD_PX) * worldPerPx;
+        var maxAnchorReach = visibleHalfWorld - sideThumbHalfWorld;
+        helixRadiusX = Math.min(
+          helixRadius * MOBILE_ELLIPSE_X,
+          Math.max(MOBILE_RADIUS_X_FLOOR, maxAnchorReach - anchorArm)
+        );
+
+        // Tall screens: spend the extra room on tube height instead of width. No boost
+        // at tablet portrait proportions (h/w = 1.35), full boost by phone proportions
+        // (h/w = 2.05) — the spiral reads bigger without swinging any wider.
+        var tallness = clamp((stageHeightPx / Math.max(1, width) - 1.35) / 0.7, 0, 1);
+        helixHeight += tallness * MOBILE_HEIGHT_BOOST_MAX;
+      }
+
+      var ribbonRadiusScale = isMobile ? 0.78 : 0.72;
+      var ribbonRadiusX = helixRadiusX * ribbonRadiusScale;
+      var ribbonRadiusZ = helixRadiusZ * ribbonRadiusScale;
       transitionHelixHeight = helixHeight;
       transitionIsMobile = isMobile;
       var ringSegments = performanceProfile.ringSegments;
@@ -2324,17 +2379,17 @@ function initProjectsAtlas() {
       );
 
       addLine(
-        ringPoints(helixRadius, helixHeight * 0.5, ringSegments),
+        ringPoints(helixRadiusX, helixRadiusZ, helixHeight * 0.5, ringSegments),
         new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.045 }),
         false
       );
       addLine(
-        ringPoints(helixRadius, 0, ringSegments),
+        ringPoints(helixRadiusX, helixRadiusZ, 0, ringSegments),
         new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.025 }),
         false
       );
       addLine(
-        ringPoints(helixRadius, -helixHeight * 0.5, ringSegments),
+        ringPoints(helixRadiusX, helixRadiusZ, -helixHeight * 0.5, ringSegments),
         new THREE.LineBasicMaterial({ color: 0x11110f, transparent: true, opacity: 0.045 }),
         false
       );
@@ -2343,9 +2398,9 @@ function initProjectsAtlas() {
         var t = i / threadSegments;
         var theta = startAngle + t * Math.PI * 2;
         threadPoints.push(new THREE.Vector3(
-          Math.sin(theta) * helixRadius,
+          Math.sin(theta) * helixRadiusX,
           (0.5 - t) * helixHeight,
-          Math.cos(theta) * helixRadius
+          Math.cos(theta) * helixRadiusZ
         ));
       }
       threadHitSourcePoints = threadPoints;
@@ -2357,7 +2412,8 @@ function initProjectsAtlas() {
       );
 
       var ribbonMesh = createRibbonStripMesh({
-        radius: ribbonRadius,
+        radiusX: ribbonRadiusX,
+        radiusZ: ribbonRadiusZ,
         height: helixHeight,
         startAngle: startAngle,
         phaseShift: ribbonPhaseShift,
@@ -2392,9 +2448,9 @@ function initProjectsAtlas() {
         var progress = total === 1 ? 0.5 : index / (total - 1);
         var angle = startAngle + progress * Math.PI * 2;
         var point = new THREE.Vector3(
-          Math.sin(angle) * helixRadius,
+          Math.sin(angle) * helixRadiusX,
           (0.5 - progress) * helixHeight,
-          Math.cos(angle) * helixRadius
+          Math.cos(angle) * helixRadiusZ
         );
         var radial = new THREE.Vector3(point.x, 0, point.z);
         if (radial.lengthSq() < 0.0001) {
@@ -2402,7 +2458,7 @@ function initProjectsAtlas() {
         } else {
           radial.normalize();
         }
-        var anchor = point.clone().add(radial.multiplyScalar(1.58));
+        var anchor = point.clone().add(radial.multiplyScalar(anchorArm));
 
         if (dotMesh) {
           tempDotMatrix.makeTranslation(point.x, point.y, point.z);
@@ -3066,6 +3122,12 @@ function initProjectsAtlas() {
     var topY = height * (isMobile ? 0.19 : 0.14);
     var loopHeight = height * (isMobile ? 0.62 : 0.72);
     var radiusX = isMobile ? Math.min(width * 0.3, 220) : Math.min(width * 0.47, 560);
+    if (isMobile) {
+      // Same width budget as the WebGL spiral: the side thumbnail (its 44-58px connector
+      // arm plus half the photo) must land inside the stage, so cap the orbit radius.
+      var fallbackMaxReach = width * 0.5 - 58 - getSideThumbHalfPx(MOBILE_EDGE_PAD_PX);
+      radiusX = Math.min(radiusX, Math.max(70, fallbackMaxReach));
+    }
     var orbitRadiusY = isMobile
       ? Math.max(10, Math.min(height * 0.045, 20))
       : Math.max(14, Math.min(height * 0.07, 34));
