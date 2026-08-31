@@ -131,33 +131,35 @@ function initVectorFieldCanvas() {
   var isMobile = window.innerWidth < 768;
 
   function resolveFieldMetrics() {
+    // Mobile uses the same cell size and dash as desktop on purpose: the field
+    // should breathe the same on a phone as on PC (it used to pack ~2x denser).
     if (isContactPage) {
       return {
-        spacing: isMobile ? 18 : 24,
-        lineLen: isMobile ? 11 : 14,
-        lineWidth: isMobile ? 1.15 : 1.35
+        spacing: 24,
+        lineLen: 14,
+        lineWidth: 1.35
       };
     }
 
     if (isContentPage) {
       if (isLabPage) {
         return {
-          spacing: isMobile ? 16 : 24,
-          lineLen: isMobile ? 11 : 16,
-          lineWidth: isMobile ? 1.2 : 1.7
+          spacing: 24,
+          lineLen: 16,
+          lineWidth: 1.7
         };
       }
       return {
-        spacing: isMobile ? 20 : 30,
+        spacing: 30,
         lineLen: 9,
         lineWidth: 0.8
       };
     }
 
     return {
-      spacing: isMobile ? 16 : 24,
-      lineLen: isMobile ? 11 : 16,
-      lineWidth: isMobile ? 1.2 : 1.7
+      spacing: 24,
+      lineLen: 16,
+      lineWidth: 1.7
     };
   }
 
