@@ -884,13 +884,14 @@
   };
 
   WebGLVectorField.prototype.resolveFieldMetrics = function () {
-    // Mobile uses the same cell size and dash as desktop on purpose: the field
-    // should breathe the same on a phone as on PC (it used to pack ~2x denser).
+    // Mobile keeps desktop-like AIR between dashes (spacing) but phone-sized
+    // dashes (lineLen/lineWidth) — big gaps with small marks, not a zoomed-in
+    // copy of the desktop field.
     if (this.isContactPage) {
       return {
-        spacing: 24,
-        lineLen: 14,
-        lineWidth: 1.35
+        spacing: this.isMobile ? 22 : 24,
+        lineLen: this.isMobile ? 11 : 14,
+        lineWidth: this.isMobile ? 1.15 : 1.35
       };
     }
 
@@ -899,22 +900,22 @@
       // gets landing-tier dash sizes instead of the faint content styling.
       if (this.isLabPage) {
         return {
-          spacing: 24,
-          lineLen: 16,
-          lineWidth: 1.7
+          spacing: this.isMobile ? 23 : 24,
+          lineLen: this.isMobile ? 11 : 16,
+          lineWidth: this.isMobile ? 1.2 : 1.7
         };
       }
       return {
-        spacing: 30,
+        spacing: this.isMobile ? 26 : 30,
         lineLen: 9,
         lineWidth: 0.8
       };
     }
 
     return {
-      spacing: 24,
-      lineLen: 16,
-      lineWidth: 1.7
+      spacing: this.isMobile ? 23 : 24,
+      lineLen: this.isMobile ? 11 : 16,
+      lineWidth: this.isMobile ? 1.2 : 1.7
     };
   };
 
