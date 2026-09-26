@@ -192,8 +192,15 @@ img {
    LANDING PAGE
    ============================================ */
 .landing {
-  --landing-reveal-x: 50%;
-  --landing-reveal-y: 50%;
+  /* Centre of the VISIBLE part of the box, published by the vector field
+     (_vfSyncLandingFrame). In-app browsers can make 100dvh taller than the
+     screen, so plain 50% would sit below the field's glow. */
+  --landing-cx: 50%;
+  --landing-cy: 50%;
+  --landing-egg-x: 82%;
+  --landing-egg-y: 78%;
+  --landing-reveal-x: var(--landing-cx);
+  --landing-reveal-y: var(--landing-cy);
   --landing-reveal-radius: 0px;
   --landing-reveal-progress: 0;
   position: fixed;
@@ -285,8 +292,8 @@ img {
   --portal-proximity: 0;
   --portal-size: 108px;
   position: fixed;
-  top: 50%;
-  left: 50%;
+  top: var(--landing-cy, 50%);
+  left: var(--landing-cx, 50%);
   transform: translate(-50%, -50%);
   width: var(--portal-size);
   height: var(--portal-size);
@@ -486,8 +493,8 @@ img {
 .landing__easter-egg {
   --easter-charge: 0;
   position: fixed;
-  top: 78%;
-  left: 82%;
+  top: var(--landing-egg-y, 78%);
+  left: var(--landing-egg-x, 82%);
   transform: translate(-50%, -50%);
   width: 30px;
   height: 30px;

@@ -582,6 +582,7 @@
     this.isContentPage = !this.isLandingPage;
     this.isContactPage = this.isContentPage && !!document.querySelector('.contact-page');
     this.isLabPage = this.isContentPage && !!document.querySelector('.field-lab-page');
+    this.landing = this.isLandingPage ? document.getElementById('landing') : null;
     this.portal = this.isLandingPage ? document.getElementById('landing-portal') : null;
     this.easterEgg = this.isLandingPage ? document.getElementById('easter-egg-portal') : null;
     this.contactPulseAnchor = this.isContactPage ? document.querySelector('.contact-page__card') : null;
@@ -716,6 +717,7 @@
     this.resizeHandler = this.scheduleResize.bind(this);
     this.hiddenHandler = null;
     this.landingObserver = null;
+    this.unwatchLanding = null;
     // Cache the rAF callback so we don't allocate a new bound function every frame.
     this.boundAnimate = this.animate.bind(this);
     // Cached contact-pulse center (page coords), recomputed on resize rather than
@@ -845,6 +847,9 @@
     var self = this;
 
     window.addEventListener('resize', this.resizeHandler);
+    if (this.landing && typeof window._vfWatchLandingViewport === 'function') {
+      this.unwatchLanding = window._vfWatchLandingViewport(this.landing, this.resizeHandler);
+    }
 
     this.canvas.addEventListener('webglcontextlost', function (event) {
       event.preventDefault();
@@ -877,6 +882,8 @@
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = null;
     window.removeEventListener('resize', this.resizeHandler);
+    if (this.unwatchLanding) this.unwatchLanding();
+    this.unwatchLanding = null;
     if (this.resizeFrame) cancelAnimationFrame(this.resizeFrame);
     this.resizeFrame = null;
     if (this.landingObserver) this.landingObserver.disconnect();
@@ -950,10 +957,17 @@
   WebGLVectorField.prototype.resize = function () {
     this.contactPulseDirty = true;
     var parent = this.canvas.parentElement;
-    var nextFieldWidth = window.innerWidth;
-    var nextFieldHeight = this.isLandingPage
-      ? window.innerHeight
-      : Math.max(window.innerHeight, parent ? parent.scrollHeight : window.innerHeight);
+    // The landing fills its whole box but centres on the visible part of it —
+    // see _vfSyncLandingFrame in vector-field.js.
+    var landingFrame = this.isLandingPage && typeof window._vfSyncLandingFrame === 'function'
+      ? window._vfSyncLandingFrame(this.landing)
+      : null;
+    var nextFieldWidth = landingFrame ? Math.ceil(landingFrame.width) : window.innerWidth;
+    var nextFieldHeight = landingFrame
+      ? Math.ceil(landingFrame.height)
+      : (this.isLandingPage
+        ? window.innerHeight
+        : Math.max(window.innerHeight, parent ? parent.scrollHeight : window.innerHeight));
     var nextIsMobile = nextFieldWidth < 768;
 
     if (
@@ -986,12 +1000,14 @@
     this.isMobile = nextIsMobile;
     this.dpr = nextDpr;
     this.backingScale = nextBackingScale;
-    this.centerX = this.fieldWidth / 2;
-    this.centerY = this.fieldHeight / 2;
-    this.easterEggX = this.fieldWidth * 0.82;
-    this.easterEggY = this.isLandingPage ? this.fieldHeight * 0.78 : window.innerHeight * 0.78;
+    this.centerX = landingFrame ? landingFrame.centerX : this.fieldWidth / 2;
+    this.centerY = landingFrame ? landingFrame.centerY : this.fieldHeight / 2;
+    this.easterEggX = landingFrame ? landingFrame.eggX : this.fieldWidth * 0.82;
+    this.easterEggY = landingFrame
+      ? landingFrame.eggY
+      : (this.isLandingPage ? this.fieldHeight * 0.78 : window.innerHeight * 0.78);
     this.gravityStrength = this.isMobile && this.isLandingPage ? 0.25 : 0;
-    this.maxGravityDistance = Math.max(this.fieldWidth, window.innerHeight) * 0.6;
+    this.maxGravityDistance = Math.max(this.fieldWidth, landingFrame ? landingFrame.visibleHeight : window.innerHeight) * 0.6;
     this.rippleMaxRadius = Math.max(this.fieldWidth, this.fieldHeight) * 0.8;
     this.minFrameMs = this.resolveFrameInterval();
     this.applyResponsiveFieldSizing();

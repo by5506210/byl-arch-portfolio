@@ -22,6 +22,8 @@ var _vfLabPulse = null;
 // active exhibit. Mirrors the WebGL renderer's setPaused.
 var _vfPaused = false;
 var _vfResume = null;
+// Tears down the landing's extra viewport watchers (see _vfWatchLandingViewport).
+var _vfUnwatchLanding = null;
 
 function _vfRegisterScroll(delta) {
   if (!delta || Math.abs(delta) < 0.5) return;
@@ -29,6 +31,99 @@ function _vfRegisterScroll(delta) {
   _vfScrollDirection = delta > 0 ? 1 : -1;
   _vfScrollKick = 1;
 }
+
+// Landing frame — the one measurement every centred landing element reads.
+// In-app browsers (Instagram, Facebook) can lay the fixed 100dvh .landing
+// box out taller than what is really on screen: the webview runs under a
+// toolbar or past the bottom edge, and innerHeight agrees with neither.
+// The field still fills the whole box, but the glow, the orb, the reveal and
+// the easter egg all sit in the part that is actually visible, so the CSS
+// and the renderers can never drift apart again.
+var _vfLandingFrame = null;
+
+function _vfSyncLandingFrame(landing) {
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+  if (landing) {
+    var rect = landing.getBoundingClientRect();
+    if (rect.width >= 1 && rect.height >= 1) {
+      width = rect.width;
+      height = rect.height;
+    }
+  }
+
+  var visibleHeight = Math.min(height, window.innerHeight || height);
+  var vv = window.visualViewport;
+  if (vv && vv.height > 0 && Math.abs(vv.scale - 1) < 0.01) {
+    visibleHeight = Math.min(visibleHeight, vv.height);
+  }
+  // A reading this far off is a transient (mid-rotation, keyboard), not a
+  // toolbar — keep the whole box rather than yank everything upward.
+  if (!(visibleHeight >= height * 0.6)) visibleHeight = height;
+
+  var frame = {
+    width: width,
+    height: height,
+    visibleHeight: visibleHeight,
+    centerX: width * 0.5,
+    centerY: visibleHeight * 0.5,
+    eggX: width * 0.82,
+    eggY: visibleHeight * 0.78
+  };
+  _vfLandingFrame = frame;
+
+  if (landing) {
+    _vfSetLandingVar(landing, '--landing-cx', frame.centerX);
+    _vfSetLandingVar(landing, '--landing-cy', frame.centerY);
+    _vfSetLandingVar(landing, '--landing-egg-x', frame.eggX);
+    _vfSetLandingVar(landing, '--landing-egg-y', frame.eggY);
+  }
+  return frame;
+}
+
+function _vfSetLandingVar(landing, name, px) {
+  var value = px.toFixed(2) + 'px';
+  if (landing.style.getPropertyValue(name) !== value) {
+    landing.style.setProperty(name, value);
+  }
+}
+
+window._vfSyncLandingFrame = _vfSyncLandingFrame;
+window.getLandingFrame = function () {
+  return _vfLandingFrame || _vfSyncLandingFrame(document.getElementById('landing'));
+};
+
+// In-app webviews settle their size after load — often without a resize
+// event — so the landing also re-measures on every other signal a viewport
+// change can surface through, plus a short settle burst. Returns an unwatch.
+function _vfWatchLandingViewport(landing, onChange) {
+  var vv = window.visualViewport;
+  var observer = null;
+  var timers = [];
+
+  if (vv) vv.addEventListener('resize', onChange);
+  window.addEventListener('orientationchange', onChange);
+  window.addEventListener('pageshow', onChange);
+  window.addEventListener('load', onChange);
+  if (landing && typeof ResizeObserver !== 'undefined') {
+    observer = new ResizeObserver(function () { onChange(); });
+    observer.observe(landing);
+  }
+  [120, 300, 600, 1200, 2400].forEach(function (ms) {
+    timers.push(setTimeout(onChange, ms));
+  });
+
+  return function () {
+    if (vv) vv.removeEventListener('resize', onChange);
+    window.removeEventListener('orientationchange', onChange);
+    window.removeEventListener('pageshow', onChange);
+    window.removeEventListener('load', onChange);
+    if (observer) observer.disconnect();
+    timers.forEach(clearTimeout);
+  };
+}
+
+window._vfWatchLandingViewport = _vfWatchLandingViewport;
 
 function _vfAttachListeners() {
   if (_vfListenersAttached) return;
@@ -80,7 +175,8 @@ function initVectorFieldCanvas() {
   if (canvas.getAttribute('data-field') === 'dots') return;
   canvas.setAttribute('data-renderer', 'canvas');
 
-  var isLandingPage = !!document.getElementById('landing');
+  var landingEl = document.getElementById('landing');
+  var isLandingPage = !!landingEl;
   if (isLandingPage && window.location.hash === '#portfolio') {
     canvas.style.display = 'none';
     return;
@@ -91,6 +187,10 @@ function initVectorFieldCanvas() {
 
   if (_vfResizeHandler) {
     window.removeEventListener('resize', _vfResizeHandler);
+  }
+  if (_vfUnwatchLanding) {
+    _vfUnwatchLanding();
+    _vfUnwatchLanding = null;
   }
 
   _vfAttachListeners();
@@ -326,9 +426,10 @@ function initVectorFieldCanvas() {
 
   function resize() {
     var parent = canvas.parentElement;
-    var nextFieldWidth = window.innerWidth;
-    var nextFieldHeight = isLandingPage
-      ? window.innerHeight
+    var landingFrame = isLandingPage ? _vfSyncLandingFrame(landingEl) : null;
+    var nextFieldWidth = landingFrame ? Math.ceil(landingFrame.width) : window.innerWidth;
+    var nextFieldHeight = landingFrame
+      ? Math.ceil(landingFrame.height)
       : _max(window.innerHeight, parent ? parent.scrollHeight : window.innerHeight);
     var nextIsMobile = nextFieldWidth < 768;
     if (
@@ -367,7 +468,19 @@ function initVectorFieldCanvas() {
       canvasHeight !== lastCanvasHeight ||
       fieldWidth !== lastFieldWidth ||
       fieldHeight !== lastFieldHeight;
-    var gridChanged = sizeChanged || Math.abs(spacing - lastSpacing) > 0.01;
+    var nextCenterX = landingFrame ? landingFrame.centerX : fieldWidth / 2;
+    var nextCenterY = landingFrame ? landingFrame.centerY : fieldHeight / 2;
+    var nextEasterEggY = landingFrame ? landingFrame.eggY : window.innerHeight * 0.78;
+    // buildGrid bakes each particle's pull toward the centre and the easter
+    // egg, so a centre that moves on its own (the landing frame settling)
+    // needs a fresh grid too.
+    var gridChanged = sizeChanged ||
+      Math.abs(spacing - lastSpacing) > 0.01 ||
+      (!!landingFrame && (
+        Math.abs(nextCenterX - centerX) > 0.5 ||
+        Math.abs(nextCenterY - centerY) > 0.5 ||
+        Math.abs(nextEasterEggY - easterEggY) > 0.5
+      ));
 
     if (sizeChanged) {
       canvas.width = canvasWidth;
@@ -381,12 +494,12 @@ function initVectorFieldCanvas() {
     }
 
     ctx.setTransform(backingScale, 0, 0, backingScale, 0, 0);
-    centerX = fieldWidth / 2;
-    centerY = fieldHeight / 2;
-    easterEggX = fieldWidth * 0.82;
-    easterEggY = isLandingPage ? fieldHeight * 0.78 : window.innerHeight * 0.78;
+    centerX = nextCenterX;
+    centerY = nextCenterY;
+    easterEggX = landingFrame ? landingFrame.eggX : fieldWidth * 0.82;
+    easterEggY = nextEasterEggY;
     gravityStrength = isMobile && isLandingPage ? 0.25 : 0;
-    maxGravityDistance = _max(fieldWidth, window.innerHeight) * 0.6;
+    maxGravityDistance = _max(fieldWidth, landingFrame ? landingFrame.visibleHeight : window.innerHeight) * 0.6;
     rippleMaxRadius = Math.max(fieldWidth, fieldHeight) * 0.8;
     minFrameMs = resolveFrameInterval();
     contactPulseDirty = true;
@@ -1614,6 +1727,7 @@ function initVectorFieldCanvas() {
 
   _vfResizeHandler = scheduleResize;
   window.addEventListener('resize', scheduleResize);
+  if (isLandingPage) _vfUnwatchLanding = _vfWatchLandingViewport(landingEl, scheduleResize);
   resize();
   _vfPaused = false;
   _vfResume = function () {
@@ -1638,6 +1752,10 @@ function initVectorFieldCanvas() {
           if (landing.style.display === 'none') {
             _vectorFieldInstanceId++;
             observer.disconnect();
+            if (_vfUnwatchLanding) {
+              _vfUnwatchLanding();
+              _vfUnwatchLanding = null;
+            }
           }
         }
       });

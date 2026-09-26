@@ -257,9 +257,21 @@
     }
   }
 
+  // The reveal opens on the field's centre, which the vector field publishes
+  // (window.getLandingFrame). The CSS mask already follows it through
+  // --landing-cx/--landing-cy, so only the radius is set here.
+  function currentLandingFrame() {
+    if (typeof window.getLandingFrame === 'function') return window.getLandingFrame();
+    return {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      centerX: window.innerWidth * 0.5,
+      centerY: window.innerHeight * 0.5
+    };
+  }
+
   function setRevealState(radius, progress) {
-    landing.style.setProperty('--landing-reveal-x', '50%');
-    landing.style.setProperty('--landing-reveal-y', '50%');
+    var frame = currentLandingFrame();
     landing.style.setProperty('--landing-reveal-radius', radius.toFixed(2) + 'px');
     landing.style.setProperty('--landing-reveal-progress', progress.toFixed(4));
 
@@ -274,8 +286,8 @@
     if (typeof window.setDotFieldTransition === 'function') {
       window.setDotFieldTransition({
         active: true,
-        x: window.innerWidth * 0.5,
-        y: window.innerHeight * 0.5,
+        x: frame.centerX,
+        y: frame.centerY,
         radius: radius,
         progress: progress
       });
@@ -283,16 +295,17 @@
   }
 
   function clearRevealState() {
-    landing.style.removeProperty('--landing-reveal-x');
-    landing.style.removeProperty('--landing-reveal-y');
     landing.style.removeProperty('--landing-reveal-radius');
     landing.style.removeProperty('--landing-reveal-progress');
   }
 
+  // Far enough to clear the box corner farthest from the (possibly
+  // off-middle) centre.
   function getMaxRevealRadius() {
-    var halfW = window.innerWidth * 0.5;
-    var halfH = window.innerHeight * 0.5;
-    return Math.sqrt(halfW * halfW + halfH * halfH) + 120;
+    var frame = currentLandingFrame();
+    var reachX = Math.max(frame.centerX, frame.width - frame.centerX);
+    var reachY = Math.max(frame.centerY, frame.height - frame.centerY);
+    return Math.sqrt(reachX * reachX + reachY * reachY) + 120;
   }
 
   function easeReveal(t) {
