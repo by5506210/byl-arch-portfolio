@@ -52,10 +52,15 @@ function _vfSyncLandingFrame(landing) {
     }
   }
 
-  var visibleHeight = Math.min(height, window.innerHeight || height);
+  var visibleHeight;
   var vv = window.visualViewport;
-  if (vv && vv.height > 0 && Math.abs(vv.scale - 1) < 0.01) {
-    visibleHeight = Math.min(visibleHeight, vv.height);
+  if (vv && Math.abs(vv.scale - 1) >= 0.01) {
+    // Pinch-zoom (a trackpad can still pinch the landing) shrinks innerHeight
+    // and vv.height with the zoom, not the screen — hold the last reading.
+    visibleHeight = _vfLandingFrame ? Math.min(height, _vfLandingFrame.visibleHeight) : height;
+  } else {
+    visibleHeight = Math.min(height, window.innerHeight || height);
+    if (vv && vv.height > 0) visibleHeight = Math.min(visibleHeight, vv.height);
   }
   // A reading this far off is a transient (mid-rotation, keyboard), not a
   // toolbar — keep the whole box rather than yank everything upward.
