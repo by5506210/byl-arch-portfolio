@@ -5316,6 +5316,36 @@ body:has(.contact-page) {
   font-weight: 400;
 }
 
+/* Teaser (coming-soon) project page: single centred text column under the hero */
+.project-details--teaser {
+  grid-template-columns: minmax(0, 640px);
+  justify-content: center;
+}
+
+.project-details__title-native {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.55em;
+  letter-spacing: 0.2em;
+  color: var(--dark-gray);
+}
+
+.project-details--teaser .project-details__description + .project-details__description {
+  margin-top: 1.1rem;
+}
+
+.project-teaser__label {
+  display: inline-block;
+  margin-top: 2.5rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--dark-gray);
+}
+
 .project-details__drawing--placeholder {
   display: flex;
   align-items: center;
